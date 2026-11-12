@@ -16,9 +16,13 @@ import {
 
 const CACHE_TTL_MS = 1000 * 60 * 60 * 6; // 6 hours
 
-function getServerSupabaseClient() {
+function getServerSupabaseClient({ requireServiceRole = false } = {}) {
   const url = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
-  const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  const key = requireServiceRole
+    ? String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim()
+    : String(
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
+      ).trim();
 
   if (!url || !key || !url.startsWith('https://')) {
     return null;
@@ -110,16 +114,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // 2) Fetch live NASA DONKI using server-only NASA_API_KEY
-    const nasaApiKey = String(process.env.NASA_API_KEY || '').trim();
-    if (!nasaApiKey) {
-      logSecurityEvent('donki_missing_nasa_key', { start, end });
-      return res.status(502).json({
-        source: 'error',
-        error: 'Live space-weather feed unavailable; use bundled snapshot fallback.',
-        events: [],
-      });
-    }
+    // 2) Fetch live NASA DONKI using server-only NASA_API_KEY (or rate-limited DEMO_KEY fallback)
+    const nasaApiKey = String(process.env.NASA_API_KEY || 'DEMO_KEY').trim();
 
     const flrUrl = new URL('https://api.nasa.gov/DONKI/FLR');
     flrUrl.searchParams.set('startDate', start);

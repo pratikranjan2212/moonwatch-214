@@ -17,9 +17,13 @@ import {
   validateRunSubmission,
 } from './_security.js';
 
-function getServerSupabaseClient() {
+function getServerSupabaseClient({ requireServiceRole = false } = {}) {
   const url = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
-  const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  const key = requireServiceRole
+    ? String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim()
+    : String(
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
+      ).trim();
 
   if (!url || !key || !url.startsWith('https://')) {
     return null;
@@ -132,18 +136,19 @@ export default async function handler(req, res) {
     try {
       const supabase = getServerSupabaseClient();
 
-      // If caller requests a specific client_id's runs, enforce anti-IDOR ownership check
+      // If caller requests a specific client_id's runs, enforce anti-IDOR ownership check and require service_role key
       if (requestedClientId !== undefined) {
         const ownership = requireClientOwnership(req, String(requestedClientId));
         if (!ownership.ok) {
           return res.status(ownership.status || 403).json({ error: ownership.error });
         }
 
-        if (!supabase) {
+        const privilegedSupabase = getServerSupabaseClient({ requireServiceRole: true });
+        if (!privilegedSupabase) {
           return res.status(200).json({ runs: [] });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await privilegedSupabase
           .from('runs')
           .select('level, seed, event_source, outcome, sols_survived, primary_cause, created_at')
           .eq('client_id', ownership.callerClientId)
