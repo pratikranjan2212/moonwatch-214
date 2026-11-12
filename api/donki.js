@@ -114,8 +114,16 @@ export default async function handler(req, res) {
       }
     }
 
-    // 2) Fetch live NASA DONKI using server-only NASA_API_KEY (or rate-limited DEMO_KEY fallback)
-    const nasaApiKey = String(process.env.NASA_API_KEY || 'DEMO_KEY').trim();
+    // 2) Fetch live NASA DONKI using server-only NASA_API_KEY
+    const nasaApiKey = String(process.env.NASA_API_KEY || '').trim();
+    if (!nasaApiKey) {
+      logSecurityEvent('donki_missing_nasa_key', { start, end });
+      return res.status(502).json({
+        source: 'error',
+        error: 'Live space-weather feed unavailable; use bundled snapshot fallback.',
+        events: [],
+      });
+    }
 
     const flrUrl = new URL('https://api.nasa.gov/DONKI/FLR');
     flrUrl.searchParams.set('startDate', start);

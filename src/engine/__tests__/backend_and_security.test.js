@@ -253,6 +253,18 @@ describe('Step 8d — Production Security Areas 1 to 6', () => {
   });
 
   it('Area 5 (Rate Limiting, Body Size & Bot Protection): returns 429 + Retry-After and rejects bots', async () => {
+    // Keep this test hermetic: no real Supabase or NASA calls
+    for (const key of [
+      'SUPABASE_URL',
+      'VITE_SUPABASE_URL',
+      'SUPABASE_SERVICE_ROLE_KEY',
+      'VITE_SUPABASE_ANON_KEY',
+      'NASA_API_KEY',
+    ]) {
+      vi.stubEnv(key, '');
+    }
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+
     const req = {
       method: 'GET',
       headers: { 'x-forwarded-for': '203.0.113.55' },
@@ -269,6 +281,9 @@ describe('Step 8d — Production Security Areas 1 to 6', () => {
 
     expect(checkBotHoneypot({ website: 'http://spam.example' }).isBot).toBe(true);
     expect(enforceBodySizeLimit({ headers: { 'content-length': '99999' } }, 4096).ok).toBe(false);
+
+    fetchSpy.mockRestore();
+    vi.unstubAllEnvs();
   });
 
   it('Area 6 (Input Validation & SSRF Prevention): rejects SQLi/XSS/traversal and untrusted outbound hosts', async () => {
