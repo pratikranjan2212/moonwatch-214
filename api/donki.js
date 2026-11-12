@@ -150,21 +150,24 @@ export default async function handler(req, res) {
 
     // 3) Store normalized payload in Supabase `donki_cache` if service role key is present
     if (supabase && process.env.SUPABASE_SERVICE_ROLE_KEY && events.length > 0) {
-      await supabase
-        .from('donki_cache')
-        .upsert(
-          [
-            {
-              event_type: 'FLR',
-              event_key: cacheKey,
-              start_time: `${start}T00:00:00Z`,
-              payload: { start, end, events },
-              fetched_at: new Date().toISOString(),
-            },
-          ],
-          { onConflict: 'event_key' }
-        )
-        .catch(() => null);
+      try {
+        await supabase
+          .from('donki_cache')
+          .upsert(
+            [
+              {
+                event_type: 'FLR',
+                event_key: cacheKey,
+                start_time: `${start}T00:00:00Z`,
+                payload: { start, end, events },
+                fetched_at: new Date().toISOString(),
+              },
+            ],
+            { onConflict: 'event_key' }
+          );
+      } catch {
+        // Cache upsert failure is non-fatal
+      }
     }
 
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
