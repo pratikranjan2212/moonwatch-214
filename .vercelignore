@@ -1,0 +1,8 @@
+node_modules
+Backend
+Frontend
+Projects
+.git
+.env
+.env.*
+!.env.example
