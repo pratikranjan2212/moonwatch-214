@@ -1,0 +1,68 @@
+{
+  "id": "st-patricks-2015",
+  "title": "March 2015 St. Patrick's Day Storm (AR 12297)",
+  "period": {
+    "start": "2015-03-11",
+    "end": "2015-03-18"
+  },
+  "flr": [
+    {
+      "flrID": "2015-03-11T16:11:00-FLR-001",
+      "instruments": [{ "displayName": "GOES-15: XRS 1.0-8.0" }],
+      "beginTime": "2015-03-11T16:11Z",
+      "peakTime": "2015-03-11T16:22Z",
+      "endTime": "2015-03-11T16:29Z",
+      "classType": "X2.1",
+      "sourceLocation": "S17E22",
+      "activeRegionNum": 12297,
+      "note": "Impulsive X2.1 flare from Active Region 12297.",
+      "submissionTime": "2015-03-11T17:00Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/12297-1/-1",
+      "linkedEvents": []
+    },
+    {
+      "flrID": "2015-03-15T01:15:00-FLR-001",
+      "instruments": [{ "displayName": "GOES-15: XRS 1.0-8.0" }],
+      "beginTime": "2015-03-15T01:15Z",
+      "peakTime": "2015-03-15T02:13Z",
+      "endTime": "2015-03-15T02:40Z",
+      "classType": "C9.1",
+      "sourceLocation": "S22W25",
+      "activeRegionNum": 12297,
+      "note": "Long-duration C9.1 eruptive flare launching the St. Patrick's Day CME.",
+      "submissionTime": "2015-03-15T03:10Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/12297-2/-1",
+      "linkedEvents": [{ "activityID": "2015-03-15T01:48:00-CME-001" }]
+    }
+  ],
+  "cme": [
+    {
+      "activityID": "2015-03-15T01:48:00-CME-001",
+      "catalog": "M2M_CATALOG",
+      "startTime": "2015-03-15T01:48Z",
+      "instruments": [{ "displayName": "SOHO: LASCO/C2" }, { "displayName": "SOHO: LASCO/C3" }],
+      "sourceLocation": "S22W25",
+      "activeRegionNum": 12297,
+      "note": "Partial halo C-type CME that triggered the March 17, 2015 G4 geomagnetic storm.",
+      "submissionTime": "2015-03-15T04:00Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/CME/12297-cme1/-1",
+      "cmeAnalyses": [
+        {
+          "isMostAccurate": true,
+          "time21_5": "2015-03-15T05:30Z",
+          "latitude": -18.0,
+          "longitude": 24.0,
+          "halfAngle": 45.0,
+          "speed": 768.0,
+          "type": "C",
+          "featureCode": "LE",
+          "measurementTechnique": "SWPC_CAT"
+        }
+      ],
+      "linkedEvents": [{ "activityID": "2015-03-15T01:15:00-FLR-001" }]
+    }
+  ]
+}

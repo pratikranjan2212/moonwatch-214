@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="32" fill="#1C1F3A"/>
+  <circle cx="128" cy="128" r="96" fill="none" stroke="#8E6CFF" stroke-width="6" stroke-dasharray="12 6"/>
+  <path d="M52 176 Q128 140 204 176 L204 208 L52 208 Z" fill="#8A8D99"/>
+  <path d="M88 168 A40 40 0 0 1 168 168 Z" fill="#FFF1C9" stroke="#35D0E6" stroke-width="4"/>
+  <circle cx="184" cy="76" r="22" fill="#FFB020"/>
+  <text x="128" y="234" text-anchor="middle" fill="#FFF1C9" font-family="monospace" font-weight="bold" font-size="18">MOONWATCH: SOL 214</text>
+</svg>

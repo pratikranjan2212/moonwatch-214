@@ -1,0 +1,68 @@
+{
+  "id": "bastille-2000",
+  "title": "July 2000 Bastille Day Solar Storm (AR 9077)",
+  "period": {
+    "start": "2000-07-11",
+    "end": "2000-07-18"
+  },
+  "flr": [
+    {
+      "flrID": "2000-07-12T10:18:00-FLR-001",
+      "instruments": [{ "displayName": "GOES-10: XRS 1.0-8.0" }],
+      "beginTime": "2000-07-12T10:18Z",
+      "peakTime": "2000-07-12T10:37Z",
+      "endTime": "2000-07-12T10:46Z",
+      "classType": "X1.9",
+      "sourceLocation": "N17E27",
+      "activeRegionNum": 9077,
+      "note": "Precursor X1.9 flare from Active Region 9077.",
+      "submissionTime": "2000-07-12T11:15Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/9077-1/-1",
+      "linkedEvents": []
+    },
+    {
+      "flrID": "2000-07-14T10:03:00-FLR-001",
+      "instruments": [{ "displayName": "GOES-10: XRS 1.0-8.0" }],
+      "beginTime": "2000-07-14T10:03Z",
+      "peakTime": "2000-07-14T10:24Z",
+      "endTime": "2000-07-14T10:43Z",
+      "classType": "X5.7",
+      "sourceLocation": "N22W07",
+      "activeRegionNum": 9077,
+      "note": "Famous Bastille Day X5.7 solar flare directly facing the Earth-Moon system.",
+      "submissionTime": "2000-07-14T11:10Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/9077-2/-1",
+      "linkedEvents": [{ "activityID": "2000-07-14T10:54:00-CME-001" }]
+    }
+  ],
+  "cme": [
+    {
+      "activityID": "2000-07-14T10:54:00-CME-001",
+      "catalog": "M2M_CATALOG",
+      "startTime": "2000-07-14T10:54Z",
+      "instruments": [{ "displayName": "SOHO: LASCO/C2" }, { "displayName": "SOHO: LASCO/C3" }],
+      "sourceLocation": "N22W07",
+      "activeRegionNum": 9077,
+      "note": "Symmetrical full-halo CME launched during the Bastille Day event.",
+      "submissionTime": "2000-07-14T12:30Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/CME/9077-cme1/-1",
+      "cmeAnalyses": [
+        {
+          "isMostAccurate": true,
+          "time21_5": "2000-07-14T12:50Z",
+          "latitude": 22.0,
+          "longitude": 7.0,
+          "halfAngle": 60.0,
+          "speed": 1674.0,
+          "type": "R",
+          "featureCode": "LE",
+          "measurementTechnique": "SWPC_CAT"
+        }
+      ],
+      "linkedEvents": [{ "activityID": "2000-07-14T10:03:00-FLR-001" }]
+    }
+  ]
+}

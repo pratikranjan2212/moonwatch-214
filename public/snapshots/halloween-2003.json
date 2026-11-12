@@ -1,0 +1,83 @@
+{
+  "id": "halloween-2003",
+  "title": "October–November 2003 Halloween Solar Storms (AR 10486)",
+  "period": {
+    "start": "2003-10-26",
+    "end": "2003-11-04"
+  },
+  "flr": [
+    {
+      "flrID": "2003-10-28T09:51:00-FLR-001",
+      "instruments": [{ "displayName": "GOES-12: XRS 1.0-8.0" }],
+      "beginTime": "2003-10-28T09:51Z",
+      "peakTime": "2003-10-28T11:10Z",
+      "endTime": "2003-10-28T11:24Z",
+      "classType": "X17.2",
+      "sourceLocation": "S16E08",
+      "activeRegionNum": 10486,
+      "note": "Historic Halloween X17.2 flare from giant sunspot region AR 10486.",
+      "submissionTime": "2003-10-28T12:00Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/10486-1/-1",
+      "linkedEvents": [{ "activityID": "2003-10-28T11:30:00-CME-001" }]
+    },
+    {
+      "flrID": "2003-10-29T20:37:00-FLR-001",
+      "instruments": [{ "displayName": "GOES-12: XRS 1.0-8.0" }],
+      "beginTime": "2003-10-29T20:37Z",
+      "peakTime": "2003-10-29T20:49Z",
+      "endTime": "2003-10-29T21:01Z",
+      "classType": "X10.0",
+      "sourceLocation": "S15W02",
+      "activeRegionNum": 10486,
+      "note": "Follow-up X10.0 flare near central solar meridian.",
+      "submissionTime": "2003-10-29T21:30Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/10486-2/-1",
+      "linkedEvents": []
+    },
+    {
+      "flrID": "2003-11-04T19:29:00-FLR-001",
+      "instruments": [{ "displayName": "GOES-12: XRS 1.0-8.0" }],
+      "beginTime": "2003-11-04T19:29Z",
+      "peakTime": "2003-11-04T19:53Z",
+      "endTime": "2003-11-04T20:06Z",
+      "classType": "X28.0",
+      "sourceLocation": "S19W83",
+      "activeRegionNum": 10486,
+      "note": "Saturated GOES X-ray detectors; estimated X28+ extreme solar flare.",
+      "submissionTime": "2003-11-04T21:00Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/10486-3/-1",
+      "linkedEvents": []
+    }
+  ],
+  "cme": [
+    {
+      "activityID": "2003-10-28T11:30:00-CME-001",
+      "catalog": "M2M_CATALOG",
+      "startTime": "2003-10-28T11:30Z",
+      "instruments": [{ "displayName": "SOHO: LASCO/C2" }, { "displayName": "SOHO: LASCO/C3" }],
+      "sourceLocation": "S16E08",
+      "activeRegionNum": 10486,
+      "note": "Extreme ER-type halo CME reaching Earth and Moon in ~19 hours.",
+      "submissionTime": "2003-10-28T13:00Z",
+      "versionId": 1,
+      "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/CME/10486-cme1/-1",
+      "cmeAnalyses": [
+        {
+          "isMostAccurate": true,
+          "time21_5": "2003-10-28T13:10Z",
+          "latitude": -16.0,
+          "longitude": -8.0,
+          "halfAngle": 60.0,
+          "speed": 2459.0,
+          "type": "ER",
+          "featureCode": "LE",
+          "measurementTechnique": "SWPC_CAT"
+        }
+      ],
+      "linkedEvents": [{ "activityID": "2003-10-28T09:51:00-FLR-001" }]
+    }
+  ]
+}

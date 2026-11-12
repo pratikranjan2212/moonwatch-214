@@ -1,0 +1,33 @@
+{
+  "defaultSnapshot": "may-2024-superstorm",
+  "snapshots": [
+    {
+      "id": "may-2024-superstorm",
+      "title": "May 2024 Gannon Superstorm (AR 13664)",
+      "period": { "start": "2024-05-08", "end": "2024-05-15" },
+      "file": "/snapshots/may-2024-superstorm.json",
+      "summary": "Active Region 13664 unleashed a barrage of X-class solar flares and Earth/Moon-directed halo CMEs."
+    },
+    {
+      "id": "halloween-2003",
+      "title": "October–November 2003 Halloween Solar Storms (AR 10486)",
+      "period": { "start": "2003-10-26", "end": "2003-11-04" },
+      "file": "/snapshots/halloween-2003.json",
+      "summary": "Historic solar superstorm sequence including X17.2 and X28+ flares and a 2,459 km/s ER-type CME."
+    },
+    {
+      "id": "bastille-2000",
+      "title": "July 2000 Bastille Day Solar Storm (AR 9077)",
+      "period": { "start": "2000-07-11", "end": "2000-07-18" },
+      "file": "/snapshots/bastille-2000.json",
+      "summary": "Solar Cycle 23 peak X5.7 flare paired with a 1,674 km/s full-halo coronal mass ejection."
+    },
+    {
+      "id": "st-patricks-2015",
+      "title": "March 2015 St. Patrick's Day Storm (AR 12297)",
+      "period": { "start": "2015-03-11", "end": "2015-03-18" },
+      "file": "/snapshots/st-patricks-2015.json",
+      "summary": "X2.1 flare and compound CME sequence producing the strongest geomagnetic storm of Solar Cycle 24."
+    }
+  ]
+}
