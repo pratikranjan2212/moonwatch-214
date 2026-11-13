@@ -14,6 +14,7 @@ import { Stars, useGLTF } from '@react-three/drei';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
 import useGameStore from '../store/useGameStore.js';
 import Lighting from './Lighting.jsx';
+import MoonBase from './MoonBase.jsx';
 import Parallax2D from './Parallax2D.jsx';
 import Particles from './Particles.jsx';
 import PostFX from './PostFX.jsx';
@@ -77,9 +78,11 @@ function OutpostMeshes({
   panelsOut = true,
   shieldOn = false,
   isLowPower = false,
+  isFlare = false,
   power = 80,
   level = 1,
   queueComms = false,
+  reducedMotion = false,
 }) {
   const solarRef = useRef(null);
   const antennaRef = useRef(null);
@@ -98,9 +101,8 @@ function OutpostMeshes({
   const windowColor = isLowPower ? '#FF4D4D' : '#FFF1C9';
   const windowEmissiveIntensity = power <= 0 ? 0.05 : isLowPower ? 0.55 : 1.4;
 
-  return (
-    <group name="OutpostDioramaRoot">
-      {/* Draco-compressed GLB base models wrapped in Suspense */}
+  const fallbackMeshes = (
+    <group name="LegacyOutpostFallback">
       <Suspense fallback={null}>
         <LoadedGlbNodes panelsOut={panelsOut} shieldOn={shieldOn} />
       </Suspense>
@@ -222,6 +224,24 @@ function OutpostMeshes({
           <meshStandardMaterial color="#FFF1C9" roughness={0.5} metalness={0.3} />
         </mesh>
       </group>
+    </group>
+  );
+
+  return (
+    <group name="OutpostDioramaRoot">
+      {/* Custom Moon Base 3D model with PBR materials, custom colors & Blender animations */}
+      <Suspense fallback={fallbackMeshes}>
+        <MoonBase
+          panelsOut={panelsOut}
+          shieldOn={shieldOn}
+          isLowPower={isLowPower}
+          isFlare={isFlare}
+          power={power}
+          level={level}
+          queueComms={queueComms}
+          reducedMotion={reducedMotion}
+        />
+      </Suspense>
 
       {/* Earth in the Lunar Sky */}
       <mesh name="EarthInSky" position={[-6.5, 5.2, -9.5]}>
@@ -362,9 +382,11 @@ export function Diorama() {
           panelsOut={Boolean(choices.panelsOut)}
           shieldOn={Boolean(choices.shieldOn)}
           isLowPower={isLowPower}
+          isFlare={isFlare}
           power={gauges.power ?? 80}
           level={level}
           queueComms={Boolean(choices.queueComms)}
+          reducedMotion={reducedMotion}
         />
 
         {/* Commander Nova + 4 Crew Pixel Sprite Billboards */}
@@ -402,14 +424,15 @@ export function Diorama() {
         <div className="node-tag-list">
           <span className="node-tag active">Habitat</span>
           <span className={`node-tag ${choices.panelsOut ? 'active' : ''}`}>
-            SolarArray: {choices.panelsOut ? 'EXTENDED' : 'RETRACTED'}
+            SolarArray: {choices.panelsOut ? 'DEPLOYED' : 'RETRACTED'}
           </span>
           <span className={`node-tag ${choices.shieldOn ? 'active' : ''}`}>
             ShieldDome: {choices.shieldOn ? 'ON' : 'OFF'}
           </span>
           <span className={`node-tag ${level >= 2 ? 'active' : ''}`}>Greenhouse</span>
           <span className={`node-tag ${level >= 3 ? 'active' : ''}`}>Antenna</span>
-          <span className="node-tag active">Rover</span>
+          <span className="node-tag active">Oxygen Storage</span>
+          <span className="node-tag active">Rover Pad</span>
           <span className="node-tag active">Terrain</span>
         </div>
       </div>
