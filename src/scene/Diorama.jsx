@@ -10,7 +10,8 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Stars, useGLTF } from '@react-three/drei';
+import { OrbitControls, Stars, useGLTF } from '@react-three/drei';
+import * as THREE from 'three';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
 import useGameStore from '../store/useGameStore.js';
 import Lighting from './Lighting.jsx';
@@ -244,13 +245,109 @@ function OutpostMeshes({
       </Suspense>
 
       {/* Earth in the Lunar Sky */}
-      <mesh name="EarthInSky" position={[-6.5, 5.2, -9.5]}>
-        <sphereGeometry args={[1.15, 20, 20]} />
+      <mesh name="EarthInSky" position={[-16, 12, -24]}>
+        <sphereGeometry args={[2.2, 24, 24]} />
         <meshStandardMaterial
           color="#1E6091"
           emissive="#35D0E6"
-          emissiveIntensity={0.45}
-          roughness={0.6}
+          emissiveIntensity={0.5}
+          roughness={0.65}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Calculates 3D Sun vector placed according to real NASA DONKI flare/CME coordinates
+ * or natural lunar diurnal day/night arc.
+ */
+function getSolarPosition(rawEvents = [], sol = 1, isNight = false) {
+  if (isNight) {
+    return [-14, -18, -12];
+  }
+
+  // Find any event with real solar disk coordinates
+  const flareWithLocation = rawEvents.find(
+    (e) =>
+      e.sourceLocation ||
+      (e.latitude !== undefined && e.latitude !== null) ||
+      e.code === 'SOL214' ||
+      e.type === 'sol214'
+  );
+
+  let lat = 18;
+  let lon = -36;
+  let hasRealDonkiCoord = false;
+
+  if (flareWithLocation) {
+    if (flareWithLocation.sourceLocation) {
+      const match = String(flareWithLocation.sourceLocation).match(/([NS])(\d+)([EW])(\d+)/i);
+      if (match) {
+        lat = (match[1].toUpperCase() === 'S' ? -1 : 1) * parseFloat(match[2]);
+        lon = (match[3].toUpperCase() === 'W' ? -1 : 1) * parseFloat(match[4]);
+        hasRealDonkiCoord = true;
+      }
+    } else if (flareWithLocation.latitude !== undefined && flareWithLocation.latitude !== null) {
+      lat = Number(flareWithLocation.latitude) || 0;
+      lon = Number(flareWithLocation.longitude) || 0;
+      hasRealDonkiCoord = true;
+    } else if (flareWithLocation.code === 'SOL214' || flareWithLocation.type === 'sol214') {
+      // Historical May 10, 2024 Sol 214 super-flare from AR 13664 (N18W36)
+      lat = 18;
+      lon = -36;
+      hasRealDonkiCoord = true;
+    }
+  }
+
+  const R = 32;
+  if (hasRealDonkiCoord) {
+    const elevation = THREE.MathUtils.degToRad(22 + lat * 0.4);
+    const azimuth = THREE.MathUtils.degToRad(55 + lon * 0.6);
+    return [
+      R * Math.cos(elevation) * Math.sin(azimuth),
+      Math.max(6, R * Math.sin(elevation)),
+      R * Math.cos(elevation) * Math.cos(azimuth),
+    ];
+  }
+
+  // Natural lunar daylight sun arc if no flare location is provided
+  const dayAngle = ((sol % 14) / 14) * Math.PI * 0.6 + 0.35;
+  return [
+    R * Math.cos(dayAngle) * 0.85,
+    Math.max(8, R * Math.sin(dayAngle)),
+    R * Math.cos(dayAngle) * 0.55,
+  ];
+}
+
+function SunInSky({ position = [16, 20, 14], isNight = false, isFlare = false }) {
+  if (isNight) return null;
+
+  return (
+    <group position={position}>
+      {/* Blinding Solar Core */}
+      <mesh>
+        <sphereGeometry args={[1.75, 24, 24]} />
+        <meshBasicMaterial color={isFlare ? '#FFF1AA' : '#FFFFFF'} />
+      </mesh>
+      {/* Solar Corona Atmosphere Glow */}
+      <mesh>
+        <sphereGeometry args={[2.9, 24, 24]} />
+        <meshBasicMaterial
+          color={isFlare ? '#FF6B00' : '#FFD54F'}
+          transparent
+          opacity={isFlare ? 0.65 : 0.42}
+          side={THREE.BackSide}
+        />
+      </mesh>
+      {/* Outer Halo */}
+      <mesh>
+        <sphereGeometry args={[4.8, 24, 24]} />
+        <meshBasicMaterial
+          color={isFlare ? '#FF1744' : '#FFE082'}
+          transparent
+          opacity={isFlare ? 0.35 : 0.18}
+          side={THREE.BackSide}
         />
       </mesh>
     </group>
@@ -274,7 +371,8 @@ export function Diorama() {
   const crew = game?.crew || [];
   const timeline = game?.timeline || [];
 
-  const eventsToday = getEventsForSol(timeline, sol).map((e) =>
+  const rawEventsToday = getEventsForSol(timeline, sol);
+  const eventsToday = rawEventsToday.map((e) =>
     normalizeEventType(e.type || e.code)
   );
   const isNight = eventsToday.includes('night') || isLunarNightSol(sol);
@@ -282,6 +380,11 @@ export function Diorama() {
     eventsToday.includes('flare') || eventsToday.includes('cme') || eventsToday.includes('sol214');
   const isDust = eventsToday.includes('dust');
   const isLowPower = (gauges.power ?? 80) <= 25;
+
+  const sunPosition = useMemo(
+    () => getSolarPosition(rawEventsToday, sol, isNight),
+    [rawEventsToday, sol, isNight]
+  );
 
   const handleAutoDowngrade = (measuredFps) => {
     if (quality === 'high') {
@@ -299,10 +402,10 @@ export function Diorama() {
   }
 
   const crewPositions = [
-    [-1.4, 0.45, 1.85],
-    [-0.45, 0.45, 2.05],
-    [0.55, 0.45, 2.05],
-    [1.5, 0.45, 1.85],
+    [-2.1, 0.45, 2.8],
+    [-0.65, 0.45, 3.1],
+    [0.75, 0.45, 3.1],
+    [2.2, 0.45, 2.8],
   ];
 
   return (
@@ -331,29 +434,36 @@ export function Diorama() {
             HD-2D ({quality.toUpperCase()}) · {fps} FPS
           </span>
         </div>
+        <div className="diorama-status-pill">
+          <span>🔄 360° Orbit Drag</span>
+        </div>
       </div>
 
       <Canvas
         shadows={quality !== 'low'}
         dpr={quality === 'low' ? [1, 1] : [1, 1.5]}
-        camera={{ position: [0, 4.6, 8.8], fov: 36, near: 0.1, far: 60 }}
+        camera={{ position: [0, 6.2, 13.5], fov: 42, near: 0.1, far: 80 }}
         gl={{ antialias: quality === 'high', powerPreference: 'high-performance' }}
         onCreated={({ camera }) => {
-          camera.lookAt(0, 0.4, 0);
+          camera.lookAt(0, 0.6, 0);
         }}
         fallback={<Parallax2D reason="WebGL unavailable" />}
       >
         <color
           attach="background"
-          args={[isFlare ? '#2B1222' : isDust ? '#3A2E25' : isNight ? '#080B1A' : '#1C1F3A']}
+          args={[isFlare ? '#10030E' : isDust ? '#2C2016' : '#010206']}
         />
-        <fog
-          attach="fog"
-          args={[
-            isDust ? '#C9A878' : isFlare ? '#3B1929' : '#1C1F3A',
-            isDust ? 6 : 12,
-            isDust ? 20 : 32,
-          ]}
+        {isDust && <fog attach="fog" args={['#C9A878', 6, 28]} />}
+
+        <OrbitControls
+          makeDefault
+          target={[0.2, 0.6, 0.0]}
+          minDistance={5}
+          maxDistance={36}
+          minPolarAngle={Math.PI / 18}
+          maxPolarAngle={Math.PI / 2.05}
+          enableDamping
+          dampingFactor={0.06}
         />
 
         <FpsMonitor onFpsUpdate={setFps} onAutoDowngrade={handleAutoDowngrade} />
@@ -366,16 +476,19 @@ export function Diorama() {
           shieldOn={Boolean(choices.shieldOn)}
           power={gauges.power ?? 80}
           reducedMotion={reducedMotion}
+          sunPosition={sunPosition}
         />
 
+        <SunInSky position={sunPosition} isNight={isNight} isFlare={isFlare} />
+
         <Stars
-          radius={25}
-          depth={15}
-          count={quality === 'low' ? 180 : 450}
-          factor={2.5}
-          saturation={0}
+          radius={50}
+          depth={25}
+          count={quality === 'low' ? 500 : 1800}
+          factor={4.0}
+          saturation={0.25}
           fade
-          speed={reducedMotion ? 0 : 0.4}
+          speed={reducedMotion ? 0 : 0.15}
         />
 
         <OutpostMeshes
@@ -395,7 +508,7 @@ export function Diorama() {
           name="Commander Nova"
           mood={isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle'}
           health={100}
-          position={[0, 0.48, 1.35]}
+          position={[0, 0.48, 2.0]}
           reducedMotion={reducedMotion}
         />
         {crew.map((member, idx) => (

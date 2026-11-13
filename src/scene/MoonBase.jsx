@@ -30,7 +30,10 @@ export function MoonBase({
     return scene;
   }, [gltf.scene]);
 
-  // Create an AnimationMixer bound to the clonedScene
+  // Create an AnimationMixer bound to the clonedScene.
+  // NOTE: panelsOut is intentionally NOT in the deps array — including it would
+  // recreate the mixer on every toggle, wiping animation progress and breaking
+  // the retract → redeploy cycle. Initial state is set via useEffect below.
   const { mixer, maxDuration } = useMemo(() => {
     const m = new THREE.AnimationMixer(clonedScene);
     let dur = 0;
@@ -38,10 +41,20 @@ export function MoonBase({
       const act = m.clipAction(clip);
       act.setLoop(THREE.LoopOnce);
       act.clampWhenFinished = true;
+      act.play();
       dur = Math.max(dur, clip.duration);
     });
-    return { mixer: m, maxDuration: dur || 2.1 };
+    return { mixer: m, maxDuration: dur || 2.08 };
   }, [clonedScene, gltf.animations]);
+
+  // Set the initial animation position once after the mixer is first created.
+  // panelsOut = true by default → start fully deployed (doors open, panels raised).
+  useEffect(() => {
+    const t = panelsOut ? maxDuration : 0;
+    mixer.setTime(t);
+    animProgressRef.current = panelsOut ? 1 : 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mixer, maxDuration]);
 
   // Track target playback progress (0 = fully retracted, 1 = fully deployed)
   const animProgressRef = useRef(panelsOut ? 1 : 0);
@@ -266,8 +279,8 @@ export function MoonBase({
     <group
       ref={groupRef}
       name="MoonBaseSceneRoot"
-      position={[1.1, -0.25, -0.3]}
-      scale={[0.28, 0.28, 0.28]}
+      position={[0.6, -0.72, -0.3]}
+      scale={[0.42, 0.42, 0.42]}
     >
       <primitive object={clonedScene} />
     </group>

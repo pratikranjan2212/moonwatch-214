@@ -14,6 +14,7 @@ export function Lighting({
   shieldOn = false,
   power = 80,
   reducedMotion = false,
+  sunPosition = null,
 }) {
   const beaconRef = useRef(null);
   const windowLightRef = useRef(null);
@@ -39,21 +40,23 @@ export function Lighting({
   });
 
   const sunColor = isFlare ? '#FFB020' : isDust ? '#C9A878' : isNight ? '#35D0E6' : '#FFF1C9';
-  const sunIntensity = isNight ? 0.32 : isDust ? 0.85 : isFlare ? 2.4 : 1.75;
-  const ambientColor = isNight ? '#1C1F3A' : isDust ? '#6E5A47' : isFlare ? '#3B1929' : '#8A8D99';
-  const ambientIntensity = isNight ? 0.38 : isDust ? 0.65 : 0.55;
+  const sunIntensity = isNight ? 0.2 : isDust ? 0.85 : isFlare ? 2.6 : 1.85;
+  const ambientColor = isNight ? '#0C0E1C' : isDust ? '#504030' : isFlare ? '#240E1A' : '#454854';
+  const ambientIntensity = isNight ? 0.35 : isDust ? 0.55 : 0.45;
+
+  const lightPosition = sunPosition || (isNight ? [-8, 10, -6] : [14, 18, 12]);
 
   return (
     <group name="OutpostLighting">
       <ambientLight color={ambientColor} intensity={ambientIntensity} />
       <hemisphereLight
-        args={[sunColor, '#1C1F3A', isNight ? 0.35 : 0.55]}
-        position={[0, 12, 0]}
+        args={[sunColor, '#000000', isNight ? 0.25 : 0.45]}
+        position={[0, 15, 0]}
       />
       <directionalLight
         color={sunColor}
         intensity={sunIntensity}
-        position={isNight ? [-8, 10, -6] : [10, 14, 8]}
+        position={lightPosition}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
