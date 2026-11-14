@@ -7,10 +7,93 @@ export default function LandingScreen({ onStartMission }) {
 
   return (
     <div className="landing-page">
-      {/* Background Visual Layer: Cinematic Black Hole & Accretion Disk */}
+      {/* Background Visual Layer: Cinematic Moon & Starfield */}
       <div className="landing-bg-layer" />
+      <div className="landing-stars-layer" />
       <div className="landing-vignette" />
       <div className="landing-grid-overlay" />
+
+      {/* Orbiting Satellite System around the Moon */}
+      <div className="landing-orbit-system" aria-hidden="true">
+        <svg className="landing-orbit-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <path
+              id="moonOrbitPath"
+              d="M 100 250 a 400 140 0 1 0 800 0 a 400 140 0 1 0 -800 0"
+            />
+            <linearGradient id="solarWingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1e3a8a" />
+              <stop offset="45%" stopColor="#38bdf8" />
+              <stop offset="100%" stopColor="#0c4a6e" />
+            </linearGradient>
+            <filter id="cyanGlowEffect" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Glowing Elliptical Orbit Track */}
+          <path
+            d="M 100 250 a 400 140 0 1 0 800 0 a 400 140 0 1 0 -800 0"
+            fill="none"
+            stroke="rgba(56, 189, 248, 0.25)"
+            strokeWidth="1.5"
+            strokeDasharray="5 7"
+            filter="url(#cyanGlowEffect)"
+          />
+
+          {/* Orbiting Satellite Entity */}
+          <g className="orbiting-sat-entity">
+            <animateMotion
+              dur="24s"
+              repeatCount="indefinite"
+              rotate="auto"
+            >
+              <mpath href="#moonOrbitPath" />
+            </animateMotion>
+
+            {/* Thruster Ion Plume */}
+            <circle cx="-22" cy="0" r="4" fill="#38bdf8" opacity="0.85" filter="url(#cyanGlowEffect)">
+              <animate attributeName="r" values="3;6;3" dur="1s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.9;0.35;0.9" dur="1s" repeatCount="indefinite" />
+            </circle>
+
+            {/* Left Photovoltaic Solar Wing */}
+            <rect x="-18" y="-12" width="10" height="24" rx="1.5" fill="url(#solarWingGrad)" stroke="#38bdf8" strokeWidth="0.8" />
+            <line x1="-13" y1="-12" x2="-13" y2="12" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
+            <line x1="-18" y1="-4" x2="-8" y2="-4" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+            <line x1="-18" y1="4" x2="-8" y2="4" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+
+            {/* Truss Connector */}
+            <line x1="-8" y1="0" x2="-4" y2="0" stroke="#94a3b8" strokeWidth="1.5" />
+
+            {/* Satellite Body (Bus) */}
+            <rect x="-4" y="-7" width="10" height="14" rx="2" fill="#f8fafc" stroke="#38bdf8" strokeWidth="0.9" />
+            <rect x="-2" y="-5" width="6" height="10" rx="1" fill="#0f172a" />
+
+            {/* Telemetry Antenna Dish */}
+            <path d="M 1 0 Q 6 -7 9 -4" fill="none" stroke="#fbbf24" strokeWidth="1.2" />
+            <circle cx="8" cy="-3.5" r="1.5" fill="#fbbf24" />
+
+            {/* Truss Connector */}
+            <line x1="6" y1="0" x2="10" y2="0" stroke="#94a3b8" strokeWidth="1.5" />
+
+            {/* Right Photovoltaic Solar Wing */}
+            <rect x="10" y="-12" width="10" height="24" rx="1.5" fill="url(#solarWingGrad)" stroke="#38bdf8" strokeWidth="0.8" />
+            <line x1="15" y1="-12" x2="15" y2="12" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
+            <line x1="10" y1="-4" x2="20" y2="-4" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+            <line x1="10" y1="4" x2="20" y2="4" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+
+            {/* Live Telemetry Beacon LED */}
+            <circle cx="1" cy="0" r="1.8" fill="#22c55e">
+              <animate attributeName="opacity" values="1;0.1;1" dur="1.2s" repeatCount="indefinite" />
+            </circle>
+          </g>
+        </svg>
+      </div>
 
       {/* Outer Glowing Frame */}
       <div className="landing-frame" />
@@ -22,7 +105,7 @@ export default function LandingScreen({ onStartMission }) {
           <div className="landing-logo" onClick={onStartMission} role="button" tabIndex={0}>
             <div className="landing-logo-badge">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="7" fill="#fbbf24" />
+                <circle cx="12" cy="12" r="7" fill="#38bdf8" />
                 <ellipse cx="12" cy="12" rx="11" ry="4" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" transform="rotate(-20 12 12)" />
               </svg>
             </div>
@@ -67,21 +150,27 @@ export default function LandingScreen({ onStartMission }) {
           </p>
         </section>
 
-        {/* Spacer to push title and footer down */}
-        <div className="landing-spacer" />
+        {/* Top Spacer to Center Title in the Middle */}
+        <div className="landing-spacer landing-spacer-top" />
 
-        {/* Location & Mission Time Header Strip */}
-        <div className="landing-meta-strip">
-          <span className="meta-left">SHACKLETON CRATER • SOUTH POLE</span>
-          <span className="meta-right">MISSION DURATION • 14–28 SOLS</span>
-        </div>
+        {/* Centered Hero Section (In the Middle of the Screen) */}
+        <section className="landing-center-hero">
+          {/* Location & Mission Time Header Strip */}
+          <div className="landing-meta-strip">
+            <span className="meta-left">SHACKLETON CRATER • SOUTH POLE</span>
+            <span className="meta-right">MISSION DURATION • 14–28 SOLS</span>
+          </div>
 
-        {/* Huge Pixel Title: MOONWATCH '214 */}
-        <div className="landing-title-container">
-          <h1 className="landing-huge-title" data-text="MOONWATCH'214">
-            MOONWATCH'214
-          </h1>
-        </div>
+          {/* Huge Pixel Title: MOONWATCH '214 (Full Width) */}
+          <div className="landing-title-container">
+            <h1 className="landing-huge-title" data-text="MOONWATCH'214">
+              MOONWATCH'214
+            </h1>
+          </div>
+        </section>
+
+        {/* Bottom Spacer to Center Title in the Middle */}
+        <div className="landing-spacer landing-spacer-bottom" />
 
         {/* Bottom Action Strip */}
         <footer className="landing-bottom-strip">
