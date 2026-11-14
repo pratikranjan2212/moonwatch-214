@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import GameInfoModal from './GameInfoModal.jsx';
 
-export const CAMPAIGN_LEVELS = [
+const CAMPAIGN_LEVELS = [
   {
     id: 1,
     rank: 'CADET',
