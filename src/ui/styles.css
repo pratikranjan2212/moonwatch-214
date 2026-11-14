@@ -448,6 +448,21 @@ select {
   border-radius: 6px;
   background: linear-gradient(90deg, rgba(255, 176, 32, 0.18) 0%, rgba(28, 31, 58, 0.85) 100%);
   border: 1px solid var(--power);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  user-select: none;
+}
+
+.commander-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--sun-highlight);
+  box-shadow: 0 0 10px rgba(255, 176, 32, 0.3);
+}
+
+.commander-card.selected {
+  border-color: var(--power);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.55);
+  background: linear-gradient(90deg, rgba(255, 176, 32, 0.35) 0%, rgba(28, 31, 58, 0.95) 100%);
 }
 
 .commander-info {
@@ -481,6 +496,31 @@ select {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   align-items: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  user-select: none;
+}
+
+.crew-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--cyan);
+}
+
+.crew-card.selected {
+  border-color: var(--cyan);
+  box-shadow: 0 0 14px rgba(53, 208, 230, 0.45);
+  background: linear-gradient(90deg, rgba(53, 208, 230, 0.2) 0%, var(--bg-card) 100%);
+}
+
+.crew-selected-pill {
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: var(--cyan);
+  color: #0E1124;
 }
 
 .crew-card.crew-critical {

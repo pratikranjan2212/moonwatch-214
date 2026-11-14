@@ -30,34 +30,67 @@ export function MoonBase({
     return scene;
   }, [gltf.scene]);
 
-  // Create an AnimationMixer bound to the clonedScene.
-  // NOTE: panelsOut is intentionally NOT in the deps array — including it would
-  // recreate the mixer on every toggle, wiping animation progress and breaking
-  // the retract → redeploy cycle. Initial state is set via useEffect below.
-  const { mixer, maxDuration } = useMemo(() => {
+  // Create an AnimationMixer and configure phased door & solar deployment actions.
+  // Sequential deployment:
+  // - Enabling (0 -> 1): Ground doors open first (phase 0 to 0.35), then panels deploy (0.35 to 1.0).
+  // - Disabling (1 -> 0): Panels retract fully underground first (1.0 to 0.35), then doors close (0.35 to 0.0).
+  const { applyAnimationProgress } = useMemo(() => {
     const m = new THREE.AnimationMixer(clonedScene);
-    let dur = 0;
+    const dActions = [];
+    const pActions = [];
+
     (gltf.animations || []).forEach((clip) => {
       const act = m.clipAction(clip);
       act.setLoop(THREE.LoopOnce);
       act.clampWhenFinished = true;
       act.play();
-      dur = Math.max(dur, clip.duration);
+      if (clip.name.includes('Moon_Baseplate')) {
+        dActions.push(act);
+      } else {
+        pActions.push(act);
+      }
     });
-    return { mixer: m, maxDuration: dur || 2.08 };
+
+    const applyProgress = (p) => {
+      let doorTime = 0;
+      let panelTime = 0.5;
+
+      if (p <= 0.35) {
+        const dp = p / 0.35;
+        doorTime = dp * 0.8333;
+        panelTime = 0.5;
+      } else {
+        doorTime = 0.8333;
+        const pp = (p - 0.35) / 0.65;
+        panelTime = 0.5 + pp * (2.0833 - 0.5);
+      }
+
+      dActions.forEach((act) => {
+        act.paused = false;
+        act.time = THREE.MathUtils.clamp(doorTime, 0, 0.8333);
+      });
+      pActions.forEach((act) => {
+        act.paused = false;
+        act.time = THREE.MathUtils.clamp(panelTime, 0.5, 2.0833);
+      });
+      m.update(0);
+    };
+
+    return {
+      mixer: m,
+      applyAnimationProgress: applyProgress,
+    };
   }, [clonedScene, gltf.animations]);
 
-  // Set the initial animation position once after the mixer is first created.
-  // panelsOut = true by default → start fully deployed (doors open, panels raised).
-  useEffect(() => {
-    const t = panelsOut ? maxDuration : 0;
-    mixer.setTime(t);
-    animProgressRef.current = panelsOut ? 1 : 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mixer, maxDuration]);
-
-  // Track target playback progress (0 = fully retracted, 1 = fully deployed)
+  // Track target playback progress (0 = fully retracted & closed, 1 = fully deployed & open)
   const animProgressRef = useRef(panelsOut ? 1 : 0);
+
+  // Set the initial animation state once or when reset
+  useEffect(() => {
+    const initialP = panelsOut ? 1.0 : 0.0;
+    animProgressRef.current = initialP;
+    applyAnimationProgress(initialP);
+  }, [applyAnimationProgress, panelsOut]);
   const antennaRef = useRef(null);
   const shieldMeshRef = useRef(null);
   const solarBlueMatRef = useRef(null);
@@ -219,20 +252,19 @@ export function MoonBase({
   useFrame(({ clock }, delta) => {
     const t = clock.getElapsedTime();
 
-    // 1. Smoothly interpolate animation progress towards target
+    // 1. Phased solar deployment & retraction animation
     const targetProgress = panelsOut ? 1 : 0;
-    const speed = reducedMotion ? 10.0 : 1.2; // time to deploy/retract in seconds
+    const speed = reducedMotion ? 20.0 : 1.4; // time in seconds for full sequence
     const diff = targetProgress - animProgressRef.current;
 
-    if (Math.abs(diff) > 0.001) {
+    if (Math.abs(diff) > 0.0005) {
       const step = (Math.sign(diff) * delta) / speed;
       animProgressRef.current = THREE.MathUtils.clamp(
         animProgressRef.current + step,
         0,
         1
       );
-      const currentTime = animProgressRef.current * maxDuration;
-      mixer.setTime(currentTime);
+      applyAnimationProgress(animProgressRef.current);
     }
 
     // 2. Interactive Antenna deep-space tracking

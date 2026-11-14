@@ -40,9 +40,9 @@ export function Lighting({
   });
 
   const sunColor = isFlare ? '#FFB020' : isDust ? '#C9A878' : isNight ? '#35D0E6' : '#FFF1C9';
-  const sunIntensity = isNight ? 0.2 : isDust ? 0.85 : isFlare ? 2.6 : 1.85;
-  const ambientColor = isNight ? '#0C0E1C' : isDust ? '#504030' : isFlare ? '#240E1A' : '#454854';
-  const ambientIntensity = isNight ? 0.35 : isDust ? 0.55 : 0.45;
+  const sunIntensity = isNight ? 0.22 : isDust ? 0.9 : isFlare ? 2.8 : 1.95;
+  const ambientColor = isNight ? '#0E1122' : isDust ? '#483828' : isFlare ? '#2B1220' : '#3E4250';
+  const ambientIntensity = isNight ? 0.3 : isDust ? 0.5 : 0.38;
 
   const lightPosition = sunPosition || (isNight ? [-8, 10, -6] : [14, 18, 12]);
 
@@ -50,7 +50,7 @@ export function Lighting({
     <group name="OutpostLighting">
       <ambientLight color={ambientColor} intensity={ambientIntensity} />
       <hemisphereLight
-        args={[sunColor, '#000000', isNight ? 0.25 : 0.45]}
+        args={[sunColor, '#020308', isNight ? 0.22 : 0.4]}
         position={[0, 15, 0]}
       />
       <directionalLight
@@ -58,8 +58,22 @@ export function Lighting({
         intensity={sunIntensity}
         position={lightPosition}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0001}
+        shadow-camera-near={0.5}
+        shadow-camera-far={65}
+        shadow-camera-left={-14}
+        shadow-camera-right={14}
+        shadow-camera-top={14}
+        shadow-camera-bottom={-14}
+      />
+
+      {/* Earth-shine directional fill light (ocean blue specular reflection on shadowed sides) */}
+      <directionalLight
+        color="#70B0FF"
+        intensity={isNight ? 0.5 : 0.32}
+        position={[-16, 12, -24]}
       />
 
       {/* Habitat warm window point light */}

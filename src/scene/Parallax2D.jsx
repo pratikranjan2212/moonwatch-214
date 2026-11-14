@@ -12,6 +12,8 @@ import { PALETTE } from '../ui/tokens.js';
 
 export function Parallax2D({ reason = null }) {
   const game = useGameStore((s) => s.game);
+  const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
+  const commander = useGameStore((s) => s.game?.commander);
   const reducedMotion = useGameStore((s) => s.settings?.reducedMotion) || false;
   const [parallaxOffset, setParallaxOffset] = useState({ x: 0, y: 0 });
 
@@ -19,7 +21,7 @@ export function Parallax2D({ reason = null }) {
   const level = game?.level || 1;
   const gauges = game?.gauges || { power: 80, oxygen: 100, shield: 100 };
   const choices = game?.choices || { panelsOut: true, shieldOn: false, oxygenLevel: 'normal' };
-  const crew = game?.crew || [];
+  const crew = game?.crew;
   const timeline = game?.timeline || [];
 
   const eventsToday = getEventsForSol(timeline, sol).map((e) =>
@@ -312,19 +314,31 @@ export function Parallax2D({ reason = null }) {
             <circle cx="44" cy="26" r="7" fill="#1E293B" stroke="#94A3B8" strokeWidth="2" />
           </g>
 
-          <g id="CrewSprites" transform="translate(275, 318)">
-            {crew.map((member, idx) => {
-              const xOffset = idx * 62;
+          <g id="CrewSprites" transform="translate(365, 318)">
+            {(() => {
+              const SUIT_COLORS = {
+                commander: '#FFB020',
+                'commander-nova': '#FFB020',
+                engineer: '#FF9800',
+                doctor: '#00E5FF',
+                botanist: '#00E676',
+                pilot: '#B388FF',
+              };
+              const isCmd = selectedCrewId === 'commander' || selectedCrewId === 'commander-nova';
+              const member = isCmd
+                ? { id: 'commander', name: commander?.name || 'Commander Nova', health: 100, mood: isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle' }
+                : (crew || []).find((c) => c.id === selectedCrewId) || { id: 'commander', name: 'Commander Nova', health: 100, mood: 'idle' };
               const inShelter = member.mood === 'run-to-shelter';
-              const suitColors = ['#FFB020', '#35D0E6', '#34D399', '#8E6CFF'];
-              const suitColor = suitColors[idx % suitColors.length];
+              const suitColor = SUIT_COLORS[member.id] || '#FFB020';
+
               return (
                 <g
                   key={member.id}
-                  transform={`translate(${xOffset}, ${inShelter ? -18 : 0})`}
+                  transform={`translate(0, ${inShelter ? -18 : 0})`}
                   opacity={member.health > 0 ? 1 : 0.35}
                 >
-                  <ellipse cx="10" cy="28" rx="8" ry="3" fill="rgba(0,0,0,0.45)" />
+                  <ellipse cx="10" cy="28" rx="10" ry="4" fill="rgba(0,0,0,0.55)" />
+                  <ellipse cx="10" cy="28" rx="8" ry="3" fill="none" stroke={suitColor} strokeWidth="1" opacity="0.8" />
                   <rect
                     x="4"
                     y="2"
@@ -348,7 +362,7 @@ export function Parallax2D({ reason = null }) {
                   <rect x="11" y="23" width="4" height="5" fill="#CBD5E1" />
                 </g>
               );
-            })}
+            })()}
           </g>
         </g>
       </svg>

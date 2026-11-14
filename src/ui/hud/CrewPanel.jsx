@@ -64,28 +64,41 @@ function PixelPortrait({ roleKey = 'engineer', mood = 'idle' }) {
 export function CrewPanel() {
   const commander = useGameStore((s) => s.game?.commander) || COMMANDER;
   const crew = useGameStore((s) => s.game?.crew) || STARTER_CREW;
+  const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
+  const setSelectedCrew = useGameStore((s) => s.setSelectedCrew);
+
+  const isCommanderSelected = selectedCrewId === 'commander' || selectedCrewId === 'commander-nova';
 
   return (
     <aside className="hud-panel crew-panel" aria-label="Commander and Crew Status">
       <div className="hud-section-title">
         <span>Outpost Crew</span>
         <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-          {crew.filter((c) => c.health > 0).length}/{crew.length} Active
+          Click to deploy in field
         </span>
       </div>
 
       {/* Commander Nova Badge */}
-      <div className="commander-card">
+      <button
+        type="button"
+        className={`commander-card ${isCommanderSelected ? 'selected' : ''}`}
+        onClick={() => setSelectedCrew?.('commander')}
+        aria-pressed={isCommanderSelected}
+        style={{ width: '100%', textAlign: 'left', font: 'inherit' }}
+      >
         <div className="crew-portrait-wrap" style={{ borderColor: 'var(--power)' }}>
           <PixelPortrait roleKey="commander" mood="idle" />
         </div>
         <div className="commander-info">
-          <div className="commander-name">{commander.name}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="commander-name">{commander.name}</div>
+            {isCommanderSelected && <span className="crew-selected-pill">DEPLOYED</span>}
+          </div>
           <div className="commander-role">
             {commander.role} · {commander.personality}
           </div>
         </div>
-      </div>
+      </button>
 
       {/* 4 Specialist Crew Cards */}
       <div className="crew-list">
@@ -93,15 +106,18 @@ export function CrewPanel() {
           const hp = Math.max(0, Math.min(100, Math.round(member.health ?? 100)));
           const moodKey = member.mood || 'idle';
           const moodInfo = MOOD_META[moodKey] || MOOD_META.idle;
+          const isSelected = selectedCrewId === member.id;
           const barColor =
             hp <= 25 ? 'var(--alert)' : hp <= 55 ? 'var(--power)' : 'var(--status-optimal)';
 
           return (
-            <div
+            <button
               key={member.id}
-              className={`crew-card ${hp <= 25 ? 'crew-critical' : ''}`}
-              role="group"
-              aria-label={`${member.name}, ${member.role}, Health ${hp}%, Mood ${moodInfo.label}`}
+              type="button"
+              className={`crew-card ${hp <= 25 ? 'crew-critical' : ''} ${isSelected ? 'selected' : ''}`}
+              onClick={() => setSelectedCrew?.(member.id)}
+              aria-pressed={isSelected}
+              style={{ width: '100%', textAlign: 'left', font: 'inherit' }}
             >
               <div className="crew-portrait-wrap">
                 <PixelPortrait roleKey={member.id} mood={moodKey} />
@@ -113,10 +129,13 @@ export function CrewPanel() {
                     <div className="crew-name">{member.name}</div>
                     <div className="crew-role-tag">{member.role}</div>
                   </div>
-                  <span className={`mood-badge ${moodInfo.badgeClass}`} title={moodInfo.description}>
-                    <span aria-hidden="true">{moodInfo.icon}</span>
-                    <span>{moodInfo.label}</span>
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    {isSelected && <span className="crew-selected-pill">DEPLOYED</span>}
+                    <span className={`mood-badge ${moodInfo.badgeClass}`} title={moodInfo.description}>
+                      <span aria-hidden="true">{moodInfo.icon}</span>
+                      <span>{moodInfo.label}</span>
+                    </span>
+                  </div>
                 </div>
 
                 <div className="crew-health-row">
@@ -137,7 +156,7 @@ export function CrewPanel() {
                   </span>
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

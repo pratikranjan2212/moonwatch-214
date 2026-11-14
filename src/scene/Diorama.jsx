@@ -356,6 +356,7 @@ function SunInSky({ position = [16, 20, 14], isNight = false, isFlare = false })
 
 export function Diorama() {
   const game = useGameStore((s) => s.game);
+  const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
   const quality = useGameStore((s) => s.settings?.quality) || 'high';
   const reducedMotion = useGameStore((s) => s.settings?.reducedMotion) || false;
   const updateSettings = useGameStore((s) => s.updateSettings);
@@ -368,7 +369,8 @@ export function Diorama() {
   const level = game?.level || 1;
   const gauges = game?.gauges || { power: 80, oxygen: 100, shield: 100 };
   const choices = game?.choices || { panelsOut: true, shieldOn: false, oxygenLevel: 'normal' };
-  const crew = game?.crew || [];
+  const crew = game?.crew;
+  const commander = game?.commander;
   const timeline = game?.timeline || [];
 
   const rawEventsToday = getEventsForSol(timeline, sol);
@@ -386,6 +388,34 @@ export function Diorama() {
     [rawEventsToday, sol, isNight]
   );
 
+  // Keep ONLY ONE crew member in the scene, dynamically matching the selected character
+  const activeActor = useMemo(() => {
+    if (selectedCrewId === 'commander' || selectedCrewId === 'commander-nova') {
+      return {
+        id: 'commander',
+        name: commander?.name || 'Commander Nova',
+        mood: isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle',
+        health: 100,
+      };
+    }
+    const crewList = crew || [];
+    const found = crewList.find((c) => c.id === selectedCrewId);
+    if (found) {
+      return {
+        id: found.id,
+        name: found.name,
+        mood: found.mood || 'idle',
+        health: found.health ?? 100,
+      };
+    }
+    return {
+      id: 'commander',
+      name: commander?.name || 'Commander Nova',
+      mood: 'idle',
+      health: 100,
+    };
+  }, [selectedCrewId, commander, crew, isFlare, choices.shieldOn, isLowPower]);
+
   const handleAutoDowngrade = (measuredFps) => {
     if (quality === 'high') {
       updateSettings({ quality: 'medium' });
@@ -400,13 +430,6 @@ export function Diorama() {
   if (fallback2D) {
     return <Parallax2D reason={fallbackReason} />;
   }
-
-  const crewPositions = [
-    [-2.1, 0.45, 2.8],
-    [-0.65, 0.45, 3.1],
-    [0.75, 0.45, 3.1],
-    [2.2, 0.45, 2.8],
-  ];
 
   return (
     <div
@@ -441,27 +464,32 @@ export function Diorama() {
 
       <Canvas
         shadows={quality !== 'low'}
-        dpr={quality === 'low' ? [1, 1] : [1, 1.5]}
-        camera={{ position: [0, 6.2, 13.5], fov: 42, near: 0.1, far: 80 }}
-        gl={{ antialias: quality === 'high', powerPreference: 'high-performance' }}
+        dpr={quality === 'low' ? [1, 1] : [1, 2]}
+        camera={{ position: [0, 6.2, 13.5], fov: 42, near: 0.1, far: 90 }}
+        gl={{
+          antialias: true,
+          powerPreference: 'high-performance',
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.15,
+        }}
         onCreated={({ camera }) => {
-          camera.lookAt(0, 0.6, 0);
+          camera.lookAt(0.2, 0.6, 0);
         }}
         fallback={<Parallax2D reason="WebGL unavailable" />}
       >
         <color
           attach="background"
-          args={[isFlare ? '#10030E' : isDust ? '#2C2016' : '#010206']}
+          args={[isFlare ? '#140410' : isDust ? '#2C2016' : '#020308']}
         />
-        {isDust && <fog attach="fog" args={['#C9A878', 6, 28]} />}
+        {isDust && <fog attach="fog" args={['#C9A878', 8, 32]} />}
 
         <OrbitControls
           makeDefault
           target={[0.2, 0.6, 0.0]}
-          minDistance={5}
-          maxDistance={36}
-          minPolarAngle={Math.PI / 18}
-          maxPolarAngle={Math.PI / 2.05}
+          minDistance={7.0}
+          maxDistance={22.0}
+          minPolarAngle={Math.PI / 12}
+          maxPolarAngle={Math.PI / 2.08}
           enableDamping
           dampingFactor={0.06}
         />
@@ -481,14 +509,15 @@ export function Diorama() {
 
         <SunInSky position={sunPosition} isNight={isNight} isFlare={isFlare} />
 
+        {/* Dense, bright deep-space starfield */}
         <Stars
-          radius={50}
-          depth={25}
-          count={quality === 'low' ? 500 : 1800}
-          factor={4.0}
-          saturation={0.25}
-          fade
-          speed={reducedMotion ? 0 : 0.15}
+          radius={60}
+          depth={35}
+          count={quality === 'low' ? 900 : 2800}
+          factor={5.5}
+          saturation={0.35}
+          fade={false}
+          speed={reducedMotion ? 0 : 0.12}
         />
 
         <OutpostMeshes
@@ -502,26 +531,16 @@ export function Diorama() {
           reducedMotion={reducedMotion}
         />
 
-        {/* Commander Nova + 4 Crew Pixel Sprite Billboards */}
+        {/* Selected Crew Member (Only ONE in the scene, dynamically updated) */}
         <SpriteActor
-          id="commander"
-          name="Commander Nova"
-          mood={isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle'}
-          health={100}
+          key={activeActor.id}
+          id={activeActor.id}
+          name={activeActor.name}
+          mood={activeActor.mood}
+          health={activeActor.health}
           position={[0, 0.48, 2.0]}
           reducedMotion={reducedMotion}
         />
-        {crew.map((member, idx) => (
-          <SpriteActor
-            key={member.id}
-            id={member.id}
-            name={member.name}
-            mood={member.mood || 'idle'}
-            health={member.health ?? 100}
-            position={crewPositions[idx % crewPositions.length]}
-            reducedMotion={reducedMotion}
-          />
-        ))}
 
         <Particles
           isDust={isDust}
@@ -530,7 +549,12 @@ export function Diorama() {
           reducedMotion={reducedMotion}
         />
 
-        <PostFX quality={quality} reducedMotion={reducedMotion} isFlare={isFlare} />
+        <PostFX
+          quality={quality}
+          reducedMotion={reducedMotion}
+          isFlare={isFlare}
+          focusTarget={[0.2, 0.6, 0.0]}
+        />
       </Canvas>
 
       <div className="diorama-overlay-bottom">

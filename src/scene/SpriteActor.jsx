@@ -20,10 +20,20 @@ const MOOD_FRAME_RANGES = {
 
 const CHARACTER_ROWS = {
   commander: 0,
+  'commander-nova': 0,
   engineer: 1,
   doctor: 2,
   botanist: 3,
   pilot: 4,
+};
+
+const CHARACTER_COLORS = {
+  commander: '#FFB020',
+  'commander-nova': '#FFB020',
+  engineer: '#FF9800',
+  doctor: '#00E5FF',
+  botanist: '#00E676',
+  pilot: '#B388FF',
 };
 
 let sharedBaseTexture = null;
@@ -49,7 +59,9 @@ export function SpriteActor({
   reducedMotion = false,
 }) {
   const groupRef = useRef(null);
-  const row = CHARACTER_ROWS[id] ?? 1;
+  const normId = id === 'commander-nova' ? 'commander' : id;
+  const row = CHARACTER_ROWS[normId] ?? 1;
+  const signatureColor = CHARACTER_COLORS[normId] || '#FFB020';
   const totalCols = 15;
   const totalRows = 5;
 
@@ -107,10 +119,30 @@ export function SpriteActor({
           side={THREE.DoubleSide}
         />
       </mesh>
+
+      {/* Dynamic character signature beacon / light */}
+      <pointLight
+        color={signatureColor}
+        intensity={0.45}
+        distance={2.2}
+        position={[0, 0.4, 0.2]}
+      />
+
+      {/* Role-colored ground indicator ring for instant visual identification */}
+      <mesh position={[0, -0.57, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.26, 0.32, 24]} />
+        <meshBasicMaterial
+          color={signatureColor}
+          transparent
+          opacity={0.7}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
       {/* Subtle ground contact shadow */}
       <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.28, 12]} />
-        <meshBasicMaterial color="#1C1F3A" transparent opacity={0.45} />
+        <circleGeometry args={[0.26, 16]} />
+        <meshBasicMaterial color="#0A0C16" transparent opacity={0.55} />
       </mesh>
       <group userData={{ actorName: name, mood, health }} />
     </group>
