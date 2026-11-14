@@ -1,4 +1,6 @@
 /* src/ui/missionDeck.css */
+@import url('https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&display=swap');
+
 :root {
   --bg-panel: rgba(13, 22, 43, 0.88);
   --border-glow: #38bdf8;
@@ -1912,11 +1914,13 @@ html, body {
 }
 
 .landing-huge-title {
-  font-family: 'Silkscreen', monospace;
-  font-size: clamp(2.6rem, 9.6vw, 8.8rem);
-  font-weight: 700;
-  line-height: 0.92;
-  letter-spacing: -0.015em;
+  font-family: 'Handjet', 'Silkscreen', monospace, sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: 'wght' 800;
+  font-weight: 800;
+  font-size: clamp(3.2rem, 12.8vw, 11rem);
+  line-height: 0.9;
+  letter-spacing: clamp(0.01em, 0.4vw, 0.05em);
   text-align: center;
   margin: 0;
   width: 100%;
