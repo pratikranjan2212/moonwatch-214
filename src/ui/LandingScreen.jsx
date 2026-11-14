@@ -140,18 +140,10 @@ export default function LandingScreen({ onStartMission }) {
 
         {/* Centered Hero Section (In the Middle of the Screen) */}
         <section className="landing-center-hero">
-          {/* Huge Pixel Title: MOONWATCH (Full Width Spanning) */}
+          {/* Huge Pixel Title: MOONWATCH (Full Width Spanning, Tight Kerning) */}
           <div className="landing-title-container">
-            <h1 className="landing-huge-title" aria-label="MOONWATCH">
-              <span>M</span>
-              <span>O</span>
-              <span>O</span>
-              <span>N</span>
-              <span>W</span>
-              <span>A</span>
-              <span>T</span>
-              <span>C</span>
-              <span>H</span>
+            <h1 className="landing-huge-title" data-text="MOONWATCH" aria-label="MOONWATCH">
+              MOONWATCH
             </h1>
           </div>
 
@@ -181,9 +173,6 @@ export default function LandingScreen({ onStartMission }) {
             </button>
           </div>
         </section>
-
-        {/* Bottom Spacer to Center Title in the Middle */}
-        <div className="landing-spacer landing-spacer-bottom" />
 
         {/* Bottom Strip */}
         <footer className="landing-bottom-strip">

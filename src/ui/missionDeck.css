@@ -1918,12 +1918,13 @@ html, body {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
-/* Centered Hero Section (In the Middle of the Screen) */
+/* Bottom-Aligned Hero Section (Positioned at bottom of viewport, centered content) */
 .landing-center-hero {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin: auto 0;
+  margin-top: auto;
+  margin-bottom: 6px;
   z-index: 5;
 }
 
@@ -1933,8 +1934,7 @@ html, body {
 }
 
 .landing-spacer-bottom {
-  flex: 1 1 0%;
-  min-height: 20px;
+  display: none;
 }
 
 /* Full Width Title Container */
@@ -1950,29 +1950,24 @@ html, body {
 }
 
 .landing-huge-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: block;
+  text-align: center;
   width: 100%;
-  padding: 0 clamp(16px, 3.5vw, 44px);
+  padding: 0 clamp(8px, 1.5vw, 24px);
   box-sizing: border-box;
   font-family: 'Handjet', monospace, sans-serif;
   font-optical-sizing: auto;
   font-variation-settings: 'wght' 800;
   font-weight: 800;
-  font-size: clamp(3.4rem, 11.2vw, 9.8rem);
-  line-height: 0.92;
+  font-size: clamp(3.8rem, 15.6vw, 15.6vw);
+  line-height: 0.88;
+  letter-spacing: clamp(0.01em, 0.35vw, 0.03em);
   margin: 0;
   white-space: nowrap;
   color: #38bdf8;
   text-shadow: 0 0 24px rgba(56, 189, 248, 0.75), 0 0 50px rgba(14, 165, 233, 0.45), 0 4px 14px rgba(0, 0, 0, 0.95);
   filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.55));
   animation: titleGlowPulseBlue 4s ease-in-out infinite alternate;
-}
-
-.landing-huge-title span {
-  display: inline-block;
-  text-align: center;
 }
 
 /* Meta Strip (Now Below Huge Title, exactly aligned under outer letters) */
@@ -1999,13 +1994,15 @@ html, body {
   text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 
-/* Primary Action Buttons (Moved Up Below MOONWATCH as marked) */
+/* Primary Action Buttons (Middle-Aligned Horizontally Below MOONWATCH) */
 .landing-hero-actions {
   display: flex;
   align-items: center;
-  gap: clamp(12px, 1.8vw, 18px);
+  justify-content: center;
+  width: 100%;
+  gap: clamp(14px, 2vw, 22px);
   padding: 0 clamp(16px, 3.5vw, 44px);
-  margin-top: clamp(16px, 2.4vh, 28px);
+  margin-top: clamp(12px, 1.8vh, 20px);
   z-index: 6;
 }
 
@@ -2151,8 +2148,12 @@ html, body {
     line-height: 1.45;
   }
   .landing-huge-title {
+    display: block;
+    text-align: center;
     padding: 0 8px;
-    font-size: clamp(2.2rem, 9.5vw, 3.8rem);
+    font-size: clamp(2.4rem, 13.5vw, 4.4rem);
+    letter-spacing: 0.02em;
+    line-height: 0.9;
   }
   .landing-fixed-satellite {
     transform: translate(-50%, -50%) scale(0.72) rotate(-14deg);
@@ -2161,14 +2162,17 @@ html, body {
   }
   .landing-hero-actions {
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    padding: 0 8px;
+    padding: 0 16px;
     margin-top: 14px;
     gap: 10px;
   }
   .landing-meta-strip {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
     gap: 4px;
     padding: 0 10px 6px 10px;
     font-size: 0.68rem;
