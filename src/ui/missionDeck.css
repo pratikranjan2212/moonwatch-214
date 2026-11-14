@@ -715,18 +715,43 @@
 
 .include-icon {
   font-size: 1.35rem;
+  flex-shrink: 0;
 }
 
-.include-item strong {
-  display: block;
+.include-text {
+  flex: 1;
+}
+
+.include-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.include-name {
   font-size: 0.88rem;
   color: #f8fafc;
 }
 
-.include-item small {
+.key-cap-mini {
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-bottom: 2px solid #38bdf8;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #38bdf8;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.include-desc {
   display: block;
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: #cbd5e1;
+  line-height: 1.3;
 }
 
 .objectives-list {
@@ -735,6 +760,56 @@
   line-height: 1.65;
   font-size: 0.9rem;
   color: #f1f5f9;
+}
+
+.objectives-list-kid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.objectives-list-kid li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: #f1f5f9;
+  background: #0f172a;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.objective-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.crew-pick-hint {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #64748b;
+  border: 1px solid #334155;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.crew-card:hover .crew-pick-hint {
+  color: var(--crew-accent);
+  border-color: var(--crew-accent);
 }
 
 .roster-header {

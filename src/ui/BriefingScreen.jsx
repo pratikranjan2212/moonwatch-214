@@ -3,57 +3,105 @@ import React, { useState } from 'react';
 
 const LEVEL_BRIEFINGS = {
   1: {
-    rank: '🌱 CADET MISSION',
+    rank: 'CADET MISSION',
     title: 'Level 1: Power Basics',
     sols: 14,
     accent: '#fbbf24',
     summary:
-      'Welcome to Shackleton Rim Outpost! Survive 14 Sols by charging your solar batteries during the day and raising your Shield Dome when solar flares strike.',
+      'Welcome to Moonbase Shackleton! Your goal is to survive 14 Days on the Moon. Collect sunlight to charge your base batteries, and turn ON your Shield Dome whenever dangerous space storms hit!',
+    toolsTitle: '🛠️ YOUR BASE TOOLS',
     includes: [
-      { icon: '☀️', label: 'Solar Panels [1/P]', desc: 'Extend for power, retract during storms' },
-      { icon: '🛡️', label: 'Shield Dome [2/S]', desc: 'Blocks radiation from NASA solar flares' },
-      { icon: '🫧', label: 'Oxygen Core [3/O]', desc: 'Keep cabin air safe for your crew' },
+      {
+        icon: '☀️',
+        name: 'Solar Panels',
+        key: '1 / P',
+        desc: 'Open in sunlight to charge batteries. Close during space storms!',
+      },
+      {
+        icon: '🛡️',
+        name: 'Shield Dome',
+        key: '2 / S',
+        desc: 'Turn ON to block dangerous radiation from NASA solar flares!',
+      },
+      {
+        icon: '🫧',
+        name: 'Oxygen Core',
+        key: '3 / O',
+        desc: 'Pumps clean, fresh air so your astronauts stay breathing.',
+      },
     ],
     objectives: [
-      'Survive 14 Sols across two lunar day-night cycles.',
-      'Retract Solar Panels & raise Shield Dome before CME alerts hit.',
-      'Keep Crew Health and Oxygen above 0%.',
+      'Survive all 14 Days (Sols) until your mission is complete!',
+      'Close Solar Panels and raise Shield Dome before solar storms hit.',
+      'Keep Crew Health and Oxygen safely above 0%!',
     ],
   },
   2: {
-    rank: '🚀 PILOT MISSION',
-    title: 'Level 2: Life Support & Hydroponic Greenhouse',
+    rank: 'PILOT MISSION',
+    title: 'Level 2: Life Support & Greenhouse',
     sols: 21,
     accent: '#38bdf8',
     summary:
-      'Extend operations to 21 Sols! Rising cabin CO₂ drains extra oxygen each Sol. Water and tend Soli’s greenhouse to naturally scrub CO₂ and keep the crew healthy.',
+      'Welcome to Level 2! Keep your moonbase alive for 21 Days. As your crew breathes, cabin CO₂ builds up — water your greenhouse to grow yummy space crops and make clean oxygen!',
+    toolsTitle: '🛠️ YOUR BASE TOOLS',
     includes: [
-      { icon: '🌱', label: 'Hydroponic Greenhouse [4/G]', desc: 'Grows dwarf-wheat & adds +9 O₂/Sol' },
-      { icon: '🫧', label: 'CO₂ Scrubber Control', desc: 'Balances rising cabin carbon dioxide' },
-      { icon: '⚡', label: 'Multi-Sol Solar Storms', desc: 'Longer flares requiring smart battery reserves' },
+      {
+        icon: '🌱',
+        name: 'Hydroponic Greenhouse',
+        key: '4 / G',
+        desc: 'Grows dwarf-wheat to scrub bad air and boost +9 extra Oxygen!',
+      },
+      {
+        icon: '🫧',
+        name: 'CO₂ Scrubber',
+        key: '3 / O',
+        desc: 'Balances stale cabin air so your astronauts stay energetic.',
+      },
+      {
+        icon: '⚡',
+        name: 'Long Solar Storms',
+        key: '2 / S',
+        desc: 'Bigger flares that test your battery power and shield timing.',
+      },
     ],
     objectives: [
-      'Survive 21 Sols across three lunar day-night cycles.',
-      'Water and tend the Greenhouse [4/G] to offset CO₂ build-up (+9 O₂/Sol).',
-      'Protect the crew from multi-Sol CMEs and dust storms.',
+      'Survive all 21 Days (Sols) through lunar day and night.',
+      'Water the Greenhouse [4/G] to clean bad air and boost Oxygen (+9/Sol).',
+      'Shield your astronauts safely through multi-day solar storms.',
     ],
   },
   3: {
-    rank: '👑 COMMANDER MISSION',
-    title: 'Level 3: Deep Space Comms & Earth Delay',
+    rank: 'COMMANDER MISSION',
+    title: 'Level 3: Deep Space Comms',
     sols: 28,
     accent: '#a855f7',
     summary:
-      'Take full command for 28 Sols! Severe space weather disrupts radio waves. Aim the High-Gain Dish to beam emergency telemetry back to Earth.',
+      'The ultimate commander challenge! Take full charge of the base for 28 Days. Giant solar storms disrupt radio waves — align your satellite dish and beam emergency signals back to Earth!',
+    toolsTitle: '🛠️ YOUR BASE TOOLS',
     includes: [
-      { icon: '📡', label: 'Earth Comms Queue [5/C]', desc: 'Send telemetry bursts between solar storms' },
-      { icon: '🛰️', label: 'High-Gain Antenna Sync', desc: 'Earn science boosts from Mission Control' },
-      { icon: '🌪️', label: 'Extreme Solar Weather', desc: 'Master all 5 base stations simultaneously' },
+      {
+        icon: '📡',
+        name: 'Earth Radio Beam',
+        key: '5 / C',
+        desc: 'Send emergency weather data bursts back home to Earth!',
+      },
+      {
+        icon: '🛰️',
+        name: 'High-Gain Antenna',
+        key: 'Auto',
+        desc: 'Earn awesome science bonus points directly from Mission Control.',
+      },
+      {
+        icon: '🌪️',
+        name: 'Extreme Space Weather',
+        key: '1–5',
+        desc: 'Balance all 5 base stations at the same time like a true Commander.',
+      },
     ],
     objectives: [
-      'Survive all 28 Sols at Shackleton Rim Outpost.',
-      'Queue Earth Comms [5/C] during clear space-weather windows.',
-      'Keep every base system balanced until rescue arrival on Sol 28.',
+      'Survive all 28 Days (Sols) until the rescue shuttle arrives!',
+      'Queue Earth Comms [5/C] whenever the space skies are clear.',
+      'Keep power, oxygen, shields, and greenhouse balanced!',
     ],
   },
 };
@@ -62,62 +110,62 @@ export const CREW_ROSTER = [
   {
     id: 'nova',
     name: 'Commander Nova',
-    role: 'Mission Commander',
-    vibe: 'Calm & Decisive',
+    role: 'Captain',
+    vibe: 'Shield Expert',
     avatar: '👩‍🚀',
     suitColor: '#f8fafc',
     visorColor: '#f59e0b',
     accent: '#fbbf24',
-    perk: '⭐ +15% Shield Dome Efficiency',
-    bio: 'Leads Shackleton Outpost. Coordinates power, shielding, and crew safety across the lunar day-night cycle.',
+    perk: '⭐ +15% Stronger Shield',
+    bio: 'Calm leader! Strengthens your shield dome against solar flares.',
   },
   {
     id: 'kip',
     name: 'Kip Vance',
     role: 'Chief Engineer',
-    vibe: 'Practical & Funny',
+    vibe: 'Battery Whiz',
     avatar: '🧑‍🔧',
     suitColor: '#fed7aa',
     visorColor: '#38bdf8',
     accent: '#fb923c',
-    perk: '⚡ +20% Solar Battery Charge',
-    bio: 'Keeps the solar array and battery bank humming even when lunar dust coats the hinges.',
+    perk: '⚡ +20% Battery Charging',
+    bio: 'Funny mechanic who loves gadgets and charges batteries extra fast.',
   },
   {
     id: 'mei',
     name: 'Dr. Mei Lin',
     role: 'Flight Doctor',
-    vibe: 'Gentle & Cautious',
+    vibe: 'Oxygen Saver',
     avatar: '👩‍⚕️',
     suitColor: '#e0f2fe',
     visorColor: '#34d399',
     accent: '#38bdf8',
-    perk: '❤️ Slower Oxygen Drain',
-    bio: 'Monitors cabin oxygen and radiation dosimeters so every crew member stays fit for lunar duty.',
+    perk: '❤️ Uses Less Oxygen',
+    bio: 'Gentle space medic who keeps crew fit so oxygen lasts longer.',
   },
   {
     id: 'soli',
     name: 'Soli Patel',
     role: 'Space Botanist',
-    vibe: 'Cheerful & Nature-Loving',
+    vibe: 'Plant Grower',
     avatar: '🧑‍🌾',
     suitColor: '#dcfce7',
     visorColor: '#a3e635',
     accent: '#4ade80',
-    perk: '🌱 +3 Extra O₂ from Greenhouse',
-    bio: 'Tends the hydroponic dwarf-wheat dome that scrubs CO₂ and boosts fresh oxygen.',
+    perk: '🌱 +3 Extra Air from Crops',
+    bio: 'Loves plants and grows delicious dwarf-wheat for fresh air.',
   },
   {
     id: 'juno',
     name: 'Juno Reyes',
-    role: 'Comms & Rover Pilot',
-    vibe: 'Bold & Restless',
+    role: 'Rover Pilot',
+    vibe: 'Speedy Comms',
     avatar: '🛰️',
     suitColor: '#f3e8ff',
     visorColor: '#c084fc',
     accent: '#c084fc',
-    perk: '📡 Faster Earth Comms Sync',
-    bio: 'Steers the lunar rover and aligns the high-gain dish to keep Earth telemetry locked.',
+    perk: '📡 2x Faster Radio to Earth',
+    bio: 'Bold rover driver who sends emergency signals back home fast.',
   },
 ];
 
@@ -136,17 +184,20 @@ export default function BriefingScreen({
   return (
     <div className="welcome-overlay">
       <div className="briefing-card">
-        {/* Top Outpost Pill & Level Title (Seed # removed for kid-friendly clarity) */}
+        {/* Top Outpost Pill & Level Title */}
         <header className="briefing-header">
           <div>
             <div className="outpost-pill" style={{ borderColor: briefing.accent, color: briefing.accent }}>
-              SHACKLETON RIM OUTPOST • {briefing.rank}
+              🌙 MOONBASE SHACKLETON • {briefing.rank}
             </div>
             <h1 className="briefing-title">{briefing.title}</h1>
           </div>
           <div className="sol-target-badge" style={{ borderColor: briefing.accent }}>
             <span>MISSION LENGTH</span>
             <strong style={{ color: briefing.accent }}>{briefing.sols} Sols</strong>
+            <small style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
+              ({briefing.sols} Lunar Days)
+            </small>
           </div>
         </header>
 
@@ -154,15 +205,18 @@ export default function BriefingScreen({
 
         {/* Two-Column Visual Breakdown: What's Included + Primary Objectives */}
         <div className="briefing-details-grid">
-          <div className="briefing-box">
-            <div className="briefing-box-title">🧰 WHAT THIS LEVEL INCLUDES</div>
+          <div className="briefing-box tools-box">
+            <div className="briefing-box-title">🛠️ YOUR BASE TOOLS</div>
             <div className="includes-list">
               {briefing.includes.map((item) => (
-                <div key={item.label} className="include-item">
+                <div key={item.name} className="include-item">
                   <span className="include-icon">{item.icon}</span>
-                  <div>
-                    <strong>{item.label}</strong>
-                    <small>{item.desc}</small>
+                  <div className="include-text">
+                    <div className="include-header">
+                      <strong className="include-name">{item.name}</strong>
+                      <kbd className="key-cap-mini">{item.key}</kbd>
+                    </div>
+                    <small className="include-desc">{item.desc}</small>
                   </div>
                 </div>
               ))}
@@ -170,10 +224,15 @@ export default function BriefingScreen({
           </div>
 
           <div className="briefing-box objectives-box" style={{ borderLeftColor: briefing.accent }}>
-            <div className="briefing-box-title">🎯 PRIMARY MISSION OBJECTIVES</div>
-            <ul className="objectives-list">
-              {briefing.objectives.map((obj) => (
-                <li key={obj}>{obj}</li>
+            <div className="briefing-box-title">🏆 HOW TO WIN THIS MISSION</div>
+            <ul className="objectives-list-kid">
+              {briefing.objectives.map((obj, i) => (
+                <li key={obj}>
+                  <span className="objective-badge" style={{ background: briefing.accent }}>
+                    {i + 1}
+                  </span>
+                  <span>{obj}</span>
+                </li>
               ))}
             </ul>
           </div>
@@ -181,9 +240,9 @@ export default function BriefingScreen({
 
         {/* Character / Crew Roster Selector */}
         <div className="roster-header">
-          <span>🧑‍🚀 CHOOSE YOUR ASTRONAUT CHARACTER</span>
+          <span>🧑‍🚀 CHOOSE YOUR ASTRONAUT HERO</span>
           <span style={{ color: activeCrew.accent }}>
-            Playing as: {activeCrew.name} ({activeCrew.perk})
+            Hero Selected: <strong>{activeCrew.name}</strong> ({activeCrew.perk})
           </span>
         </div>
 
@@ -200,7 +259,11 @@ export default function BriefingScreen({
               >
                 <div className="crew-top">
                   <span className="crew-avatar">{member.avatar}</span>
-                  {isSelected && <span className="crew-picked">✓ SELECTED</span>}
+                  {isSelected ? (
+                    <span className="crew-picked">✓ READY</span>
+                  ) : (
+                    <span className="crew-pick-hint">Select</span>
+                  )}
                 </div>
                 <strong className="crew-name">{member.name}</strong>
                 <div className="crew-role" style={{ color: member.accent }}>
@@ -229,39 +292,127 @@ export default function BriefingScreen({
               className="menu-btn tutorial-btn"
               onClick={() => setShowTutorial(true)}
             >
-              ❓ Launch Tutorial
+              ❓ How to Play Guide
             </button>
             <button
               type="button"
               className="start-mission-btn"
               onClick={onStartGame}
             >
-              🚀 Start Sol 1 →
+              🚀 Launch Sol 1 →
             </button>
           </div>
         </footer>
       </div>
 
-      {/* Quick Tutorial Popup */}
+      {/* Kid-Friendly Quick Tutorial Popup */}
       {showTutorial && (
         <div className="modal-backdrop" onClick={() => setShowTutorial(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h2>🕹️ Controls for {activeCrew.name}</h2>
-            <ul className="tutorial-list">
-              <li><code>1 / P</code> — Toggle Solar Panels (Extended / Retracted)</li>
-              <li><code>2 / S</code> — Toggle Shield Dome (On / Off)</li>
-              <li><code>3 / O</code> — Cycle Oxygen Level (Low / Normal / High)</li>
-              <li><code>4 / G</code> — Water Greenhouse (Level 2+)</li>
-              <li><code>5 / C</code> — Queue Earth Comms (Level 3)</li>
-              <li><code>Space / Enter</code> — Advance to Next Sol</li>
-              <li><code>Esc</code> — Dismiss Solar Flare Alert</li>
-            </ul>
+          <div className="modal-box tutorial-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-row">
+              <div>
+                <h2 className="modal-title-text">
+                  🧑‍🚀 How to Play: 4 Easy Steps
+                </h2>
+                <p className="modal-sub-text">
+                  Playing as <strong>{activeCrew.name}</strong> ({activeCrew.perk})
+                </p>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowTutorial(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="tutorial-cards-grid">
+              <div className="tutorial-step-card" style={{ '--step-accent': '#fbbf24' }}>
+                <div className="step-num-badge">1</div>
+                <div className="step-info">
+                  <div className="step-header">
+                    <span className="step-title">☀️ Catch Sunlight</span>
+                    <div className="key-badge-group">
+                      <span>Press</span>
+                      <kbd className="key-cap">1</kbd>
+                      <span>or</span>
+                      <kbd className="key-cap">P</kbd>
+                    </div>
+                  </div>
+                  <p className="step-desc">
+                    Open solar panels on calm sunny days to fill up your base batteries!
+                  </p>
+                </div>
+              </div>
+
+              <div className="tutorial-step-card" style={{ '--step-accent': '#38bdf8' }}>
+                <div className="step-num-badge">2</div>
+                <div className="step-info">
+                  <div className="step-header">
+                    <span className="step-title">🛡️ Shield Against Storms</span>
+                    <div className="key-badge-group">
+                      <span>Press</span>
+                      <kbd className="key-cap">2</kbd>
+                      <span>or</span>
+                      <kbd className="key-cap">S</kbd>
+                    </div>
+                  </div>
+                  <p className="step-desc">
+                    When NASA warns you of a solar flare, close panels and turn ON the shield dome!
+                  </p>
+                </div>
+              </div>
+
+              <div className="tutorial-step-card" style={{ '--step-accent': '#34d399' }}>
+                <div className="step-num-badge">3</div>
+                <div className="step-info">
+                  <div className="step-header">
+                    <span className="step-title">🌱 Keep Crew Healthy</span>
+                    <div className="key-badge-group">
+                      <span>Press</span>
+                      <kbd className="key-cap">3</kbd>
+                      <span>or</span>
+                      <kbd className="key-cap">O</kbd>
+                    </div>
+                  </div>
+                  <p className="step-desc">
+                    Pump clean oxygen and water greenhouse plants so your astronauts stay breathing!
+                  </p>
+                </div>
+              </div>
+
+              <div className="tutorial-step-card" style={{ '--step-accent': '#a855f7' }}>
+                <div className="step-num-badge">4</div>
+                <div className="step-info">
+                  <div className="step-header">
+                    <span className="step-title">🚀 Finish the Day</span>
+                    <div className="key-badge-group">
+                      <span>Press</span>
+                      <kbd className="key-cap">SPACE</kbd>
+                    </div>
+                  </div>
+                  <p className="step-desc">
+                    Once your base is safe and prepared, advance the day to survive to the next Sol!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pro-tip-banner">
+              <span className="pro-tip-icon">💡</span>
+              <span>
+                <strong>Space Fact:</strong> A <strong>"Sol"</strong> is simply the scientific word for <strong>one day</strong> on the Moon!
+              </span>
+            </div>
+
             <button
               type="button"
-              className="start-mission-btn"
+              className="start-mission-btn modal-submit-btn"
               onClick={() => setShowTutorial(false)}
             >
-              Ready for Launch!
+              Ready for Launch! 🚀
             </button>
           </div>
         </div>
