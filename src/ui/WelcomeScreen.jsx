@@ -41,6 +41,7 @@ export default function WelcomeScreen({
   selectedLevel,
   onSelectLevel,
   onStartMission,
+  onBackToHome,
   reducedMotion,
   onToggleReducedMotion,
   graphicsPreset,
@@ -121,6 +122,15 @@ export default function WelcomeScreen({
         {/* Clean Bottom Action Bar (Replay Seed & Credits removed) */}
         <footer className="welcome-footer">
           <div className="secondary-actions">
+            {onBackToHome && (
+              <button
+                type="button"
+                className="menu-btn home-btn"
+                onClick={onBackToHome}
+              >
+                ← Home
+              </button>
+            )}
             <button
               type="button"
               className="menu-btn settings-btn"

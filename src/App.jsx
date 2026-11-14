@@ -4,6 +4,7 @@ import './ui/missionDeck.css';
 import Parallax2D from './scene/Parallax2D.jsx';
 import SpriteActor from './scene/SpriteActor.jsx';
 import MissionHUD from './ui/MissionHUD.jsx';
+import LandingScreen from './ui/LandingScreen.jsx';
 import WelcomeScreen from './ui/WelcomeScreen.jsx';
 import BriefingScreen, { CREW_ROSTER } from './ui/BriefingScreen.jsx';
 import PauseModal from './ui/PauseModal.jsx';
@@ -13,8 +14,8 @@ const O2_CYCLE = ['LOW', 'NORMAL', 'HIGH'];
 const LEVEL_SOLS = { 1: 14, 2: 21, 3: 28 };
 
 export default function App() {
-  // 3-step screen flow: 'WELCOME' -> 'BRIEFING' -> 'PLAYING'
-  const [screen, setScreen] = useState('WELCOME');
+  // 4-step screen flow: 'HOME' -> 'LEVELS' -> 'BRIEFING' -> 'PLAYING'
+  const [screen, setScreen] = useState('HOME');
   const [level, setLevel] = useState(1);
   const [selectedCharacter, setSelectedCharacter] = useState(CREW_ROSTER[0]);
   const [isPaused, setIsPaused] = useState(false);
@@ -63,7 +64,7 @@ export default function App() {
 
   const handleExitToWelcome = () => {
     resetMissionState();
-    setScreen('WELCOME');
+    setScreen('HOME');
   };
 
   const handleAdvanceSol = useCallback(() => {
@@ -101,11 +102,18 @@ export default function App() {
         commsQueued={commsQueued}
       />
 
-      {screen === 'WELCOME' && (
+      {screen === 'HOME' && (
+        <LandingScreen
+          onStartMission={() => setScreen('LEVELS')}
+        />
+      )}
+
+      {screen === 'LEVELS' && (
         <WelcomeScreen
           selectedLevel={level}
           onSelectLevel={setLevel}
           onStartMission={() => setScreen('BRIEFING')}
+          onBackToHome={() => setScreen('HOME')}
           reducedMotion={reducedMotion}
           onToggleReducedMotion={() => setReducedMotion((v) => !v)}
           graphicsPreset={graphicsPreset}
@@ -118,7 +126,7 @@ export default function App() {
           selectedLevel={level}
           selectedCharacter={selectedCharacter}
           onSelectCharacter={setSelectedCharacter}
-          onBackToWelcome={() => setScreen('WELCOME')}
+          onBackToWelcome={() => setScreen('LEVELS')}
           onStartGame={handleStartGame}
         />
       )}
