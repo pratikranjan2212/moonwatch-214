@@ -1,5 +1,6 @@
 // src/ui/BriefingScreen.jsx
 import React, { useState } from 'react';
+import GameInfoModal from './GameInfoModal.jsx';
 
 const LEVEL_BRIEFINGS = {
   1: {
@@ -305,117 +306,15 @@ export default function BriefingScreen({
         </footer>
       </div>
 
-      {/* Kid-Friendly Quick Tutorial Popup */}
+      {/* Kid-Friendly Quick Tutorial & Game Info Popup */}
       {showTutorial && (
-        <div className="modal-backdrop" onClick={() => setShowTutorial(false)}>
-          <div className="modal-box tutorial-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-row">
-              <div>
-                <h2 className="modal-title-text">
-                  🧑‍🚀 How to Play: 4 Easy Steps
-                </h2>
-                <p className="modal-sub-text">
-                  Playing as <strong>{activeCrew.name}</strong> ({activeCrew.perk})
-                </p>
-              </div>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setShowTutorial(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="tutorial-cards-grid">
-              <div className="tutorial-step-card" style={{ '--step-accent': '#fbbf24' }}>
-                <div className="step-num-badge">1</div>
-                <div className="step-info">
-                  <div className="step-header">
-                    <span className="step-title">☀️ Catch Sunlight</span>
-                    <div className="key-badge-group">
-                      <span>Press</span>
-                      <kbd className="key-cap">1</kbd>
-                      <span>or</span>
-                      <kbd className="key-cap">P</kbd>
-                    </div>
-                  </div>
-                  <p className="step-desc">
-                    Open solar panels on calm sunny days to fill up your base batteries!
-                  </p>
-                </div>
-              </div>
-
-              <div className="tutorial-step-card" style={{ '--step-accent': '#38bdf8' }}>
-                <div className="step-num-badge">2</div>
-                <div className="step-info">
-                  <div className="step-header">
-                    <span className="step-title">🛡️ Shield Against Storms</span>
-                    <div className="key-badge-group">
-                      <span>Press</span>
-                      <kbd className="key-cap">2</kbd>
-                      <span>or</span>
-                      <kbd className="key-cap">S</kbd>
-                    </div>
-                  </div>
-                  <p className="step-desc">
-                    When NASA warns you of a solar flare, close panels and turn ON the shield dome!
-                  </p>
-                </div>
-              </div>
-
-              <div className="tutorial-step-card" style={{ '--step-accent': '#34d399' }}>
-                <div className="step-num-badge">3</div>
-                <div className="step-info">
-                  <div className="step-header">
-                    <span className="step-title">🌱 Keep Crew Healthy</span>
-                    <div className="key-badge-group">
-                      <span>Press</span>
-                      <kbd className="key-cap">3</kbd>
-                      <span>or</span>
-                      <kbd className="key-cap">O</kbd>
-                    </div>
-                  </div>
-                  <p className="step-desc">
-                    Pump clean oxygen and water greenhouse plants so your astronauts stay breathing!
-                  </p>
-                </div>
-              </div>
-
-              <div className="tutorial-step-card" style={{ '--step-accent': '#a855f7' }}>
-                <div className="step-num-badge">4</div>
-                <div className="step-info">
-                  <div className="step-header">
-                    <span className="step-title">🚀 Finish the Day</span>
-                    <div className="key-badge-group">
-                      <span>Press</span>
-                      <kbd className="key-cap">SPACE</kbd>
-                    </div>
-                  </div>
-                  <p className="step-desc">
-                    Once your base is safe and prepared, advance the day to survive to the next Sol!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pro-tip-banner">
-              <span className="pro-tip-icon">💡</span>
-              <span>
-                <strong>Space Fact:</strong> A <strong>"Sol"</strong> is simply the scientific word for <strong>one day</strong> on the Moon!
-              </span>
-            </div>
-
-            <button
-              type="button"
-              className="start-mission-btn modal-submit-btn"
-              onClick={() => setShowTutorial(false)}
-            >
-              Ready for Launch! 🚀
-            </button>
-          </div>
-        </div>
+        <GameInfoModal
+          activeTab="TUTORIAL"
+          onSelectTab={() => {}}
+          onClose={() => setShowTutorial(false)}
+          onStartMission={() => setShowTutorial(false)}
+          currentHero={activeCrew}
+        />
       )}
     </div>
   );
