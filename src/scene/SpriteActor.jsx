@@ -39,12 +39,16 @@ export default function SpriteActor({
           background: '#fbbf24',
           color: '#0f172a',
           fontWeight: 800,
-          fontSize: '0.78rem',
-          padding: '4px 10px',
+          fontSize: 'clamp(0.68rem, 2vw, 0.78rem)',
+          padding: '4px 8px',
           borderRadius: '12px',
           marginBottom: '6px',
           whiteSpace: 'nowrap',
+          maxWidth: '85vw',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
           border: '2px solid #0f172a',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
         }}
       >
         {character?.avatar || '👩‍🚀'} <strong>{charName}:</strong> {target.label}

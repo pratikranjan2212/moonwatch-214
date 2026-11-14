@@ -9,10 +9,25 @@
   --font-display: 'Fredoka', 'Segoe UI', system-ui, sans-serif;
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050814;
+}
+
 .mission-root {
   position: relative;
   width: 100vw;
+  width: 100dvw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   font-family: var(--font-display);
   color: var(--text-main);
@@ -113,16 +128,20 @@
   justify-content: center;
   background: radial-gradient(circle at center, rgba(15, 23, 42, 0.78), rgba(5, 8, 20, 0.94));
   backdrop-filter: blur(6px);
-  padding: 20px;
+  padding: clamp(10px, 3vw, 24px);
+  overflow-y: auto;
 }
 
 .welcome-card {
   width: 100%;
   max-width: 980px;
-  background: rgba(15, 23, 42, 0.95);
+  max-height: 94vh;
+  max-height: 94dvh;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.96);
   border: 3px solid #334155;
-  border-radius: 24px;
-  padding: 28px 32px;
+  border-radius: clamp(16px, 2.5vw, 24px);
+  padding: clamp(16px, 3vw, 30px);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
 }
 
@@ -130,7 +149,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: clamp(12px, 2vw, 20px);
+  gap: 12px;
 }
 
 .welcome-greeting {
@@ -142,7 +162,7 @@
 }
 
 .welcome-title {
-  font-size: 2.3rem;
+  font-size: clamp(1.4rem, 4.5vw, 2.3rem);
   font-weight: 900;
   margin: 0;
   letter-spacing: 0.04em;
@@ -151,7 +171,7 @@
 
 .welcome-subtitle {
   margin: 6px 0 0;
-  font-size: 1.05rem;
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
   color: #38bdf8;
   font-weight: 700;
 }
@@ -608,12 +628,13 @@
 .briefing-card {
   width: 100%;
   max-width: 1080px;
-  max-height: 92vh;
+  max-height: 94vh;
+  max-height: 94dvh;
   overflow-y: auto;
   background: rgba(15, 23, 42, 0.96);
   border: 3px solid #334155;
-  border-radius: 24px;
-  padding: 24px 30px;
+  border-radius: clamp(16px, 2.5vw, 24px);
+  padding: clamp(16px, 3vw, 28px);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
 }
 
@@ -637,7 +658,7 @@
 }
 
 .briefing-title {
-  font-size: 1.9rem;
+  font-size: clamp(1.3rem, 3.8vw, 1.9rem);
   font-weight: 900;
   margin: 0;
   color: #f8fafc;
@@ -1021,4 +1042,615 @@
   background: #450a0a;
   color: #fca5a5;
   border-color: #f87171;
+}
+
+/* ==========================================================================
+   TACTICAL HUD: TOP BAR, GAUGES, SOLAR ALERT & RESPONSIVE DASHBOARD
+   ========================================================================== */
+
+.hud-header {
+  position: absolute;
+  top: clamp(8px, 1.5vw, 16px);
+  left: clamp(8px, 2vw, 20px);
+  right: clamp(8px, 2vw, 20px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: clamp(8px, 1.2vw, 16px);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.hud-header > * {
+  pointer-events: auto;
+}
+
+.hud-card {
+  background: var(--bg-panel);
+  border: 3px solid #334155;
+  border-radius: clamp(12px, 1.5vw, 16px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.hud-sol-card {
+  border-color: var(--border-glow);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.5vw, 16px);
+}
+
+.hud-sol-primary {
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-label-dim {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.hud-sol-title {
+  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+  font-weight: 900;
+  color: #fbbf24;
+}
+
+.hud-timer-col {
+  border-left: 2px solid #334155;
+  padding-left: clamp(8px, 1.2vw, 14px);
+}
+
+.hud-timer-val {
+  font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.hud-gauge-card {
+  padding: 8px 14px;
+  min-width: 200px;
+  flex: 0 1 280px;
+}
+
+.hud-gauge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.hud-gauge-svg {
+  border-radius: 8px;
+  border: 2px solid #f8fafc;
+  overflow: hidden;
+  display: block;
+}
+
+.hud-controls-card {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+}
+
+.hud-reduced-motion-btn {
+  background: #334155;
+  color: #fff;
+  border: 2px solid #94a3b8;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-weight: 800;
+  font-size: 0.72rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hud-gfx-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+}
+
+.hud-gfx-select {
+  background: #0f172a;
+  color: #38bdf8;
+  border: 2px solid #38bdf8;
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+
+.hud-fps-badge {
+  font-weight: 900;
+  font-size: 0.75rem;
+  min-width: 44px;
+  text-align: right;
+}
+
+/* Solar Flare Alert Modal */
+.solar-alert-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #7f1d1d;
+  border: 4px solid #fca5a5;
+  border-radius: 20px;
+  padding: clamp(16px, 4vw, 24px) clamp(18px, 5vw, 30px);
+  max-width: 460px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+  z-index: 60;
+  box-sizing: border-box;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.solar-alert-title {
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-weight: 900;
+  color: #fff;
+}
+
+.solar-alert-msg {
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  line-height: 1.45;
+  margin: 10px 0 16px;
+  color: #fef2f2;
+}
+
+.solar-alert-btn {
+  background: #fbbf24;
+  color: #0f172a;
+  font-weight: 900;
+  font-size: clamp(0.88rem, 2.5vw, 1rem);
+  padding: 10px 22px;
+  border-radius: 12px;
+  border: 3px solid #0f172a;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN BREAKPOINTS: PC, TABLETS, MOBILES, ALL ASPECT RATIOS
+   ========================================================================== */
+
+/* 1. Laptops and Tablets (Landscape) / Intermediate (<= 1024px) */
+@media (max-width: 1024px) {
+  .crew-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+
+  .crew-bio {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .deck-btn {
+    min-width: 110px;
+    padding: 8px 10px;
+  }
+}
+
+/* 2. Tablets (Portrait) / Narrow Screens (<= 860px) */
+@media (max-width: 860px) {
+  .briefing-details-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .crew-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .hud-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hud-gauge-card {
+    order: 3;
+    flex: 1 1 100%;
+    min-width: unset;
+  }
+
+  .control-deck {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .deck-btn {
+    min-width: 90px;
+    padding: 8px 6px;
+  }
+}
+
+/* 3. Mobile Phones (Portrait & Standard Mobiles <= 680px) */
+@media (max-width: 680px) {
+  .welcome-overlay {
+    padding: 8px;
+    align-items: flex-start;
+  }
+
+  .welcome-card {
+    padding: 16px 14px;
+    max-height: 96vh;
+    max-height: 96dvh;
+    margin: auto 0;
+  }
+
+  .welcome-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .welcome-title {
+    font-size: 1.55rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.88rem;
+  }
+
+  .age-pill {
+    padding: 4px 10px;
+    font-size: 0.72rem;
+  }
+
+  .section-label {
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.74rem;
+    margin-bottom: 8px;
+  }
+
+  .level-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .level-card {
+    min-height: 155px;
+    padding: 14px;
+  }
+
+  .level-card-body {
+    margin: 10px 0;
+  }
+
+  .level-name {
+    font-size: 1.05rem;
+  }
+
+  .level-goal {
+    font-size: 0.82rem;
+  }
+
+  .welcome-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .secondary-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .secondary-actions .menu-btn {
+    flex: 1;
+    padding: 10px 6px;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  .start-mission-btn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  /* Briefing Screen Mobile */
+  .briefing-card {
+    padding: 16px 14px;
+    max-height: 96vh;
+    max-height: 96dvh;
+  }
+
+  .briefing-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .sol-target-badge {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 8px 14px;
+    min-width: unset;
+  }
+
+  .briefing-title {
+    font-size: 1.45rem;
+  }
+
+  .briefing-summary {
+    font-size: 0.88rem;
+    margin: 8px 0 12px;
+  }
+
+  .crew-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .crew-card {
+    padding: 8px;
+    min-height: 120px;
+  }
+
+  .crew-avatar {
+    font-size: 1.45rem;
+  }
+
+  .crew-name {
+    font-size: 0.85rem;
+  }
+
+  .crew-role {
+    font-size: 0.68rem;
+  }
+
+  .crew-bio {
+    font-size: 0.72rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .crew-perk {
+    font-size: 0.68rem;
+    padding: 4px;
+  }
+
+  /* HUD Top Bar Mobile */
+  .hud-header {
+    top: 6px;
+    left: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+
+  .hud-sol-card {
+    padding: 6px 10px;
+    gap: 8px;
+    flex: 1 1 auto;
+  }
+
+  .hud-sol-title {
+    font-size: 1rem;
+  }
+
+  .hud-timer-val {
+    font-size: 0.82rem;
+  }
+
+  .hud-controls-card {
+    padding: 4px 6px;
+    gap: 5px;
+  }
+
+  .hud-reduced-motion-btn,
+  .hud-gfx-label,
+  .hud-fps-badge {
+    display: none;
+  }
+
+  .pause-trigger-btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  .hud-gauge-card {
+    order: 3;
+    width: 100%;
+    flex: 1 1 100%;
+    padding: 6px 10px;
+  }
+
+  /* HUD Bottom Control Deck Mobile (Grid Mode) */
+  .control-deck {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: calc(100% - 16px);
+    max-width: 440px;
+    bottom: 6px;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .deck-btn {
+    min-width: unset;
+    width: 100%;
+    padding: 6px 2px;
+    border-bottom-width: 3px;
+    min-height: 48px;
+  }
+
+  .deck-btn span:nth-of-type(1) {
+    font-size: 1.15rem !important;
+  }
+
+  .deck-btn strong {
+    font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .deck-btn small {
+    font-size: 0.6rem;
+  }
+
+  .key-badge {
+    display: none;
+  }
+}
+
+/* 4. Extra Small Phones (<= 380px) */
+@media (max-width: 380px) {
+  .crew-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-card,
+  .briefing-card {
+    padding: 12px 10px;
+  }
+
+  .welcome-title {
+    font-size: 1.3rem;
+  }
+
+  .deck-btn strong {
+    font-size: 0.65rem;
+  }
+}
+
+/* 5. Mobile Landscape Mode (height <= 520px) */
+@media (max-height: 520px) and (orientation: landscape) {
+  .welcome-overlay {
+    padding: 6px 12px;
+    align-items: flex-start;
+  }
+
+  .welcome-card,
+  .briefing-card,
+  .modal-box,
+  .pause-card {
+    max-height: 94vh;
+    max-height: 94dvh;
+    padding: 12px 16px;
+  }
+
+  .level-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .level-card {
+    min-height: 130px;
+    padding: 10px;
+  }
+
+  .level-name {
+    font-size: 0.95rem;
+  }
+
+  .level-goal {
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  .briefing-header {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .briefing-details-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .crew-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .crew-card {
+    min-height: 110px;
+    padding: 6px;
+  }
+
+  .crew-avatar {
+    font-size: 1.3rem;
+  }
+
+  .crew-bio {
+    display: none;
+  }
+
+  .control-deck {
+    bottom: 4px;
+    padding: 4px 10px;
+    gap: 5px;
+  }
+
+  .deck-btn {
+    min-width: 75px;
+    padding: 4px 6px;
+    border-bottom-width: 3px;
+  }
+
+  .deck-btn span:nth-of-type(1) {
+    font-size: 1.1rem !important;
+  }
+
+  .deck-btn strong {
+    font-size: 0.72rem;
+  }
+
+  .hud-header {
+    top: 4px;
+    gap: 6px;
+  }
+
+  .hud-card {
+    padding: 4px 8px;
+  }
+}
+
+/* 6. Ultra-Wide & High-Resolution Displays (>= 1600px) */
+@media (min-width: 1600px) {
+  .welcome-card {
+    max-width: 1120px;
+  }
+
+  .briefing-card {
+    max-width: 1280px;
+  }
+
+  .control-deck {
+    bottom: 24px;
+    padding: 14px 24px;
+    gap: 16px;
+  }
+
+  .deck-btn {
+    min-width: 155px;
+    padding: 14px 18px;
+  }
 }

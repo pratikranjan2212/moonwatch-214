@@ -102,43 +102,21 @@ export default function MissionHUD({
       </svg>
 
       {/* TOP BAR */}
-      <header
-        style={{
-          position: 'absolute',
-          top: 14,
-          left: 18,
-          right: 18,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 16,
-          zIndex: 20,
-        }}
-      >
+      <header className="hud-header">
         {/* Sol Progress & Timer */}
-        <div
-          style={{
-            background: 'var(--bg-panel)',
-            border: '3px solid var(--border-glow)',
-            borderRadius: 16,
-            padding: '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>
+        <div className="hud-card hud-sol-card">
+          <div className="hud-sol-primary">
+            <div className="hud-label-dim">
               MISSION COMMAND • LEVEL {level}
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#fbbf24' }}>
+            <div className="hud-sol-title">
               SOL {sol} / {maxSol}
             </div>
           </div>
 
-          <div style={{ borderLeft: '2px solid #334155', paddingLeft: 14 }}>
-            <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>NEXT SOL TIMER</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+          <div className="hud-timer-col">
+            <div className="hud-label-dim">NEXT SOL TIMER</div>
+            <div className="hud-timer-val">
               {isPaused
                 ? '⏸ GAME PAUSED'
                 : reducedMotion
@@ -149,75 +127,44 @@ export default function MissionHUD({
         </div>
 
         {/* Colour-Blind Safe O2 Gauge */}
-        <div
-          style={{
-            background: 'var(--bg-panel)',
-            border: '3px solid #64748b',
-            borderRadius: 16,
-            padding: '10px 16px',
-            minWidth: 250,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 800, marginBottom: 6 }}>
+        <div className="hud-card hud-gauge-card">
+          <div className="hud-gauge-header">
             <span>OXYGEN GAUGE</span>
             <span>{o2Meta.icon} {o2Meta.label}</span>
           </div>
-          <svg width="100%" height="18" style={{ borderRadius: 8, border: '2px solid #f8fafc', overflow: 'hidden' }}>
+          <svg className="hud-gauge-svg" width="100%" height="16">
             <rect width="100%" height="100%" fill="#0f172a" />
             <rect width={`${o2Meta.pct}%`} height="100%" fill={o2Meta.pattern} />
           </svg>
         </div>
 
         {/* Accessibility, Graphics & Pause Bar */}
-        <div
-          style={{
-            background: 'var(--bg-panel)',
-            border: '3px solid #64748b',
-            borderRadius: 16,
-            padding: '10px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontSize: '0.8rem',
-          }}
-        >
+        <div className="hud-card hud-controls-card">
           <button
             type="button"
+            className="hud-reduced-motion-btn"
             onClick={onToggleReducedMotion}
-            style={{
-              background: reducedMotion ? '#059669' : '#334155',
-              color: '#fff',
-              border: '2px solid #94a3b8',
-              borderRadius: 10,
-              padding: '6px 10px',
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
           >
-            {reducedMotion ? '✓ Reduced Motion ON' : 'Reduced Motion OFF'}
+            {reducedMotion ? '✓ Motion ON' : 'Motion OFF'}
           </button>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800 }}>
+          <label className="hud-gfx-label">
             GFX:
             <select
               value={graphicsPreset}
               onChange={(e) => onChangeGraphics(e.target.value)}
-              style={{
-                background: '#0f172a',
-                color: '#38bdf8',
-                border: '2px solid #38bdf8',
-                borderRadius: 8,
-                padding: '4px 8px',
-                fontWeight: 800,
-              }}
+              className="hud-gfx-select"
             >
               <option value="LOW">LOW</option>
-              <option value="MEDIUM">MEDIUM</option>
+              <option value="MEDIUM">MED</option>
               <option value="HIGH">HIGH</option>
             </select>
           </label>
 
-          <span style={{ color: fps < 30 ? '#f87171' : '#34d399', fontWeight: 900 }}>
+          <span
+            className="hud-fps-badge"
+            style={{ color: fps < 30 ? '#f87171' : '#34d399' }}
+          >
             {fps} FPS
           </span>
 
@@ -235,40 +182,15 @@ export default function MissionHUD({
 
       {/* SPACE-WEATHER ALERT MODAL */}
       {alertModal && !isPaused && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: 'absolute',
-            top: '24%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#7f1d1d',
-            border: '4px solid #fca5a5',
-            borderRadius: 20,
-            padding: '20px 28px',
-            maxWidth: 480,
-            textAlign: 'center',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.85)',
-            zIndex: 40,
-          }}
-        >
-          <div style={{ fontSize: '2rem' }}>☀️⚡ SOLAR FLARE DETECTED!</div>
-          <p style={{ fontSize: '1rem', lineHeight: 1.4, margin: '10px 0 16px' }}>
-            {alertModal.message || 'Incoming Coronal Mass Ejection! Retract Solar Panels [1/P] and raise your Shield Dome [2/S]!'}
+        <div className="solar-alert-modal" role="dialog" aria-modal="true">
+          <div className="solar-alert-title">☀️⚡ SOLAR FLARE DETECTED!</div>
+          <p className="solar-alert-msg">
+            {alertModal.message || 'Incoming Space Weather Storm! Retract Solar Panels [1/P] and raise your Shield Dome [2/S]!'}
           </p>
           <button
             type="button"
+            className="solar-alert-btn"
             onClick={onDismissAlert}
-            style={{
-              background: '#fbbf24',
-              color: '#0f172a',
-              fontWeight: 900,
-              padding: '10px 20px',
-              borderRadius: 12,
-              border: '3px solid #0f172a',
-              cursor: 'pointer',
-            }}
           >
             DISMISS ALERT [ESC]
           </button>
