@@ -4,34 +4,34 @@ import React, { useState } from 'react';
 const CAMPAIGN_LEVELS = [
   {
     id: 1,
-    rank: '🌱 CADET',
+    rank: 'CADET',
     title: 'Level 1: Power Basics',
     sols: 14,
     stars: '⭐',
     accent: '#fbbf24',
-    icon: '☀️🛡️',
+    bgImage: '/images/level1-power.jpg',
     goal: 'Learn to charge your lunar batteries and raise the Shield Dome when solar storms hit!',
     unlockedKeys: ['[1 / P] Solar Panels', '[2 / S] Shield Dome', '[3 / O] Oxygen'],
   },
   {
     id: 2,
-    rank: '🚀 PILOT',
+    rank: 'PILOT',
     title: 'Level 2: Life Support & Greenhouse',
     sols: 21,
     stars: '⭐⭐',
     accent: '#38bdf8',
-    icon: '🌱🫧',
+    bgImage: '/images/level2-greenhouse.jpg',
     goal: 'Grow space crops inside the Hydroponic Dome and keep your crew breathing fresh oxygen!',
     unlockedKeys: ['All Level 1 Keys', '[4 / G] Water Greenhouse'],
   },
   {
     id: 3,
-    rank: '👑 COMMANDER',
+    rank: 'COMMANDER',
     title: 'Level 3: Deep Space Comms',
     sols: 28,
     stars: '⭐⭐⭐',
     accent: '#a855f7',
-    icon: '📡🌍',
+    bgImage: '/images/level3-comms.jpg',
     goal: 'Master the full moonbase and beam emergency weather data back to Mission Control on Earth!',
     unlockedKeys: ['All Level 1 & 2 Keys', '[5 / C] Queue Earth Comms'],
   },
@@ -72,7 +72,7 @@ export default function WelcomeScreen({
           </span>
         </div>
 
-        {/* Simplified, Kid-Friendly Level Cards (Dense tags removed) */}
+        {/* Simplified, Kid-Friendly Level Cards with Visual Backgrounds */}
         <div className="level-grid">
           {CAMPAIGN_LEVELS.map((lvl) => {
             const isSelected = selectedLevel === lvl.id;
@@ -86,39 +86,36 @@ export default function WelcomeScreen({
                   '--card-accent': lvl.accent,
                 }}
               >
-                <div className="level-card-top">
-                  <span className="rank-badge" style={{ background: lvl.accent }}>
-                    {lvl.rank}
-                  </span>
-                  <span className="sol-pill">{lvl.sols} Sols</span>
-                </div>
+                <div
+                  className="level-card-bg"
+                  style={{
+                    backgroundImage: `url(${lvl.bgImage})`,
+                  }}
+                />
+                <div className="level-card-overlay" />
+                <div className="level-card-content">
+                  <div className="level-card-top">
+                    <span className="rank-badge" style={{ background: lvl.accent }}>
+                      {lvl.rank}
+                    </span>
+                    <span className="sol-pill">{lvl.sols} Sols</span>
+                  </div>
 
-                <div className="level-icon">{lvl.icon}</div>
-                <h2 className="level-name">{lvl.title}</h2>
-                <p className="level-goal">{lvl.goal}</p>
+                  <div className="level-card-body">
+                    <h2 className="level-name">{lvl.title}</h2>
+                    <p className="level-goal">{lvl.goal}</p>
+                  </div>
 
-                <div className="level-footer">
-                  <span>Difficulty: {lvl.stars}</span>
-                  <span className="select-indicator">
-                    {isSelected ? '✓ READY' : 'Click to Select'}
-                  </span>
+                  <div className="level-footer">
+                    <span>Difficulty: {lvl.stars}</span>
+                    <span className="select-indicator">
+                      {isSelected ? '✓ READY' : 'Click to Select'}
+                    </span>
+                  </div>
                 </div>
               </button>
             );
           })}
-        </div>
-
-        {/* Helpful Addition: Visual Loadout Strip for the Selected Level */}
-        <div className="loadout-strip">
-          <span className="loadout-title">🕹️ YOUR CONTROLS FOR LEVEL {selectedLevel}:</span>
-          <div className="loadout-chips">
-            {currentCard.unlockedKeys.map((k) => (
-              <span key={k} className="loadout-chip">
-                {k}
-              </span>
-            ))}
-            <span className="loadout-chip">[SPACE] Next Sol</span>
-          </div>
         </div>
 
         {/* Clean Bottom Action Bar (Replay Seed & Credits removed) */}

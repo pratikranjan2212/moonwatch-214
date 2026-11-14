@@ -180,10 +180,12 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
 .level-card {
+  position: relative;
+  overflow: hidden;
   background: #162032;
   border: 3px solid #334155;
   border-radius: 18px;
@@ -194,7 +196,8 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 250px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .level-card:hover {
@@ -205,7 +208,53 @@
 .level-card.selected {
   background: #1e293b;
   border-color: var(--card-accent);
-  box-shadow: 0 0 22px rgba(251, 191, 36, 0.25);
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.3);
+}
+
+.level-card-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: transform 0.4s ease, filter 0.4s ease;
+  z-index: 1;
+}
+
+.level-card:hover .level-card-bg {
+  transform: scale(1.08);
+}
+
+.level-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.72) 0%,
+    rgba(15, 23, 42, 0.86) 50%,
+    rgba(15, 23, 42, 0.96) 100%
+  );
+  z-index: 2;
+  transition: background 0.2s ease;
+}
+
+.level-card.selected .level-card-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.60) 0%,
+    rgba(15, 23, 42, 0.80) 50%,
+    rgba(15, 23, 42, 0.93) 100%
+  );
+}
+
+.level-card-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  width: 100%;
 }
 
 .level-card-top {
@@ -232,23 +281,24 @@
   border-radius: 8px;
 }
 
-.level-icon {
-  font-size: 2.2rem;
-  margin: 14px 0 6px;
+.level-card-body {
+  margin: 16px 0;
 }
 
 .level-name {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 800;
   margin: 0 0 8px;
   color: var(--card-accent);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .level-goal {
   font-size: 0.9rem;
   line-height: 1.45;
-  color: #cbd5e1;
-  margin: 0 0 16px;
+  color: #e2e8f0;
+  margin: 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .level-footer {
@@ -259,7 +309,7 @@
   font-size: 0.8rem;
   font-weight: 800;
   padding-top: 10px;
-  border-top: 2px solid #26334d;
+  border-top: 2px solid rgba(51, 65, 85, 0.8);
 }
 
 .select-indicator {
