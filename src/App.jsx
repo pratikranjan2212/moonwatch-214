@@ -9,6 +9,7 @@ import WelcomeScreen from './ui/WelcomeScreen.jsx';
 import BriefingScreen, { CREW_ROSTER } from './ui/BriefingScreen.jsx';
 import PauseModal from './ui/PauseModal.jsx';
 import useFpsMonitor from './engine/useFpsMonitor.js';
+import { recordMissionProgress } from './data/userProfileManager.js';
 
 const O2_CYCLE = ['LOW', 'NORMAL', 'HIGH'];
 const LEVEL_SOLS = { 1: 14, 2: 21, 3: 28 };
@@ -69,9 +70,18 @@ export default function App() {
 
   const handleAdvanceSol = useCallback(() => {
     if (isPaused) return;
-    setSol((prev) => Math.min(prev + 1, maxSol));
+    setSol((prev) => {
+      const nextSol = Math.min(prev + 1, maxSol);
+      const isVictory = nextSol >= maxSol;
+      recordMissionProgress({
+        level,
+        solsSurvived: 1,
+        victory: isVictory,
+      });
+      return nextSol;
+    });
     setCountdown(30);
-  }, [isPaused, maxSol]);
+  }, [isPaused, maxSol, level]);
 
   // Countdown freezes when not playing, when paused, or when Reduced Motion is active
   useEffect(() => {
@@ -104,7 +114,8 @@ export default function App() {
 
       {screen === 'HOME' && (
         <LandingScreen
-          onStartMission={() => setScreen('LEVELS')}
+          onStartMission={() => setScreen('BRIEFING')}
+          onExploreLevels={() => setScreen('LEVELS')}
         />
       )}
 

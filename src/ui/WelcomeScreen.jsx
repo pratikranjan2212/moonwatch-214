@@ -1,6 +1,8 @@
 // src/ui/WelcomeScreen.jsx
 import React, { useState } from 'react';
 import GameInfoModal from './GameInfoModal.jsx';
+import CadetAccountModal from './CadetAccountModal.jsx';
+import { useActiveProfile } from '../data/userProfileManager.js';
 
 const CAMPAIGN_LEVELS = [
   {
@@ -81,6 +83,8 @@ export default function WelcomeScreen({
 }) {
   const [activeModal, setActiveModal] = useState(null); // 'TUTORIAL' | 'SETTINGS' | null
   const [mascotMessage, setMascotMessage] = useState(null);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const activeProfile = useActiveProfile();
 
   const currentLevelObj =
     CAMPAIGN_LEVELS.find((l) => l.id === selectedLevel) || CAMPAIGN_LEVELS[0];
@@ -130,19 +134,32 @@ export default function WelcomeScreen({
           </div>
 
           {/* Top Right: Player Profile Badge */}
-          <div className="arcade-player-pill">
-            <div className="player-avatar">👩‍🚀</div>
+          <div
+            className="arcade-player-pill"
+            onClick={() => setShowAccountModal(true)}
+            role="button"
+            tabIndex={0}
+            title="Click to view Cadet ID & Progress"
+          >
+            <div className="player-avatar">{activeProfile.avatar}</div>
             <div className="player-info">
-              <span className="player-name">CADET EXPLORER</span>
-              <span className="player-rank">RANK: {currentLevelObj.rank}</span>
+              <span className="player-name">
+                {activeProfile.isGuest ? 'CADET EXPLORER' : activeProfile.callsign}
+              </span>
+              <span className="player-rank">
+                {activeProfile.isGuest ? `RANK: ${currentLevelObj.rank}` : `⭐ ${activeProfile.stars || 0} STARS`}
+              </span>
             </div>
             <button
               type="button"
               className="player-menu-btn"
-              onClick={() => setActiveModal('SETTINGS')}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveModal('SETTINGS');
+              }}
               aria-label="Settings Menu"
             >
-              ☰
+              ⚙️
             </button>
           </div>
         </header>
@@ -457,6 +474,12 @@ export default function WelcomeScreen({
           </div>
         </div>
       )}
+
+      {/* Cadet Account & Progress Save Modal */}
+      <CadetAccountModal
+        isOpen={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+      />
     </div>
   );
 }

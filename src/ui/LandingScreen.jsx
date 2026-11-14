@@ -1,9 +1,13 @@
 // src/ui/LandingScreen.jsx
 import React, { useState } from 'react';
 import GameInfoModal from './GameInfoModal.jsx';
+import CadetAccountModal from './CadetAccountModal.jsx';
+import { useActiveProfile } from '../data/userProfileManager.js';
 
-export default function LandingScreen({ onStartMission }) {
+export default function LandingScreen({ onStartMission, onExploreLevels }) {
   const [activeModal, setActiveModal] = useState(null); // 'OVERVIEW' | 'WEATHER' | 'HEROES' | 'TUTORIAL' | null
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const activeProfile = useActiveProfile();
 
   return (
     <div className="landing-page">
@@ -103,7 +107,7 @@ export default function LandingScreen({ onStartMission }) {
               <button type="button" className="nav-link-btn" onClick={() => setActiveModal('OVERVIEW')}>
                 • OVERVIEW
               </button>
-              <button type="button" className="nav-link-btn" onClick={onStartMission}>
+              <button type="button" className="nav-link-btn" onClick={onExploreLevels || onStartMission}>
                 • MISSIONS
               </button>
               <button type="button" className="nav-link-btn" onClick={() => setActiveModal('WEATHER')}>
@@ -117,13 +121,20 @@ export default function LandingScreen({ onStartMission }) {
               </button>
             </nav>
 
+            {/* Astronaut User Account / Cadet ID Login Button */}
             <button
               type="button"
-              className="landing-cta-btn"
-              onClick={onStartMission}
+              className={`landing-account-btn ${!activeProfile.isGuest ? 'is-logged-in' : ''}`}
+              onClick={() => setShowAccountModal(true)}
+              aria-label="Cadet Account and Progress"
             >
-              <span>LAUNCH MISSION</span>
-              <span className="pixel-arrow">❯</span>
+              <span className="account-avatar">{activeProfile.avatar}</span>
+              <span className="account-label">
+                {activeProfile.isGuest ? 'CADET LOGIN / ID' : activeProfile.callsign}
+              </span>
+              {!activeProfile.isGuest && (
+                <span className="account-stars-badge">⭐ {activeProfile.stars || 0}</span>
+              )}
             </button>
           </div>
         </header>
@@ -167,7 +178,7 @@ export default function LandingScreen({ onStartMission }) {
             <button
               type="button"
               className="landing-secondary-btn"
-              onClick={onStartMission}
+              onClick={onExploreLevels || onStartMission}
             >
               EXPLORE LEVELS
             </button>
@@ -190,6 +201,12 @@ export default function LandingScreen({ onStartMission }) {
         onSelectTab={setActiveModal}
         onClose={() => setActiveModal(null)}
         onStartMission={onStartMission}
+      />
+
+      {/* Astronaut Cadet Login & Service Record Modal */}
+      <CadetAccountModal
+        isOpen={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
       />
     </div>
   );
