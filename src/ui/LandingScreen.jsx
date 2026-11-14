@@ -13,9 +13,9 @@ export default function LandingScreen({ onStartMission }) {
       <div className="landing-vignette" />
       <div className="landing-grid-overlay" />
 
-      {/* Fixed Satellite positioned near the Moon towards the middle */}
+      {/* Fixed Satellite positioned near the Moon towards the upper middle (as marked) */}
       <div className="landing-fixed-satellite" aria-hidden="true">
-        <svg width="120" height="76" viewBox="0 0 120 76" fill="none">
+        <svg width="156" height="98" viewBox="0 0 156 98" fill="none">
           <defs>
             <linearGradient id="satWingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#1e3a8a" />
@@ -32,46 +32,46 @@ export default function LandingScreen({ onStartMission }) {
           </defs>
 
           {/* Faint Telemetry Wave pointing toward Moon */}
-          <path d="M 45 38 A 16 16 0 0 0 30 22" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="1.2" strokeDasharray="3 3" />
-          <path d="M 40 38 A 26 26 0 0 0 18 14" stroke="rgba(56, 189, 248, 0.28)" strokeWidth="1.2" strokeDasharray="3 4" />
+          <path d="M 58 49 A 20 20 0 0 0 38 28" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="1.2" strokeDasharray="3 3" />
+          <path d="M 52 49 A 32 32 0 0 0 24 18" stroke="rgba(56, 189, 248, 0.28)" strokeWidth="1.2" strokeDasharray="3 4" />
 
           {/* Left Solar Wing */}
-          <rect x="6" y="20" width="30" height="36" rx="2" fill="url(#satWingGrad)" stroke="#38bdf8" strokeWidth="1.2" />
-          <line x1="16" y1="20" x2="16" y2="56" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" />
-          <line x1="26" y1="20" x2="26" y2="56" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" />
-          <line x1="6" y1="32" x2="36" y2="32" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
-          <line x1="6" y1="44" x2="36" y2="44" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+          <rect x="8" y="26" width="38" height="46" rx="2.5" fill="url(#satWingGrad)" stroke="#38bdf8" strokeWidth="1.3" />
+          <line x1="20" y1="26" x2="20" y2="72" stroke="rgba(255,255,255,0.4)" strokeWidth="0.9" />
+          <line x1="33" y1="26" x2="33" y2="72" stroke="rgba(255,255,255,0.4)" strokeWidth="0.9" />
+          <line x1="8" y1="41" x2="46" y2="41" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" />
+          <line x1="8" y1="56" x2="46" y2="56" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" />
 
           {/* Left Wing Mount Truss */}
-          <line x1="36" y1="38" x2="46" y2="38" stroke="#94a3b8" strokeWidth="2.5" />
+          <line x1="46" y1="49" x2="59" y2="49" stroke="#94a3b8" strokeWidth="2.8" />
 
           {/* Satellite Central Bus */}
-          <rect x="46" y="26" width="24" height="24" rx="3.5" fill="#f8fafc" stroke="#38bdf8" strokeWidth="1.6" />
-          <rect x="50" y="30" width="16" height="16" rx="2" fill="#0f172a" />
+          <rect x="59" y="34" width="30" height="30" rx="4" fill="#f8fafc" stroke="#38bdf8" strokeWidth="1.8" />
+          <rect x="64" y="39" width="20" height="20" rx="2.5" fill="#0f172a" />
 
           {/* High Gain Parabolic Dish (Oriented toward Moon) */}
-          <path d="M 46 29 Q 36 21 34 16" fill="none" stroke="#fbbf24" strokeWidth="2" />
-          <path d="M 32 14 Q 35 17 38 23" fill="none" stroke="#fbbf24" strokeWidth="2.2" />
-          <circle cx="35" cy="18" r="2.4" fill="#f59e0b" />
+          <path d="M 59 38 Q 47 28 44 21" fill="none" stroke="#fbbf24" strokeWidth="2.2" />
+          <path d="M 41 18 Q 45 22 49 29" fill="none" stroke="#fbbf24" strokeWidth="2.4" />
+          <circle cx="45" cy="23" r="2.8" fill="#f59e0b" />
 
           {/* Right Wing Mount Truss */}
-          <line x1="70" y1="38" x2="80" y2="38" stroke="#94a3b8" strokeWidth="2.5" />
+          <line x1="89" y1="49" x2="102" y2="49" stroke="#94a3b8" strokeWidth="2.8" />
 
           {/* Right Solar Wing */}
-          <rect x="80" y="20" width="30" height="36" rx="2" fill="url(#satWingGrad)" stroke="#38bdf8" strokeWidth="1.2" />
-          <line x1="90" y1="20" x2="90" y2="56" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" />
-          <line x1="100" y1="20" x2="100" y2="56" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" />
-          <line x1="80" y1="32" x2="110" y2="32" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
-          <line x1="80" y1="44" x2="110" y2="44" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+          <rect x="102" y="26" width="38" height="46" rx="2.5" fill="url(#satWingGrad)" stroke="#38bdf8" strokeWidth="1.3" />
+          <line x1="115" y1="26" x2="115" y2="72" stroke="rgba(255,255,255,0.4)" strokeWidth="0.9" />
+          <line x1="128" y1="26" x2="128" y2="72" stroke="rgba(255,255,255,0.4)" strokeWidth="0.9" />
+          <line x1="102" y1="41" x2="140" y2="41" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" />
+          <line x1="102" y1="56" x2="140" y2="56" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" />
 
           {/* Blue Thruster Glow on Back */}
-          <circle cx="70" cy="38" r="4.5" fill="#38bdf8" opacity="0.85" filter="url(#satGlow)">
-            <animate attributeName="r" values="3.5;6;3.5" dur="2s" repeatCount="indefinite" />
+          <circle cx="89" cy="49" r="5.5" fill="#38bdf8" opacity="0.85" filter="url(#satGlow)">
+            <animate attributeName="r" values="4;7;4" dur="2s" repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite" />
           </circle>
 
           {/* Blinking Telemetry Beacon LED */}
-          <circle cx="58" cy="29" r="2.2" fill="#22c55e">
+          <circle cx="74" cy="38" r="2.6" fill="#22c55e">
             <animate attributeName="opacity" values="1;0.15;1" dur="1.2s" repeatCount="indefinite" />
           </circle>
         </svg>
@@ -155,19 +155,14 @@ export default function LandingScreen({ onStartMission }) {
             </h1>
           </div>
 
-          {/* Location & Mission Time Header Strip (Now Below MOONWATCH Title) */}
+          {/* Location & Mission Time Header Strip (Below MOONWATCH Title) */}
           <div className="landing-meta-strip">
             <span className="meta-left">SHACKLETON CRATER • SOUTH POLE</span>
             <span className="meta-right">MISSION DURATION • 14–28 SOLS</span>
           </div>
-        </section>
 
-        {/* Bottom Spacer to Center Title in the Middle */}
-        <div className="landing-spacer landing-spacer-bottom" />
-
-        {/* Bottom Action Strip */}
-        <footer className="landing-bottom-strip">
-          <div className="landing-actions">
+          {/* Primary Action Buttons (Moved Up Below MOONWATCH as marked) */}
+          <div className="landing-hero-actions">
             <button
               type="button"
               className="landing-primary-btn"
@@ -185,7 +180,14 @@ export default function LandingScreen({ onStartMission }) {
               EXPLORE LEVELS
             </button>
           </div>
+        </section>
 
+        {/* Bottom Spacer to Center Title in the Middle */}
+        <div className="landing-spacer landing-spacer-bottom" />
+
+        {/* Bottom Strip */}
+        <footer className="landing-bottom-strip">
+          <div className="landing-bottom-space-filler" />
           <div className="landing-powered">
             <span className="live-dot" />
             <span className="powered-text">POWERED BY <strong>NASA DONKI</strong></span>
