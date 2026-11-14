@@ -14,7 +14,6 @@ export function Lighting({
   shieldOn = false,
   power = 80,
   reducedMotion = false,
-  sunPosition = null,
 }) {
   const beaconRef = useRef(null);
   const windowLightRef = useRef(null);
@@ -40,40 +39,24 @@ export function Lighting({
   });
 
   const sunColor = isFlare ? '#FFB020' : isDust ? '#C9A878' : isNight ? '#35D0E6' : '#FFF1C9';
-  const sunIntensity = isNight ? 0.22 : isDust ? 0.9 : isFlare ? 2.8 : 1.95;
-  const ambientColor = isNight ? '#0E1122' : isDust ? '#483828' : isFlare ? '#2B1220' : '#3E4250';
-  const ambientIntensity = isNight ? 0.3 : isDust ? 0.5 : 0.38;
-
-  const lightPosition = sunPosition || (isNight ? [-8, 10, -6] : [14, 18, 12]);
+  const sunIntensity = isNight ? 0.32 : isDust ? 0.85 : isFlare ? 2.4 : 1.75;
+  const ambientColor = isNight ? '#1C1F3A' : isDust ? '#6E5A47' : isFlare ? '#3B1929' : '#8A8D99';
+  const ambientIntensity = isNight ? 0.38 : isDust ? 0.65 : 0.55;
 
   return (
     <group name="OutpostLighting">
       <ambientLight color={ambientColor} intensity={ambientIntensity} />
       <hemisphereLight
-        args={[sunColor, '#020308', isNight ? 0.22 : 0.4]}
-        position={[0, 15, 0]}
+        args={[sunColor, '#1C1F3A', isNight ? 0.35 : 0.55]}
+        position={[0, 12, 0]}
       />
       <directionalLight
         color={sunColor}
         intensity={sunIntensity}
-        position={lightPosition}
+        position={isNight ? [-8, 10, -6] : [10, 14, 8]}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-bias={-0.0001}
-        shadow-camera-near={0.5}
-        shadow-camera-far={65}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
-        shadow-camera-top={14}
-        shadow-camera-bottom={-14}
-      />
-
-      {/* Earth-shine directional fill light (ocean blue specular reflection on shadowed sides) */}
-      <directionalLight
-        color="#70B0FF"
-        intensity={isNight ? 0.5 : 0.32}
-        position={[-16, 12, -24]}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
       />
 
       {/* Habitat warm window point light */}

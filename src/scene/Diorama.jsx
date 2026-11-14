@@ -10,12 +10,10 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars, useGLTF } from '@react-three/drei';
-import * as THREE from 'three';
+import { Stars, useGLTF } from '@react-three/drei';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
 import useGameStore from '../store/useGameStore.js';
 import Lighting from './Lighting.jsx';
-import MoonBase from './MoonBase.jsx';
 import Parallax2D from './Parallax2D.jsx';
 import Particles from './Particles.jsx';
 import PostFX from './PostFX.jsx';
@@ -79,11 +77,9 @@ function OutpostMeshes({
   panelsOut = true,
   shieldOn = false,
   isLowPower = false,
-  isFlare = false,
   power = 80,
   level = 1,
   queueComms = false,
-  reducedMotion = false,
 }) {
   const solarRef = useRef(null);
   const antennaRef = useRef(null);
@@ -102,8 +98,9 @@ function OutpostMeshes({
   const windowColor = isLowPower ? '#FF4D4D' : '#FFF1C9';
   const windowEmissiveIntensity = power <= 0 ? 0.05 : isLowPower ? 0.55 : 1.4;
 
-  const fallbackMeshes = (
-    <group name="LegacyOutpostFallback">
+  return (
+    <group name="OutpostDioramaRoot">
+      {/* Draco-compressed GLB base models wrapped in Suspense */}
       <Suspense fallback={null}>
         <LoadedGlbNodes panelsOut={panelsOut} shieldOn={shieldOn} />
       </Suspense>
@@ -225,129 +222,15 @@ function OutpostMeshes({
           <meshStandardMaterial color="#FFF1C9" roughness={0.5} metalness={0.3} />
         </mesh>
       </group>
-    </group>
-  );
-
-  return (
-    <group name="OutpostDioramaRoot">
-      {/* Custom Moon Base 3D model with PBR materials, custom colors & Blender animations */}
-      <Suspense fallback={fallbackMeshes}>
-        <MoonBase
-          panelsOut={panelsOut}
-          shieldOn={shieldOn}
-          isLowPower={isLowPower}
-          isFlare={isFlare}
-          power={power}
-          level={level}
-          queueComms={queueComms}
-          reducedMotion={reducedMotion}
-        />
-      </Suspense>
 
       {/* Earth in the Lunar Sky */}
-      <mesh name="EarthInSky" position={[-16, 12, -24]}>
-        <sphereGeometry args={[2.2, 24, 24]} />
+      <mesh name="EarthInSky" position={[-6.5, 5.2, -9.5]}>
+        <sphereGeometry args={[1.15, 20, 20]} />
         <meshStandardMaterial
           color="#1E6091"
           emissive="#35D0E6"
-          emissiveIntensity={0.5}
-          roughness={0.65}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-/**
- * Calculates 3D Sun vector placed according to real NASA DONKI flare/CME coordinates
- * or natural lunar diurnal day/night arc.
- */
-function getSolarPosition(rawEvents = [], sol = 1, isNight = false) {
-  if (isNight) {
-    return [-14, -18, -12];
-  }
-
-  // Find any event with real solar disk coordinates
-  const flareWithLocation = rawEvents.find(
-    (e) =>
-      e.sourceLocation ||
-      (e.latitude !== undefined && e.latitude !== null) ||
-      e.code === 'SOL214' ||
-      e.type === 'sol214'
-  );
-
-  let lat = 18;
-  let lon = -36;
-  let hasRealDonkiCoord = false;
-
-  if (flareWithLocation) {
-    if (flareWithLocation.sourceLocation) {
-      const match = String(flareWithLocation.sourceLocation).match(/([NS])(\d+)([EW])(\d+)/i);
-      if (match) {
-        lat = (match[1].toUpperCase() === 'S' ? -1 : 1) * parseFloat(match[2]);
-        lon = (match[3].toUpperCase() === 'W' ? -1 : 1) * parseFloat(match[4]);
-        hasRealDonkiCoord = true;
-      }
-    } else if (flareWithLocation.latitude !== undefined && flareWithLocation.latitude !== null) {
-      lat = Number(flareWithLocation.latitude) || 0;
-      lon = Number(flareWithLocation.longitude) || 0;
-      hasRealDonkiCoord = true;
-    } else if (flareWithLocation.code === 'SOL214' || flareWithLocation.type === 'sol214') {
-      // Historical May 10, 2024 Sol 214 super-flare from AR 13664 (N18W36)
-      lat = 18;
-      lon = -36;
-      hasRealDonkiCoord = true;
-    }
-  }
-
-  const R = 32;
-  if (hasRealDonkiCoord) {
-    const elevation = THREE.MathUtils.degToRad(22 + lat * 0.4);
-    const azimuth = THREE.MathUtils.degToRad(55 + lon * 0.6);
-    return [
-      R * Math.cos(elevation) * Math.sin(azimuth),
-      Math.max(6, R * Math.sin(elevation)),
-      R * Math.cos(elevation) * Math.cos(azimuth),
-    ];
-  }
-
-  // Natural lunar daylight sun arc if no flare location is provided
-  const dayAngle = ((sol % 14) / 14) * Math.PI * 0.6 + 0.35;
-  return [
-    R * Math.cos(dayAngle) * 0.85,
-    Math.max(8, R * Math.sin(dayAngle)),
-    R * Math.cos(dayAngle) * 0.55,
-  ];
-}
-
-function SunInSky({ position = [16, 20, 14], isNight = false, isFlare = false }) {
-  if (isNight) return null;
-
-  return (
-    <group position={position}>
-      {/* Blinding Solar Core */}
-      <mesh>
-        <sphereGeometry args={[1.75, 24, 24]} />
-        <meshBasicMaterial color={isFlare ? '#FFF1AA' : '#FFFFFF'} />
-      </mesh>
-      {/* Solar Corona Atmosphere Glow */}
-      <mesh>
-        <sphereGeometry args={[2.9, 24, 24]} />
-        <meshBasicMaterial
-          color={isFlare ? '#FF6B00' : '#FFD54F'}
-          transparent
-          opacity={isFlare ? 0.65 : 0.42}
-          side={THREE.BackSide}
-        />
-      </mesh>
-      {/* Outer Halo */}
-      <mesh>
-        <sphereGeometry args={[4.8, 24, 24]} />
-        <meshBasicMaterial
-          color={isFlare ? '#FF1744' : '#FFE082'}
-          transparent
-          opacity={isFlare ? 0.35 : 0.18}
-          side={THREE.BackSide}
+          emissiveIntensity={0.45}
+          roughness={0.6}
         />
       </mesh>
     </group>
@@ -356,7 +239,6 @@ function SunInSky({ position = [16, 20, 14], isNight = false, isFlare = false })
 
 export function Diorama() {
   const game = useGameStore((s) => s.game);
-  const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
   const quality = useGameStore((s) => s.settings?.quality) || 'high';
   const reducedMotion = useGameStore((s) => s.settings?.reducedMotion) || false;
   const updateSettings = useGameStore((s) => s.updateSettings);
@@ -369,12 +251,10 @@ export function Diorama() {
   const level = game?.level || 1;
   const gauges = game?.gauges || { power: 80, oxygen: 100, shield: 100 };
   const choices = game?.choices || { panelsOut: true, shieldOn: false, oxygenLevel: 'normal' };
-  const crew = game?.crew;
-  const commander = game?.commander;
+  const crew = game?.crew || [];
   const timeline = game?.timeline || [];
 
-  const rawEventsToday = getEventsForSol(timeline, sol);
-  const eventsToday = rawEventsToday.map((e) =>
+  const eventsToday = getEventsForSol(timeline, sol).map((e) =>
     normalizeEventType(e.type || e.code)
   );
   const isNight = eventsToday.includes('night') || isLunarNightSol(sol);
@@ -382,39 +262,6 @@ export function Diorama() {
     eventsToday.includes('flare') || eventsToday.includes('cme') || eventsToday.includes('sol214');
   const isDust = eventsToday.includes('dust');
   const isLowPower = (gauges.power ?? 80) <= 25;
-
-  const sunPosition = useMemo(
-    () => getSolarPosition(rawEventsToday, sol, isNight),
-    [rawEventsToday, sol, isNight]
-  );
-
-  // Keep ONLY ONE crew member in the scene, dynamically matching the selected character
-  const activeActor = useMemo(() => {
-    if (selectedCrewId === 'commander' || selectedCrewId === 'commander-nova') {
-      return {
-        id: 'commander',
-        name: commander?.name || 'Commander Nova',
-        mood: isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle',
-        health: 100,
-      };
-    }
-    const crewList = crew || [];
-    const found = crewList.find((c) => c.id === selectedCrewId);
-    if (found) {
-      return {
-        id: found.id,
-        name: found.name,
-        mood: found.mood || 'idle',
-        health: found.health ?? 100,
-      };
-    }
-    return {
-      id: 'commander',
-      name: commander?.name || 'Commander Nova',
-      mood: 'idle',
-      health: 100,
-    };
-  }, [selectedCrewId, commander, crew, isFlare, choices.shieldOn, isLowPower]);
 
   const handleAutoDowngrade = (measuredFps) => {
     if (quality === 'high') {
@@ -430,6 +277,13 @@ export function Diorama() {
   if (fallback2D) {
     return <Parallax2D reason={fallbackReason} />;
   }
+
+  const crewPositions = [
+    [-1.4, 0.45, 1.85],
+    [-0.45, 0.45, 2.05],
+    [0.55, 0.45, 2.05],
+    [1.5, 0.45, 1.85],
+  ];
 
   return (
     <div
@@ -457,41 +311,29 @@ export function Diorama() {
             HD-2D ({quality.toUpperCase()}) · {fps} FPS
           </span>
         </div>
-        <div className="diorama-status-pill">
-          <span>🔄 360° Orbit Drag</span>
-        </div>
       </div>
 
       <Canvas
         shadows={quality !== 'low'}
-        dpr={quality === 'low' ? [1, 1] : [1, 2]}
-        camera={{ position: [0, 6.2, 13.5], fov: 42, near: 0.1, far: 90 }}
-        gl={{
-          antialias: true,
-          powerPreference: 'high-performance',
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.15,
-        }}
+        dpr={quality === 'low' ? [1, 1] : [1, 1.5]}
+        camera={{ position: [0, 4.6, 8.8], fov: 36, near: 0.1, far: 60 }}
+        gl={{ antialias: quality === 'high', powerPreference: 'high-performance' }}
         onCreated={({ camera }) => {
-          camera.lookAt(0.2, 0.6, 0);
+          camera.lookAt(0, 0.4, 0);
         }}
         fallback={<Parallax2D reason="WebGL unavailable" />}
       >
         <color
           attach="background"
-          args={[isFlare ? '#140410' : isDust ? '#2C2016' : '#020308']}
+          args={[isFlare ? '#2B1222' : isDust ? '#3A2E25' : isNight ? '#080B1A' : '#1C1F3A']}
         />
-        {isDust && <fog attach="fog" args={['#C9A878', 8, 32]} />}
-
-        <OrbitControls
-          makeDefault
-          target={[0.2, 0.6, 0.0]}
-          minDistance={7.0}
-          maxDistance={22.0}
-          minPolarAngle={Math.PI / 12}
-          maxPolarAngle={Math.PI / 2.08}
-          enableDamping
-          dampingFactor={0.06}
+        <fog
+          attach="fog"
+          args={[
+            isDust ? '#C9A878' : isFlare ? '#3B1929' : '#1C1F3A',
+            isDust ? 6 : 12,
+            isDust ? 20 : 32,
+          ]}
         />
 
         <FpsMonitor onFpsUpdate={setFps} onAutoDowngrade={handleAutoDowngrade} />
@@ -504,43 +346,47 @@ export function Diorama() {
           shieldOn={Boolean(choices.shieldOn)}
           power={gauges.power ?? 80}
           reducedMotion={reducedMotion}
-          sunPosition={sunPosition}
         />
 
-        <SunInSky position={sunPosition} isNight={isNight} isFlare={isFlare} />
-
-        {/* Dense, bright deep-space starfield */}
         <Stars
-          radius={60}
-          depth={35}
-          count={quality === 'low' ? 900 : 2800}
-          factor={5.5}
-          saturation={0.35}
-          fade={false}
-          speed={reducedMotion ? 0 : 0.12}
+          radius={25}
+          depth={15}
+          count={quality === 'low' ? 180 : 450}
+          factor={2.5}
+          saturation={0}
+          fade
+          speed={reducedMotion ? 0 : 0.4}
         />
 
         <OutpostMeshes
           panelsOut={Boolean(choices.panelsOut)}
           shieldOn={Boolean(choices.shieldOn)}
           isLowPower={isLowPower}
-          isFlare={isFlare}
           power={gauges.power ?? 80}
           level={level}
           queueComms={Boolean(choices.queueComms)}
-          reducedMotion={reducedMotion}
         />
 
-        {/* Selected Crew Member (Only ONE in the scene, dynamically updated) */}
+        {/* Commander Nova + 4 Crew Pixel Sprite Billboards */}
         <SpriteActor
-          key={activeActor.id}
-          id={activeActor.id}
-          name={activeActor.name}
-          mood={activeActor.mood}
-          health={activeActor.health}
-          position={[0, 0.48, 2.0]}
+          id="commander"
+          name="Commander Nova"
+          mood={isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle'}
+          health={100}
+          position={[0, 0.48, 1.35]}
           reducedMotion={reducedMotion}
         />
+        {crew.map((member, idx) => (
+          <SpriteActor
+            key={member.id}
+            id={member.id}
+            name={member.name}
+            mood={member.mood || 'idle'}
+            health={member.health ?? 100}
+            position={crewPositions[idx % crewPositions.length]}
+            reducedMotion={reducedMotion}
+          />
+        ))}
 
         <Particles
           isDust={isDust}
@@ -549,27 +395,21 @@ export function Diorama() {
           reducedMotion={reducedMotion}
         />
 
-        <PostFX
-          quality={quality}
-          reducedMotion={reducedMotion}
-          isFlare={isFlare}
-          focusTarget={[0.2, 0.6, 0.0]}
-        />
+        <PostFX quality={quality} reducedMotion={reducedMotion} isFlare={isFlare} />
       </Canvas>
 
       <div className="diorama-overlay-bottom">
         <div className="node-tag-list">
           <span className="node-tag active">Habitat</span>
           <span className={`node-tag ${choices.panelsOut ? 'active' : ''}`}>
-            SolarArray: {choices.panelsOut ? 'DEPLOYED' : 'RETRACTED'}
+            SolarArray: {choices.panelsOut ? 'EXTENDED' : 'RETRACTED'}
           </span>
           <span className={`node-tag ${choices.shieldOn ? 'active' : ''}`}>
             ShieldDome: {choices.shieldOn ? 'ON' : 'OFF'}
           </span>
           <span className={`node-tag ${level >= 2 ? 'active' : ''}`}>Greenhouse</span>
           <span className={`node-tag ${level >= 3 ? 'active' : ''}`}>Antenna</span>
-          <span className="node-tag active">Oxygen Storage</span>
-          <span className="node-tag active">Rover Pad</span>
+          <span className="node-tag active">Rover</span>
           <span className="node-tag active">Terrain</span>
         </div>
       </div>

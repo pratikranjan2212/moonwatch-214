@@ -378,10 +378,6 @@ export const useGameStore = create((set, get) => {
     });
   };
 
-  const setSelectedCrew = (crewId) => {
-    set({ selectedCrewId: crewId || 'commander' });
-  };
-
   const actions = {
     startLevel,
     setChoice,
@@ -393,13 +389,11 @@ export const useGameStore = create((set, get) => {
     nextTutorialStep,
     updateSettings,
     setExternalEvents,
-    setSelectedCrew,
   };
 
   return {
     game: initialGame,
     debrief: buildDebrief(initialGame),
-    selectedCrewId: 'commander',
     ui: {
       screen: 'title',
       activeAlert: null,

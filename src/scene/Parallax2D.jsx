@@ -1,389 +1,141 @@
-/**
- * @fileoverview 2D Layered Parallax fallback scene (`Parallax2D.jsx`).
- * Uses the exact same Zustand store state, named base nodes (`Habitat`, `SolarArray`,
- * `ShieldDome`, `Antenna`, `Rover`, `Greenhouse`, `Terrain`), and pixel crew sprites
- * when quality is set to 2D fallback or FPS drops below 30 fps on low-end GPUs.
- */
+// src/scene/Parallax2D.jsx
+import React from 'react';
 
-import { useState } from 'react';
-import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
-import useGameStore from '../store/useGameStore.js';
-import { PALETTE } from '../ui/tokens.js';
+const SPACE_ASSETS = {
+  nebulaBg: 'https://images-assets.nasa.gov/image/PIA17563/PIA17563~orig.jpg',
+  earthRise: 'https://upload.wikimedia.org/wikipedia/commons/a/aa/NASA_Earth_America_2002.jpg',
+};
 
-export function Parallax2D({ reason = null }) {
-  const game = useGameStore((s) => s.game);
-  const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
-  const commander = useGameStore((s) => s.game?.commander);
-  const reducedMotion = useGameStore((s) => s.settings?.reducedMotion) || false;
-  const [parallaxOffset, setParallaxOffset] = useState({ x: 0, y: 0 });
-
-  const sol = game?.sol || 1;
-  const level = game?.level || 1;
-  const gauges = game?.gauges || { power: 80, oxygen: 100, shield: 100 };
-  const choices = game?.choices || { panelsOut: true, shieldOn: false, oxygenLevel: 'normal' };
-  const crew = game?.crew;
-  const timeline = game?.timeline || [];
-
-  const eventsToday = getEventsForSol(timeline, sol).map((e) =>
-    normalizeEventType(e.type || e.code)
-  );
-  const isNight = eventsToday.includes('night') || isLunarNightSol(sol);
-  const isFlare =
-    eventsToday.includes('flare') || eventsToday.includes('cme') || eventsToday.includes('sol214');
-  const isDust = eventsToday.includes('dust');
-  const isLowPower = (gauges.power ?? 80) <= 25;
-
-  const handlePointerMove = (e) => {
-    if (reducedMotion) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const nx = ((e.clientX - rect.left) / rect.width - 0.5) * 16;
-    const ny = ((e.clientY - rect.top) / rect.height - 0.5) * 8;
-    setParallaxOffset({ x: nx, y: ny });
-  };
-
-  const skyGradientId = isFlare
-    ? 'p2d-sky-flare'
-    : isDust
-      ? 'p2d-sky-dust'
-      : isNight
-        ? 'p2d-sky-night'
-        : 'p2d-sky-day';
-
-  const environmentLabel = isFlare
-    ? 'SOLAR STORM / RADIATION ALERT'
-    : isDust
-      ? 'ELECTROSTATIC DUST HAZE'
-      : isNight
-        ? 'LONG LUNAR NIGHT (EARTHLIGHT)'
-        : 'LUNAR DAYLIGHT (SUNLIT)';
-
-  const windowColor = isLowPower ? '#FF4D4D' : '#FFF1C9';
-  const windowOpacity = (gauges.power ?? 80) <= 0 ? 0.15 : isLowPower ? 0.55 : 0.95;
-
+export default function Parallax2D({
+  graphicsPreset = 'HIGH', // 'LOW' | 'MEDIUM' | 'HIGH'
+  solarExtended = true,
+  shieldActive = false,
+  greenhouseActive = false,
+  commsQueued = false,
+}) {
   return (
     <div
-      className="diorama-viewport parallax-2d-viewport"
-      role="region"
-      aria-label="Lunar Outpost 2D Parallax Tactical Viewport"
-      onPointerMove={handlePointerMove}
-      onPointerLeave={() => setParallaxOffset({ x: 0, y: 0 })}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: '#050814',
+        overflow: 'hidden',
+        zIndex: 1,
+      }}
     >
-      <div className="diorama-overlay-top">
-        <div className="diorama-status-pill">
-          <span>{isNight ? '🌑' : isFlare ? '☄️' : isDust ? '🌪️' : '☀️'}</span>
-          <span>{environmentLabel}</span>
-        </div>
-        <div className="diorama-status-pill">
-          <span>2D PARALLAX MODE {reason ? `(${reason})` : ''}</span>
-        </div>
-      </div>
+      {/* Deep Space 2D Reference Backdrop (Hidden on LOW preset to save GPU fill-rate) */}
+      {graphicsPreset !== 'LOW' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `url(${SPACE_ASSETS.nebulaBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: graphicsPreset === 'HIGH' ? 0.45 : 0.25,
+          }}
+        />
+      )}
 
+      {/* Earth in the Lunar Sky */}
+      <img
+        src={SPACE_ASSETS.earthRise}
+        alt="Earth from Lunar Base"
+        style={{
+          position: 'absolute',
+          top: '12%',
+          right: '14%',
+          width: '110px',
+          height: '110px',
+          borderRadius: '50%',
+          objectFit: 'cover',
+          boxShadow: '0 0 28px rgba(56, 189, 248, 0.6)',
+        }}
+      />
+
+      {/* Interactive 2D Lunar Base SVG Stations */}
       <svg
-        className="diorama-svg"
-        viewBox="0 0 800 420"
-        preserveAspectRatio="xMidYMid slice"
-        aria-label="2D Parallax Nodes: Habitat, SolarArray, ShieldDome, Antenna, Rover, Greenhouse, Terrain"
+        viewBox="0 0 1200 600"
+        preserveAspectRatio="xMidYMax slice"
+        style={{ position: 'absolute', bottom: 0, width: '100%', height: '82%' }}
       >
         <defs>
-          <linearGradient id="p2d-sky-day" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0E1124" />
-            <stop offset="65%" stopColor="#1C1F3A" />
-            <stop offset="100%" stopColor="#2E3359" />
+          <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.45" />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.05" />
           </linearGradient>
-          <linearGradient id="p2d-sky-night" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#05060F" />
-            <stop offset="70%" stopColor="#0F1329" />
-            <stop offset="100%" stopColor="#1C1F3A" />
-          </linearGradient>
-          <linearGradient id="p2d-sky-flare" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#451222" />
-            <stop offset="55%" stopColor="#2B1638" />
-            <stop offset="100%" stopColor="#1C1F3A" />
-          </linearGradient>
-          <linearGradient id="p2d-sky-dust" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2B2422" />
-            <stop offset="65%" stopColor="#4A3C31" />
-            <stop offset="100%" stopColor="#6E5A47" />
-          </linearGradient>
-          <radialGradient id="p2d-shield-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#8E6CFF" stopOpacity="0.08" />
-            <stop offset="75%" stopColor="#8E6CFF" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#35D0E6" stopOpacity="0.58" />
-          </radialGradient>
         </defs>
 
-        <rect x="0" y="0" width="800" height="420" fill={`url(#${skyGradientId})`} />
+        {/* Lunar Crater Horizon */}
+        <path
+          d="M0,470 Q300,430 600,465 T1200,450 L1200,600 L0,600 Z"
+          fill="#334155"
+        />
+        <path
+          d="M0,505 Q450,485 900,510 T1200,495 L1200,600 L0,600 Z"
+          fill="#1e293b"
+        />
 
-        {/* Layer 1: Deep Space Stars & Earth */}
-        <g transform={`translate(${parallaxOffset.x * 0.25}, ${parallaxOffset.y * 0.25})`}>
-          <g fill="#FFF1C9" opacity={isDust ? 0.35 : 0.85}>
-            <circle cx="70" cy="48" r="1.5" />
-            <circle cx="155" cy="82" r="1.2" />
-            <circle cx="240" cy="36" r="1.8" />
-            <circle cx="350" cy="64" r="1.2" />
-            <circle cx="480" cy="40" r="1.6" />
-            <circle cx="590" cy="75" r="1.4" />
-            <circle cx="720" cy="52" r="1.8" />
-          </g>
-          <g id="Earth" transform="translate(130, 95)">
-            <circle cx="0" cy="0" r="28" fill="#1E6091" stroke="#35D0E6" strokeWidth="1.5" />
-            <path
-              d="M-12 -10 Q-2 -16 8 -6 Q14 4 2 14 Q-10 10 -12 -10Z"
-              fill="#34D399"
-              opacity="0.8"
-            />
-          </g>
-          {!isNight && (
-            <g transform="translate(650, 88)">
-              <circle
-                cx="0"
-                cy="0"
-                r={isFlare ? 38 : 26}
-                fill={isFlare ? PALETTE.alert : PALETTE.sunHighlight}
-                opacity="0.28"
-              />
-              <circle
-                cx="0"
-                cy="0"
-                r={isFlare ? 22 : 16}
-                fill={isFlare ? PALETTE.power : PALETTE.sunHighlight}
-              />
-            </g>
+        {/* Shield Dome Overlay (Station 2) */}
+        {shieldActive && (
+          <path
+            d="M 130,490 A 470,310 0 0,1 1070,490 Z"
+            fill="url(#shieldGrad)"
+            stroke="#38bdf8"
+            strokeWidth="4"
+            strokeDasharray="12 6"
+          />
+        )}
+
+        {/* Station 1: Solar Array (Left, X ~ 220) */}
+        <g transform="translate(180, 370)">
+          <rect x="35" y="60" width="14" height="65" fill="#94a3b8" />
+          <rect
+            x={solarExtended ? '0' : '28'}
+            y="35"
+            width={solarExtended ? '85' : '28'}
+            height="32"
+            rx="4"
+            fill="#0284c7"
+            stroke="#bae6fd"
+            strokeWidth="3"
+          />
+          <text x="42" y="22" fill="#bae6fd" fontSize="14" fontWeight="bold" textAnchor="middle">
+            [1/P] SOLAR: {solarExtended ? 'EXTENDED' : 'RETRACTED'}
+          </text>
+        </g>
+
+        {/* Station 3: Hab & O2 Core (Center-Left, X ~ 480) */}
+        <g transform="translate(420, 360)">
+          <path d="M 0,130 A 75,75 0 0,1 150,130 Z" fill="#e2e8f0" stroke="#64748b" strokeWidth="4" />
+          <rect x="50" y="85" width="50" height="45" rx="6" fill="#0f172a" />
+          <text x="75" y="40" fill="#f8fafc" fontSize="14" fontWeight="bold" textAnchor="middle">
+            [3/O] O2 LIFE SUPPORT
+          </text>
+        </g>
+
+        {/* Station 4: Hydroponic Greenhouse (Center-Right, X ~ 740) */}
+        <g transform="translate(680, 380)">
+          <path d="M 0,110 A 65,55 0 0,1 130,110 Z" fill={greenhouseActive ? '#065f46' : '#1e293b'} stroke="#34d399" strokeWidth="3" />
+          <circle cx="45" cy="90" r="12" fill={greenhouseActive ? '#4ade80' : '#475569'} />
+          <circle cx="85" cy="90" r="12" fill={greenhouseActive ? '#4ade80' : '#475569'} />
+          <text x="65" y="38" fill="#6ee7b7" fontSize="14" fontWeight="bold" textAnchor="middle">
+            [4/G] GREENHOUSE
+          </text>
+        </g>
+
+        {/* Station 5: Deep Space Earth Comms Dish (Right, X ~ 980) */}
+        <g transform="translate(940, 345)">
+          <line x1="40" y1="85" x2="40" y2="145" stroke="#cbd5e1" strokeWidth="10" />
+          <path d="M 10,60 Q 40,105 85,55" fill="none" stroke="#f8fafc" strokeWidth="6" />
+          {commsQueued && (
+            <circle cx="48" cy="45" r="18" fill="none" stroke="#fbbf24" strokeWidth="3" strokeDasharray="4 4" />
           )}
-        </g>
-
-        {/* Layer 2: Distant Ridge & Terrain Node */}
-        <g
-          id="Terrain"
-          transform={`translate(${parallaxOffset.x * 0.55}, ${parallaxOffset.y * 0.4})`}
-        >
-          <polygon
-            points="-30,285 110,220 235,270 380,205 520,265 670,215 830,275 830,420 -30,420"
-            fill="#565966"
-          />
-          <polygon
-            points="-30,305 160,265 310,295 490,260 660,290 830,270 830,420 -30,420"
-            fill={PALETTE.moonSurface}
-          />
-          <rect x="-30" y="305" width="860" height="125" fill="#777A88" />
-          <ellipse cx="145" cy="355" rx="48" ry="12" fill="#5D606E" />
-          <ellipse cx="645" cy="365" rx="56" ry="14" fill="#5D606E" />
-        </g>
-
-        {/* Layer 3: Foreground Outpost Nodes & Crew */}
-        <g transform={`translate(${parallaxOffset.x}, ${parallaxOffset.y * 0.7})`}>
-          <g id="ShieldDome" opacity={choices.shieldOn ? 1 : 0.15}>
-            <path
-              d="M 155 335 A 245 195 0 0 1 645 335 Z"
-              fill={choices.shieldOn ? 'url(#p2d-shield-glow)' : 'none'}
-              stroke={PALETTE.shield}
-              strokeWidth={choices.shieldOn ? '3' : '1'}
-              strokeDasharray={choices.shieldOn ? 'none' : '6 6'}
-            />
-          </g>
-
-          <g id="Greenhouse" transform="translate(215, 278)" opacity={level >= 2 ? 1 : 0.55}>
-            <path
-              d="M 0 50 A 48 42 0 0 1 96 50 Z"
-              fill="rgba(53, 208, 230, 0.22)"
-              stroke={PALETTE.oxygen}
-              strokeWidth="2"
-            />
-            <rect x="-4" y="48" width="104" height="10" rx="3" fill="#474A57" />
-            <circle cx="28" cy="40" r="7" fill="#34D399" />
-            <circle cx="48" cy="36" r="9" fill="#10B981" />
-            <circle cx="68" cy="40" r="7" fill="#34D399" />
-          </g>
-
-          <g id="Habitat" transform="translate(330, 245)">
-            <rect
-              x="0"
-              y="18"
-              width="145"
-              height="72"
-              rx="12"
-              fill="#D8DCE8"
-              stroke="#2E3244"
-              strokeWidth="3"
-            />
-            <path
-              d="M 30 18 L 45 0 L 100 0 L 115 18 Z"
-              fill="#B8C0D4"
-              stroke="#2E3244"
-              strokeWidth="2.5"
-            />
-            <rect
-              x="22"
-              y="36"
-              width="26"
-              height="18"
-              rx="3"
-              fill={windowColor}
-              opacity={windowOpacity}
-            />
-            <rect
-              x="59"
-              y="36"
-              width="26"
-              height="18"
-              rx="3"
-              fill={windowColor}
-              opacity={windowOpacity}
-            />
-            <rect
-              x="96"
-              y="36"
-              width="26"
-              height="18"
-              rx="3"
-              fill={windowColor}
-              opacity={windowOpacity}
-            />
-            <rect
-              x="58"
-              y="62"
-              width="28"
-              height="28"
-              rx="4"
-              fill="#474A57"
-              stroke="#1C1F3A"
-              strokeWidth="2"
-            />
-            <circle
-              cx="72"
-              cy="-4"
-              r="5"
-              fill={isFlare || isLowPower ? PALETTE.alert : '#64748B'}
-            />
-          </g>
-
-          <g id="SolarArray" transform="translate(505, 262)">
-            <rect x="35" y="55" width="30" height="16" rx="3" fill="#474A57" />
-            <rect x="47" y="25" width="6" height="32" fill="#CBD5E1" />
-            {choices.panelsOut ? (
-              <rect
-                x="-10"
-                y="12"
-                width="120"
-                height="24"
-                rx="2"
-                fill="#1E3A8A"
-                stroke={PALETTE.power}
-                strokeWidth="2"
-              />
-            ) : (
-              <rect
-                x="32"
-                y="20"
-                width="36"
-                height="14"
-                rx="2"
-                fill="#334155"
-                stroke="#94A3B8"
-                strokeWidth="2"
-              />
-            )}
-          </g>
-
-          <g id="Antenna" transform="translate(645, 248)">
-            <line x1="20" y1="30" x2="10" y2="75" stroke="#CBD5E1" strokeWidth="4" />
-            <line x1="20" y1="30" x2="30" y2="75" stroke="#CBD5E1" strokeWidth="4" />
-            <path d="M 0 18 Q 22 42 42 14" fill="none" stroke="#FFF1C9" strokeWidth="4" />
-            <circle
-              cx="21"
-              cy="14"
-              r="4"
-              fill={choices.queueComms ? PALETTE.oxygen : PALETTE.power}
-            />
-          </g>
-
-          <g id="Rover" transform="translate(105, 302)">
-            <rect
-              x="8"
-              y="8"
-              width="44"
-              height="16"
-              rx="4"
-              fill="#E2E8F0"
-              stroke="#1C1F3A"
-              strokeWidth="2"
-            />
-            <rect x="16" y="2" width="18" height="8" rx="2" fill={PALETTE.power} />
-            <circle cx="16" cy="26" r="7" fill="#1E293B" stroke="#94A3B8" strokeWidth="2" />
-            <circle cx="30" cy="26" r="7" fill="#1E293B" stroke="#94A3B8" strokeWidth="2" />
-            <circle cx="44" cy="26" r="7" fill="#1E293B" stroke="#94A3B8" strokeWidth="2" />
-          </g>
-
-          <g id="CrewSprites" transform="translate(365, 318)">
-            {(() => {
-              const SUIT_COLORS = {
-                commander: '#FFB020',
-                'commander-nova': '#FFB020',
-                engineer: '#FF9800',
-                doctor: '#00E5FF',
-                botanist: '#00E676',
-                pilot: '#B388FF',
-              };
-              const isCmd = selectedCrewId === 'commander' || selectedCrewId === 'commander-nova';
-              const member = isCmd
-                ? { id: 'commander', name: commander?.name || 'Commander Nova', health: 100, mood: isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle' }
-                : (crew || []).find((c) => c.id === selectedCrewId) || { id: 'commander', name: 'Commander Nova', health: 100, mood: 'idle' };
-              const inShelter = member.mood === 'run-to-shelter';
-              const suitColor = SUIT_COLORS[member.id] || '#FFB020';
-
-              return (
-                <g
-                  key={member.id}
-                  transform={`translate(0, ${inShelter ? -18 : 0})`}
-                  opacity={member.health > 0 ? 1 : 0.35}
-                >
-                  <ellipse cx="10" cy="28" rx="10" ry="4" fill="rgba(0,0,0,0.55)" />
-                  <ellipse cx="10" cy="28" rx="8" ry="3" fill="none" stroke={suitColor} strokeWidth="1" opacity="0.8" />
-                  <rect
-                    x="4"
-                    y="2"
-                    width="12"
-                    height="10"
-                    fill="#F8FAFC"
-                    stroke="#1C1F3A"
-                    strokeWidth="1.5"
-                  />
-                  <rect x="6" y="4" width="8" height="5" fill="#35D0E6" />
-                  <rect
-                    x="4"
-                    y="12"
-                    width="12"
-                    height="11"
-                    fill={suitColor}
-                    stroke="#1C1F3A"
-                    strokeWidth="1.5"
-                  />
-                  <rect x="5" y="23" width="4" height="5" fill="#CBD5E1" />
-                  <rect x="11" y="23" width="4" height="5" fill="#CBD5E1" />
-                </g>
-              );
-            })()}
-          </g>
+          <text x="45" y="25" fill="#fde68a" fontSize="14" fontWeight="bold" textAnchor="middle">
+            [5/C] EARTH COMMS
+          </text>
         </g>
       </svg>
-
-      <div className="diorama-overlay-bottom">
-        <div className="node-tag-list">
-          <span className="node-tag active">Habitat</span>
-          <span className={`node-tag ${choices.panelsOut ? 'active' : ''}`}>
-            SolarArray: {choices.panelsOut ? 'EXTENDED' : 'RETRACTED'}
-          </span>
-          <span className={`node-tag ${choices.shieldOn ? 'active' : ''}`}>
-            ShieldDome: {choices.shieldOn ? 'ON' : 'OFF'}
-          </span>
-          <span className={`node-tag ${level >= 2 ? 'active' : ''}`}>Greenhouse</span>
-          <span className={`node-tag ${level >= 3 ? 'active' : ''}`}>Antenna</span>
-          <span className="node-tag active">Rover</span>
-          <span className="node-tag active">Terrain</span>
-        </div>
-      </div>
     </div>
   );
 }
-
-export default Parallax2D;

@@ -1,152 +1,66 @@
-/**
- * @fileoverview Billboarded pixel-art sprite actor for React Three Fiber.
- * Uses THREE.NearestFilter on `/sprites/crew_atlas.png` for crisp HD-2D pixels
- * and animates frames according to crew mood (`idle`, `walk`, `worried`, `run`, `cheer`).
- */
+// src/scene/SpriteActor.jsx
+import React from 'react';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
-
-const MOOD_FRAME_RANGES = {
-  idle: { startCol: 0, count: 2, fps: 2 },
-  walk: { startCol: 2, count: 4, fps: 5 },
-  worried: { startCol: 6, count: 2, fps: 4 },
-  'run-to-shelter': { startCol: 8, count: 4, fps: 8 },
-  run: { startCol: 8, count: 4, fps: 8 },
-  cheer: { startCol: 12, count: 3, fps: 6 },
-  exhausted: { startCol: 6, count: 2, fps: 1.5 },
+const STATION_COORDS = {
+  SOLAR: { left: '17%', label: 'Adjusting Solar Array!' },
+  SHIELD: { left: '32%', label: 'Calibrating Shield Dome!' },
+  OXYGEN: { left: '41%', label: 'Cycling O2 Scrubber!' },
+  GREENHOUSE: { left: '61%', label: 'Watering Lunar Crops!' },
+  COMMS: { left: '79%', label: 'Beaming Data to Earth!' },
 };
 
-const CHARACTER_ROWS = {
-  commander: 0,
-  'commander-nova': 0,
-  engineer: 1,
-  doctor: 2,
-  botanist: 3,
-  pilot: 4,
-};
-
-const CHARACTER_COLORS = {
-  commander: '#FFB020',
-  'commander-nova': '#FFB020',
-  engineer: '#FF9800',
-  doctor: '#00E5FF',
-  botanist: '#00E676',
-  pilot: '#B388FF',
-};
-
-let sharedBaseTexture = null;
-
-function getCrewBaseTexture() {
-  if (sharedBaseTexture) return sharedBaseTexture;
-  const loader = new THREE.TextureLoader();
-  const tex = loader.load('/sprites/crew_atlas.png');
-  tex.magFilter = THREE.NearestFilter;
-  tex.minFilter = THREE.NearestFilter;
-  tex.generateMipmaps = false;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  sharedBaseTexture = tex;
-  return tex;
-}
-
-export function SpriteActor({
-  id = 'engineer',
-  name = 'Crew',
-  mood = 'idle',
-  health = 100,
-  position = [0, 0.65, 2.2],
+export default function SpriteActor({
+  activeStation = 'OXYGEN',
   reducedMotion = false,
+  character,
 }) {
-  const groupRef = useRef(null);
-  const normId = id === 'commander-nova' ? 'commander' : id;
-  const row = CHARACTER_ROWS[normId] ?? 1;
-  const signatureColor = CHARACTER_COLORS[normId] || '#FFB020';
-  const totalCols = 15;
-  const totalRows = 5;
-
-  const spriteTexture = useMemo(() => {
-    const base = getCrewBaseTexture();
-    const clone = base.clone();
-    clone.magFilter = THREE.NearestFilter;
-    clone.minFilter = THREE.NearestFilter;
-    clone.generateMipmaps = false;
-    clone.repeat.set(1 / totalCols, 1 / totalRows);
-    clone.needsUpdate = true;
-    return clone;
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      spriteTexture.dispose();
-    };
-  }, [spriteTexture]);
-
-  useFrame(({ camera, clock }) => {
-    if (groupRef.current) {
-      groupRef.current.quaternion.copy(camera.quaternion);
-    }
-
-    const anim = MOOD_FRAME_RANGES[mood] || MOOD_FRAME_RANGES.idle;
-    const elapsed = clock.getElapsedTime();
-    const frameIdx = reducedMotion ? 0 : Math.floor(elapsed * anim.fps) % anim.count;
-    const col = anim.startCol + frameIdx;
-
-    // UV origin is bottom-left in Three.js
-    const u = col / totalCols;
-    const v = 1 - (row + 1) / totalRows;
-    spriteTexture.offset.set(u, v);
-  });
-
-  const shelterZ = mood === 'run-to-shelter' ? position[2] - 0.9 : position[2];
+  const target = STATION_COORDS[activeStation] || STATION_COORDS.OXYGEN;
+  const suitColor = character?.suitColor || '#f8fafc';
+  const visorColor = character?.visorColor || '#f59e0b';
+  const charName = character?.name || 'Commander Nova';
 
   return (
-    <group
-      ref={groupRef}
-      name={`SpriteActor_${id}`}
-      position={[position[0], position[1], shelterZ]}
+    <div
+      style={{
+        position: 'absolute',
+        bottom: '19%',
+        left: target.left,
+        transition: reducedMotion ? 'none' : 'left 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
+        zIndex: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        pointerEvents: 'none',
+      }}
     >
-      {/* Crisp nearest-neighbour pixel billboard */}
-      <mesh castShadow>
-        <planeGeometry args={[0.85, 1.25]} />
-        <meshStandardMaterial
-          map={spriteTexture}
-          transparent
-          alphaTest={0.45}
-          roughness={0.8}
-          metalness={0.05}
-          opacity={health > 0 ? 1 : 0.35}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+      {/* Speech Bubble showing your selected character */}
+      <div
+        style={{
+          background: '#fbbf24',
+          color: '#0f172a',
+          fontWeight: 800,
+          fontSize: '0.78rem',
+          padding: '4px 10px',
+          borderRadius: '12px',
+          marginBottom: '6px',
+          whiteSpace: 'nowrap',
+          border: '2px solid #0f172a',
+        }}
+      >
+        {character?.avatar || '👩‍🚀'} <strong>{charName}:</strong> {target.label}
+      </div>
 
-      {/* Dynamic character signature beacon / light */}
-      <pointLight
-        color={signatureColor}
-        intensity={0.45}
-        distance={2.2}
-        position={[0, 0.4, 0.2]}
-      />
-
-      {/* Role-colored ground indicator ring for instant visual identification */}
-      <mesh position={[0, -0.57, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.26, 0.32, 24]} />
-        <meshBasicMaterial
-          color={signatureColor}
-          transparent
-          opacity={0.7}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Subtle ground contact shadow */}
-      <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.26, 16]} />
-        <meshBasicMaterial color="#0A0C16" transparent opacity={0.55} />
-      </mesh>
-      <group userData={{ actorName: name, mood, health }} />
-    </group>
+      {/* 2D SVG Astronaut Character customized to selected crew member */}
+      <svg width="58" height="72" viewBox="0 0 60 75">
+        <rect x="10" y="24" width="40" height="32" rx="6" fill="#94a3b8" stroke="#0f172a" strokeWidth="3" />
+        <rect x="16" y="28" width="28" height="30" rx="8" fill={suitColor} stroke="#0f172a" strokeWidth="3" />
+        <circle cx="25" cy="40" r="4" fill="#2563eb" />
+        <rect x="31" y="37" width="8" height="6" fill="#ef4444" />
+        <circle cx="30" cy="18" r="15" fill={suitColor} stroke="#0f172a" strokeWidth="3" />
+        <rect x="20" y="11" width="20" height="13" rx="6" fill={visorColor} stroke="#0f172a" strokeWidth="2" />
+        <rect x="17" y="58" width="10" height="12" rx="4" fill="#475569" stroke="#0f172a" strokeWidth="2" />
+        <rect x="33" y="58" width="10" height="12" rx="4" fill="#475569" stroke="#0f172a" strokeWidth="2" />
+      </svg>
+    </div>
   );
 }
-
-export default SpriteActor;
