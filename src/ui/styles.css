@@ -448,6 +448,21 @@ select {
   border-radius: 6px;
   background: linear-gradient(90deg, rgba(255, 176, 32, 0.18) 0%, rgba(28, 31, 58, 0.85) 100%);
   border: 1px solid var(--power);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  user-select: none;
+}
+
+.commander-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--sun-highlight);
+  box-shadow: 0 0 10px rgba(255, 176, 32, 0.3);
+}
+
+.commander-card.selected {
+  border-color: var(--power);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.55);
+  background: linear-gradient(90deg, rgba(255, 176, 32, 0.35) 0%, rgba(28, 31, 58, 0.95) 100%);
 }
 
 .commander-info {
@@ -481,6 +496,31 @@ select {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   align-items: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  user-select: none;
+}
+
+.crew-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--cyan);
+}
+
+.crew-card.selected {
+  border-color: var(--cyan);
+  box-shadow: 0 0 14px rgba(53, 208, 230, 0.45);
+  background: linear-gradient(90deg, rgba(53, 208, 230, 0.2) 0%, var(--bg-card) 100%);
+}
+
+.crew-selected-pill {
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: var(--cyan);
+  color: #0E1124;
 }
 
 .crew-card.crew-critical {
@@ -517,6 +557,173 @@ select {
 .crew-role-tag {
   font-size: 0.8rem;
   color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   Physical Interaction Stations & Travel HUD
+   ========================================================================== */
+
+.station-3d-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(14, 17, 36, 0.88);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 0.25rem 0.6rem;
+  color: #F8FAFC;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.station-3d-badge:hover {
+  transform: scale(1.06);
+  border-color: var(--cyan);
+  background: rgba(14, 17, 36, 0.98);
+}
+
+.station-3d-badge.in-range {
+  border-color: var(--power);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.5);
+}
+
+.station-3d-badge.broken {
+  border-color: var(--alert);
+  color: var(--alert);
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
+}
+
+.station-3d-badge.locked {
+  opacity: 0.65;
+  border-color: #64748B;
+}
+
+.station-icon {
+  font-size: 0.9rem;
+}
+
+.station-info-col {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.station-name-text {
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: #FFF1C9;
+}
+
+.station-state-text {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+}
+
+.station-action-pill {
+  background: var(--power);
+  color: #0E1124;
+  font-weight: 800;
+  font-size: 0.6rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+/* Controls Travel Banner */
+.controls-travel-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 176, 32, 0.15);
+  border: 1px solid var(--power);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  color: var(--sun-highlight);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.55rem;
+  animation: pulse-border 1.5s infinite;
+}
+
+/* Dust Storm Emergency Banner */
+.dust-storm-emergency-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.92) 0%, rgba(185, 28, 28, 0.92) 100%);
+  border: 1px solid #FCA5A5;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  color: #FFFFFF;
+  font-size: 0.86rem;
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+  margin-bottom: 0.5rem;
+  animation: pulse-emergency 1.2s infinite;
+}
+
+.dust-storm-countdown-num {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #FFF1AA;
+}
+
+/* Action Toast Pill */
+.action-toast-pill {
+  position: absolute;
+  top: 3.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: rgba(14, 17, 36, 0.92);
+  border: 1px solid var(--cyan);
+  border-radius: 20px;
+  padding: 0.4rem 1.1rem;
+  color: #E2E8F0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  animation: fade-in-down 0.25s ease;
+}
+
+/* Broken Panel Button */
+.control-toggle-btn.broken-panel {
+  border-color: var(--alert) !important;
+  background: rgba(255, 77, 77, 0.15) !important;
+  cursor: not-allowed;
+}
+
+.control-toggle-btn.broken-panel .control-state-value {
+  color: var(--alert) !important;
+  font-weight: 900;
+}
+
+.control-locked-placeholder {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+@keyframes pulse-emergency {
+  0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.5); }
+  50% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.9); }
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(255, 176, 32, 0.6); }
+  50% { border-color: rgba(255, 176, 32, 1); }
+}
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 .mood-badge {
@@ -1174,4 +1381,120 @@ select {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Dust Storm Emergency Banner & Broken Solar State
+   ========================================================================== */
+
+.dust-storm-warning-banner {
+  position: absolute;
+  top: 3.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: 90%;
+  max-width: 580px;
+  background: rgba(45, 10, 10, 0.92);
+  border: 2px solid #EF4444;
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.55), inset 0 0 12px rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  padding: 0.75rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  backdrop-filter: blur(8px);
+  animation: pulse-danger-border 1.5s infinite alternate ease-in-out;
+  pointer-events: auto;
+}
+
+@keyframes pulse-danger-border {
+  from {
+    border-color: #EF4444;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+  }
+  to {
+    border-color: #F87171;
+    box-shadow: 0 0 28px rgba(239, 68, 68, 0.85);
+  }
+}
+
+.dust-warning-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.dust-warning-title {
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #FCA5A5;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.countdown-timer-pill {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  background: #DC2626;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  animation: blink-countdown 1s infinite steps(2, start);
+}
+
+@keyframes blink-countdown {
+  0% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.dust-warning-desc {
+  font-size: 0.82rem;
+  color: #FEE2E2;
+  line-height: 1.35;
+}
+
+.dust-warning-action-btn {
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  background: #EF4444 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #FCA5A5 !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dust-warning-action-btn:hover {
+  background: #DC2626 !important;
+}
+
+.broken-danger {
+  border-color: #EF4444 !important;
+  background: rgba(127, 29, 29, 0.45) !important;
+  color: #FCA5A5 !important;
+}
+
+.broken-danger .control-state-value {
+  color: #EF4444 !important;
+  font-weight: 800;
+}
+
+.pulse-warning {
+  animation: pulse-warning-glow 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes pulse-warning-glow {
+  from {
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+    border-color: #F59E0B;
+  }
+  to {
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.85);
+    border-color: #FBBF24;
+  }
 }

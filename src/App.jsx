@@ -100,27 +100,62 @@ export default function App({ SceneComponent = Diorama }) {
 
       if (key === '1' || lower === 'p') {
         event.preventDefault();
-        soundManager.play('motor');
-        state.setChoice('panelsOut', !choices.panelsOut);
+        if (state.game?.solarBroken) {
+          soundManager.play('warning');
+          state.showToast?.('Solar Array is BROKEN: Panels detached and shattered on lunar surface.');
+          return;
+        }
+        state.commandMoveToStation('solar', () => {
+          soundManager.play('motor');
+          const next = !choices.panelsOut;
+          state.setChoice('panelsOut', next);
+          state.showToast?.(
+            next
+              ? 'Solar Panels Extended at Solar Installation'
+              : 'Solar Panels Retracted into Underground Bay'
+          );
+        }, 'Solar Panel Installation');
       } else if (key === '2' || lower === 's') {
         event.preventDefault();
-        soundManager.play('click');
-        state.setChoice('shieldOn', !choices.shieldOn);
+        state.commandMoveToStation('shield', () => {
+          soundManager.play('click');
+          const next = !choices.shieldOn;
+          state.setChoice('shieldOn', next);
+          state.showToast?.(next ? 'Radiation Shield Dome Activated at Central Base' : 'Shield Dome Deactivated');
+        }, 'Central Base Shield Station');
       } else if (key === '3' || lower === 'o') {
         event.preventDefault();
-        soundManager.play('click');
-        const idx = OXYGEN_LEVEL_ORDER.indexOf(choices.oxygenLevel || 'normal');
-        const nextLevel = OXYGEN_LEVEL_ORDER[(idx + 1) % OXYGEN_LEVEL_ORDER.length];
-        state.setChoice('oxygenLevel', nextLevel);
-      } else if ((key === '4' || lower === 'g') && (state.game?.level || 1) >= 2) {
+        state.commandMoveToStation('oxygen', () => {
+          soundManager.play('click');
+          const idx = OXYGEN_LEVEL_ORDER.indexOf(choices.oxygenLevel || 'normal');
+          const nextLevel = OXYGEN_LEVEL_ORDER[(idx + 1) % OXYGEN_LEVEL_ORDER.length];
+          state.setChoice('oxygenLevel', nextLevel);
+          state.showToast?.(`Oxygen Life Support Set to ${nextLevel.toUpperCase()} at O₂ Tanks`);
+        }, 'Oxygen Control Station');
+      } else if (key === '4' || lower === 'g') {
         event.preventDefault();
-        soundManager.play('click');
-        const nextActive = !(choices.waterGreenhouse || choices.tendGreenhouse);
-        state.setChoice({ waterGreenhouse: nextActive, tendGreenhouse: nextActive });
-      } else if ((key === '5' || lower === 'c') && (state.game?.level || 1) >= 3) {
+        if ((state.game?.sol || 1) < 2) {
+          state.showToast?.('Greenhouse is LOCKED (Unlocks on Sol 2)');
+          return;
+        }
+        state.commandMoveToStation('greenhouse', () => {
+          soundManager.play('click');
+          const nextActive = !(choices.waterGreenhouse || choices.tendGreenhouse);
+          state.setChoice({ waterGreenhouse: nextActive, tendGreenhouse: nextActive });
+          state.showToast?.(nextActive ? 'Greenhouse Crops Tended & Irrigated' : 'Greenhouse Switched to Standby');
+        }, 'Greenhouse Control Station');
+      } else if (key === '5' || lower === 'c') {
         event.preventDefault();
-        soundManager.play('click');
-        state.setChoice('queueComms', !choices.queueComms);
+        if ((state.game?.sol || 1) < 3) {
+          state.showToast?.('Earth Communications Antenna is LOCKED (Unlocks on Sol 3)');
+          return;
+        }
+        state.commandMoveToStation('comms', () => {
+          soundManager.play('click');
+          const next = !choices.queueComms;
+          state.setChoice('queueComms', next);
+          state.showToast?.(next ? 'Earth Packet Queued on High-Gain Dish' : 'Comms Dish Standby');
+        }, 'Earth Communications Unit');
       } else if ((key === ' ' || key === 'Enter') && tag !== 'button') {
         event.preventDefault();
         soundManager.play('click');

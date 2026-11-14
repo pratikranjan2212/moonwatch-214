@@ -378,6 +378,87 @@ export const useGameStore = create((set, get) => {
     });
   };
 
+  const setSelectedCrew = (crewId) => {
+    set({ selectedCrewId: crewId || 'commander' });
+  };
+
+  /**
+   * Commands the character to physically travel to a base station before executing an action.
+   * If already at the station, executes immediately without travel delay.
+   *
+   * @param {string} stationKey - 'shield' | 'solar' | 'oxygen' | 'greenhouse' | 'comms'
+   * @param {Function} [actionCallback] - Action to perform once arrived
+   * @param {string} [stationName] - Human-readable station label
+   */
+  const commandMoveToStation = (stationKey, actionCallback = null, stationName = 'Station') => {
+    const { activeStation, isTravelling } = get();
+    if (!isTravelling && activeStation === stationKey) {
+      if (typeof actionCallback === 'function') {
+        actionCallback();
+      }
+      return;
+    }
+
+    set({
+      targetStation: stationKey,
+      isTravelling: true,
+      pendingAction: actionCallback,
+      travelFeedback: `Travelling to ${stationName}...`,
+    });
+  };
+
+  const cancelTravel = () => {
+    set({
+      targetStation: null,
+      isTravelling: false,
+      pendingAction: null,
+      travelFeedback: null,
+    });
+  };
+
+  const reachStation = (stationKey) => {
+    const { pendingAction } = get();
+    if (typeof pendingAction === 'function') {
+      pendingAction();
+    }
+    set({
+      activeStation: stationKey,
+      targetStation: null,
+      isTravelling: false,
+      pendingAction: null,
+      travelFeedback: null,
+    });
+  };
+
+  const setCharacterPosition = (pos) => {
+    set({ characterPosition: pos });
+  };
+
+  const showToast = (message) => {
+    set({ actionToast: message });
+  };
+
+  const setSolarBroken = (broken = true) => {
+    set((state) => ({
+      game: {
+        ...state.game,
+        solarBroken: Boolean(broken),
+      },
+    }));
+  };
+
+  const setDustCountdown = (countdown) => {
+    set({ dustCountdown: countdown });
+  };
+
+  const setDustWarningActive = (active) => {
+    set({ dustWarningActive: Boolean(active) });
+  };
+
+  const setStormResolved = (resolved) => {
+    set({ stormResolved: Boolean(resolved) });
+  };
+
   const actions = {
     startLevel,
     setChoice,
@@ -389,11 +470,32 @@ export const useGameStore = create((set, get) => {
     nextTutorialStep,
     updateSettings,
     setExternalEvents,
+    setSelectedCrew,
+    commandMoveToStation,
+    cancelTravel,
+    reachStation,
+    setCharacterPosition,
+    showToast,
+    setSolarBroken,
+    setDustCountdown,
+    setDustWarningActive,
+    setStormResolved,
   };
 
   return {
     game: initialGame,
     debrief: buildDebrief(initialGame),
+    selectedCrewId: 'commander',
+    characterPosition: [0.0, -0.45, 1.8],
+    activeStation: 'shield',
+    targetStation: null,
+    isTravelling: false,
+    travelFeedback: null,
+    pendingAction: null,
+    actionToast: null,
+    dustCountdown: null,
+    dustWarningActive: false,
+    stormResolved: false,
     ui: {
       screen: 'title',
       activeAlert: null,

@@ -20,10 +20,20 @@ const MOOD_FRAME_RANGES = {
 
 const CHARACTER_ROWS = {
   commander: 0,
+  'commander-nova': 0,
   engineer: 1,
   doctor: 2,
   botanist: 3,
   pilot: 4,
+};
+
+const CHARACTER_COLORS = {
+  commander: '#FFB020',
+  'commander-nova': '#FFB020',
+  engineer: '#FF9800',
+  doctor: '#00E5FF',
+  botanist: '#00E676',
+  pilot: '#B388FF',
 };
 
 let sharedBaseTexture = null;
@@ -45,11 +55,15 @@ export function SpriteActor({
   name = 'Crew',
   mood = 'idle',
   health = 100,
-  position = [0, 0.65, 2.2],
+  position = [0, -0.45, 1.8],
+  isWalking = false,
+  flipX = false,
   reducedMotion = false,
 }) {
   const groupRef = useRef(null);
-  const row = CHARACTER_ROWS[id] ?? 1;
+  const normId = id === 'commander-nova' ? 'commander' : id;
+  const row = CHARACTER_ROWS[normId] ?? 1;
+  const signatureColor = CHARACTER_COLORS[normId] || '#FFB020';
   const totalCols = 15;
   const totalRows = 5;
 
@@ -75,15 +89,24 @@ export function SpriteActor({
       groupRef.current.quaternion.copy(camera.quaternion);
     }
 
-    const anim = MOOD_FRAME_RANGES[mood] || MOOD_FRAME_RANGES.idle;
+    const activeAnimKey = isWalking ? 'walk' : mood;
+    const anim = MOOD_FRAME_RANGES[activeAnimKey] || MOOD_FRAME_RANGES.idle;
     const elapsed = clock.getElapsedTime();
     const frameIdx = reducedMotion ? 0 : Math.floor(elapsed * anim.fps) % anim.count;
     const col = anim.startCol + frameIdx;
 
     // UV origin is bottom-left in Three.js
-    const u = col / totalCols;
-    const v = 1 - (row + 1) / totalRows;
-    spriteTexture.offset.set(u, v);
+    if (flipX) {
+      spriteTexture.repeat.set(-1 / totalCols, 1 / totalRows);
+      const u = (col + 1) / totalCols;
+      const v = 1 - (row + 1) / totalRows;
+      spriteTexture.offset.set(u, v);
+    } else {
+      spriteTexture.repeat.set(1 / totalCols, 1 / totalRows);
+      const u = col / totalCols;
+      const v = 1 - (row + 1) / totalRows;
+      spriteTexture.offset.set(u, v);
+    }
   });
 
   const shelterZ = mood === 'run-to-shelter' ? position[2] - 0.9 : position[2];
@@ -94,9 +117,9 @@ export function SpriteActor({
       name={`SpriteActor_${id}`}
       position={[position[0], position[1], shelterZ]}
     >
-      {/* Crisp nearest-neighbour pixel billboard */}
+      {/* Proportionate HD-2D astronaut sprite (feet anchored at Y = -0.27) */}
       <mesh castShadow>
-        <planeGeometry args={[0.85, 1.25]} />
+        <planeGeometry args={[0.36, 0.54]} />
         <meshStandardMaterial
           map={spriteTexture}
           transparent
@@ -107,10 +130,30 @@ export function SpriteActor({
           side={THREE.DoubleSide}
         />
       </mesh>
-      {/* Subtle ground contact shadow */}
-      <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.28, 12]} />
-        <meshBasicMaterial color="#1C1F3A" transparent opacity={0.45} />
+
+      {/* Dynamic character signature beacon / light */}
+      <pointLight
+        color={signatureColor}
+        intensity={0.35}
+        distance={1.6}
+        position={[0, 0.15, 0.12]}
+      />
+
+      {/* Role-colored ground indicator ring directly at feet on terrain level */}
+      <mesh position={[0, -0.265, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.13, 0.17, 24]} />
+        <meshBasicMaterial
+          color={signatureColor}
+          transparent
+          opacity={0.8}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Ground contact shadow precisely resting on lunar regolith surface */}
+      <mesh position={[0, -0.268, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.14, 16]} />
+        <meshBasicMaterial color="#060810" transparent opacity={0.65} />
       </mesh>
       <group userData={{ actorName: name, mood, health }} />
     </group>
