@@ -1728,23 +1728,15 @@ html, body {
   opacity: 0.8;
 }
 
-/* Orbiting Satellite System Layer */
-.landing-orbit-system {
+/* Fixed Satellite Positioned near the Moon towards the middle */
+.landing-fixed-satellite {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
+  left: 52%;
+  top: 45%;
+  transform: translate(-50%, -50%) rotate(-14deg);
   z-index: 3;
-  overflow: hidden;
-}
-
-.landing-orbit-svg {
-  width: 100%;
-  height: 100%;
-  max-width: 1200px;
-  max-height: 700px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.45));
 }
 
 /* Outer Glowing Space-Blue Frame */
@@ -1831,14 +1823,22 @@ html, body {
   color: #38bdf8;
 }
 
+/* Nav Header Right Group */
+.landing-nav-right-group {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.5vw, 18px);
+  margin-left: auto;
+}
+
 /* Nav Links */
 .landing-nav-links {
   display: flex;
   align-items: center;
-  gap: clamp(12px, 1.8vw, 24px);
+  gap: clamp(10px, 1.4vw, 20px);
   background: rgba(3, 7, 18, 0.75);
   backdrop-filter: blur(14px);
-  padding: 6px 18px;
+  padding: 6px 16px;
   border-radius: 6px;
   border: 1px solid rgba(56, 189, 248, 0.25);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
@@ -1936,12 +1936,51 @@ html, body {
   min-height: 20px;
 }
 
-/* Meta Strip (Above Huge Title) */
+/* Full Width Title Container */
+.landing-title-container {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.landing-huge-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 clamp(16px, 3.5vw, 44px);
+  box-sizing: border-box;
+  font-family: 'Handjet', monospace, sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: 'wght' 800;
+  font-weight: 800;
+  font-size: clamp(3.4rem, 11.2vw, 9.8rem);
+  line-height: 0.92;
+  margin: 0;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #ffffff 0%, #e0f2fe 25%, #7dd3fc 50%, #38bdf8 72%, #0284c7 92%, #0369a1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 35px rgba(56, 189, 248, 0.7)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.95));
+  animation: titleGlowPulseBlue 4s ease-in-out infinite alternate;
+}
+
+.landing-huge-title span {
+  display: inline-block;
+  text-align: center;
+}
+
+/* Meta Strip (Now Below Huge Title, exactly aligned under outer letters) */
 .landing-meta-strip {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  padding: 0 20px 8px 20px;
+  align-items: center;
+  padding: 12px clamp(16px, 3.5vw, 44px) 0 clamp(16px, 3.5vw, 44px);
   font-family: 'JetBrains Mono', monospace;
   font-size: clamp(0.72rem, 1.15vw, 0.88rem);
   font-weight: 700;
@@ -1958,37 +1997,6 @@ html, body {
 .meta-right {
   color: #38bdf8;
   text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-}
-
-/* Full Width Title Container */
-.landing-title-container {
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-
-.landing-huge-title {
-  font-family: 'Handjet', monospace, sans-serif;
-  font-optical-sizing: auto;
-  font-variation-settings: 'wght' 800;
-  font-weight: 800;
-  font-size: clamp(3.8rem, 16vw, 15rem);
-  line-height: 0.88;
-  letter-spacing: clamp(-0.01em, 0.4vw, 0.04em);
-  text-align: center;
-  margin: 0;
-  width: 100%;
-  white-space: nowrap;
-  background: linear-gradient(180deg, #ffffff 0%, #e0f2fe 25%, #7dd3fc 50%, #38bdf8 72%, #0284c7 92%, #0369a1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 35px rgba(56, 189, 248, 0.7)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.95));
-  animation: titleGlowPulseBlue 4s ease-in-out infinite alternate;
 }
 
 @keyframes titleGlowPulseBlue {
@@ -2137,6 +2145,15 @@ html, body {
   .landing-statement {
     font-size: 0.68rem;
     line-height: 1.45;
+  }
+  .landing-huge-title {
+    padding: 0 8px;
+    font-size: clamp(2.2rem, 9.5vw, 3.8rem);
+  }
+  .landing-fixed-satellite {
+    transform: translate(-50%, -50%) scale(0.68) rotate(-14deg);
+    left: 55%;
+    top: 42%;
   }
   .landing-meta-strip {
     flex-direction: column;
