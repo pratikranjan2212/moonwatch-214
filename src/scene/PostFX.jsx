@@ -1,18 +1,20 @@
 /**
- * @fileoverview HD-2D Post-Processing effects (Bloom, Tilt-Shift DepthOfField, Vignette).
+ * @fileoverview HD-2D Post-Processing effects (Restrained Bloom, Crisp Optics, Vignette).
  * Respects quality presets:
- * - 'high': Bloom + Tilt-Shift DepthOfField + Vignette
- * - 'medium': Bloom + Vignette
+ * - 'high': Restrained Bloom + Vignette
+ * - 'medium': Restrained Bloom + Vignette
  * - 'low' or reducedMotion: disabled
+ *
+ * Eliminates excessive depth-of-field blur to ensure celestial objects (Sun, Earth)
+ * and starry sky elements remain crisp and distinguishable rather than blurry blobs.
  */
 
-import { Bloom, DepthOfField, EffectComposer, Vignette } from '@react-three/postprocessing';
+import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 
 export function PostFX({
   quality = 'high',
   reducedMotion = false,
   isFlare = false,
-  focusTarget = [0.2, 0.6, 0.0],
 }) {
   if (quality === 'low' || reducedMotion) {
     return null;
@@ -20,21 +22,14 @@ export function PostFX({
 
   return (
     <EffectComposer multisampling={4}>
+      {/* Restrained bloom to create a natural glowing optical effect for stars and Sun */}
       <Bloom
-        intensity={isFlare ? 1.1 : 0.55}
+        intensity={isFlare ? 0.95 : 0.48}
         luminanceThreshold={0.82}
         luminanceSmoothing={0.25}
         mipmapBlur
       />
-      {quality === 'high' && (
-        <DepthOfField
-          target={focusTarget}
-          worldFocusRange={20}
-          focalLength={0.045}
-          bokehScale={0.65}
-        />
-      )}
-      <Vignette eskil={false} offset={0.2} darkness={0.45} />
+      <Vignette eskil={false} offset={0.2} darkness={0.42} />
     </EffectComposer>
   );
 }

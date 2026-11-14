@@ -10,9 +10,12 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars, useGLTF } from '@react-three/drei';
+import { OrbitControls, Stars, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+import soundManager from '../audio/soundManager.js';
+import { getAnalyticalPositions, loadAstronomicalPositions } from '../data/horizonsClient.js';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
+import { BASE_STATIONS } from '../engine/stations.js';
 import useGameStore from '../store/useGameStore.js';
 import Lighting from './Lighting.jsx';
 import MoonBase from './MoonBase.jsx';
@@ -20,9 +23,15 @@ import Parallax2D from './Parallax2D.jsx';
 import Particles from './Particles.jsx';
 import PostFX from './PostFX.jsx';
 import SpriteActor from './SpriteActor.jsx';
+import StationMarkers from './StationMarkers.jsx';
 
 // Configure local Draco decoder path for 100% offline reliability
 useGLTF.setDecoderPath('/draco/');
+
+// Preload assets for instant presentation
+useTexture.preload('/textures/starfield_enclosure_2048.png');
+useGLTF.preload('/models/night_sky_transparent_with_stars.glb');
+useGLTF.preload('/models/Moon_base.glb');
 
 function FpsMonitor({ onFpsUpdate, onAutoDowngrade }) {
   const framesRef = useRef(0);
@@ -82,20 +91,17 @@ function OutpostMeshes({
   isFlare = false,
   power = 80,
   level = 1,
+  sol = 1,
+  solarBroken = false,
   queueComms = false,
   reducedMotion = false,
 }) {
   const solarRef = useRef(null);
-  const antennaRef = useRef(null);
 
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
+  useFrame(() => {
     if (solarRef.current) {
       const targetScaleX = panelsOut ? 1 : 0.22;
       solarRef.current.scale.x += (targetScaleX - solarRef.current.scale.x) * 0.12;
-    }
-    if (antennaRef.current && (queueComms || level >= 3)) {
-      antennaRef.current.rotation.y = Math.sin(t * 1.5) * 0.35;
     }
   });
 
@@ -202,21 +208,23 @@ function OutpostMeshes({
         </mesh>
       </group>
 
-      {/* Named Node: Antenna (Earth deep-space communications dish) */}
-      <group ref={antennaRef} name="Antenna" position={[3.6, 0.85, -1.8]}>
-        <mesh position={[0, -0.45, 0]} castShadow>
-          <cylinderGeometry args={[0.1, 0.18, 1.1, 8]} />
-          <meshStandardMaterial color="#CBD5E1" metalness={0.5} roughness={0.4} />
-        </mesh>
-        <mesh position={[0, 0.25, 0]} rotation={[0.5, -0.4, 0]} castShadow>
-          <coneGeometry args={[0.65, 0.35, 16, 1, true]} />
-          <meshStandardMaterial
-            color="#FFF1C9"
-            emissive={queueComms ? '#35D0E6' : '#FFB020'}
-            emissiveIntensity={queueComms ? 0.9 : 0.25}
-          />
-        </mesh>
-      </group>
+      {/* Named Node: Antenna (Earth deep-space communications dish; unlocked Sol 3+) */}
+      {(sol ?? 1) >= 3 && (
+        <group name="Antenna" position={[3.6, 0.85, -1.8]}>
+          <mesh position={[0, -0.45, 0]} castShadow>
+            <cylinderGeometry args={[0.1, 0.18, 1.1, 8]} />
+            <meshStandardMaterial color="#CBD5E1" metalness={0.5} roughness={0.4} />
+          </mesh>
+          <mesh position={[0, 0.25, 0]} rotation={[0.5, -0.4, 0]} castShadow>
+            <coneGeometry args={[0.65, 0.35, 16, 1, true]} />
+            <meshStandardMaterial
+              color="#FFF1C9"
+              emissive={queueComms ? '#35D0E6' : '#FFB020'}
+              emissiveIntensity={queueComms ? 0.9 : 0.25}
+            />
+          </mesh>
+        </group>
+      )}
 
       {/* Named Node: Rover (Surface exploration vehicle) */}
       <group name="Rover" position={[-2.5, 0.12, 2.1]} rotation={[0, 0.45, 0]}>
@@ -239,124 +247,278 @@ function OutpostMeshes({
           isFlare={isFlare}
           power={power}
           level={level}
+          sol={sol}
+          solarBroken={solarBroken}
           queueComms={queueComms}
           reducedMotion={reducedMotion}
         />
       </Suspense>
-
-      {/* Earth in the Lunar Sky */}
-      <mesh name="EarthInSky" position={[-16, 12, -24]}>
-        <sphereGeometry args={[2.2, 24, 24]} />
-        <meshStandardMaterial
-          color="#1E6091"
-          emissive="#35D0E6"
-          emissiveIntensity={0.5}
-          roughness={0.65}
-        />
-      </mesh>
     </group>
   );
 }
 
-/**
- * Calculates 3D Sun vector placed according to real NASA DONKI flare/CME coordinates
- * or natural lunar diurnal day/night arc.
- */
-function getSolarPosition(rawEvents = [], sol = 1, isNight = false) {
-  if (isNight) {
-    return [-14, -18, -12];
-  }
+function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false }) {
+  const gltf = useGLTF('/models/Moon_base.glb');
+  const sunGroupRef = useRef(null);
 
-  // Find any event with real solar disk coordinates
-  const flareWithLocation = rawEvents.find(
-    (e) =>
-      e.sourceLocation ||
-      (e.latitude !== undefined && e.latitude !== null) ||
-      e.code === 'SOL214' ||
-      e.type === 'sol214'
-  );
+  const clonedSun = useMemo(() => {
+    const orig = gltf.scene.getObjectByName('The_Sun');
+    if (!orig) return null;
+    const cloned = orig.clone(true);
 
-  let lat = 18;
-  let lon = -36;
-  let hasRealDonkiCoord = false;
+    // Realistic physical scale: Sun core diameter = 92.90496 units
+    // Raw Sphere001 diameter with sun.scale=1 is 0.8114296
+    // targetSunD = 92.90496 -> scaleSun = 114.4954
+    const scaleSun = 114.4954;
+    cloned.scale.set(scaleSun, scaleSun, scaleSun);
 
-  if (flareWithLocation) {
-    if (flareWithLocation.sourceLocation) {
-      const match = String(flareWithLocation.sourceLocation).match(/([NS])(\d+)([EW])(\d+)/i);
-      if (match) {
-        lat = (match[1].toUpperCase() === 'S' ? -1 : 1) * parseFloat(match[2]);
-        lon = (match[3].toUpperCase() === 'W' ? -1 : 1) * parseFloat(match[4]);
-        hasRealDonkiCoord = true;
+    // Center Sphere001 (photosphere core) at origin (0, 0, 0)
+    // In local coords of The_Sun, Sphere001 is at y = 0.4037914
+    cloned.position.set(0, -0.4037914 * scaleSun, 0);
+
+    cloned.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = false;
+        child.receiveShadow = false;
+        if (child.material) {
+          child.material = child.material.clone();
+          child.material.toneMapped = false;
+          // Sphere001: Blazing solar photosphere core
+          if (child.name.includes('Sphere001') || child.material.name.includes('Material.005')) {
+            child.material.emissiveIntensity = isFlare ? 12.0 : 8.0;
+          }
+          // Sphere002: Solar flare corona halo
+          else if (child.name.includes('Sphere002') || child.material.name.includes('Material.006')) {
+            child.material.emissiveIntensity = isFlare ? 4.5 : 2.5;
+            child.material.transparent = true;
+            child.material.opacity = isFlare ? 0.95 : 0.82;
+          }
+          // Smoke_Domain: Coronal plasma envelope
+          else if (child.name.includes('Smoke_Domain') || child.material.name.includes('Smoke Domain')) {
+            child.material.transparent = true;
+            child.material.opacity = isFlare ? 0.45 : 0.22;
+          }
+        }
       }
-    } else if (flareWithLocation.latitude !== undefined && flareWithLocation.latitude !== null) {
-      lat = Number(flareWithLocation.latitude) || 0;
-      lon = Number(flareWithLocation.longitude) || 0;
-      hasRealDonkiCoord = true;
-    } else if (flareWithLocation.code === 'SOL214' || flareWithLocation.type === 'sol214') {
-      // Historical May 10, 2024 Sol 214 super-flare from AR 13664 (N18W36)
-      lat = 18;
-      lon = -36;
-      hasRealDonkiCoord = true;
-    }
-  }
+    });
 
-  const R = 32;
-  if (hasRealDonkiCoord) {
-    const elevation = THREE.MathUtils.degToRad(22 + lat * 0.4);
-    const azimuth = THREE.MathUtils.degToRad(55 + lon * 0.6);
-    return [
-      R * Math.cos(elevation) * Math.sin(azimuth),
-      Math.max(6, R * Math.sin(elevation)),
-      R * Math.cos(elevation) * Math.cos(azimuth),
-    ];
-  }
+    return cloned;
+  }, [gltf.scene, isFlare]);
 
-  // Natural lunar daylight sun arc if no flare location is provided
-  const dayAngle = ((sol % 14) / 14) * Math.PI * 0.6 + 0.35;
-  return [
-    R * Math.cos(dayAngle) * 0.85,
-    Math.max(8, R * Math.sin(dayAngle)),
-    R * Math.cos(dayAngle) * 0.55,
-  ];
-}
-
-function SunInSky({ position = [16, 20, 14], isNight = false, isFlare = false }) {
-  if (isNight) return null;
+  if (isNight || !clonedSun) return null;
 
   return (
-    <group position={position}>
-      {/* Blinding Solar Core */}
-      <mesh>
-        <sphereGeometry args={[1.75, 24, 24]} />
-        <meshBasicMaterial color={isFlare ? '#FFF1AA' : '#FFFFFF'} />
-      </mesh>
-      {/* Solar Corona Atmosphere Glow */}
-      <mesh>
-        <sphereGeometry args={[2.9, 24, 24]} />
-        <meshBasicMaterial
-          color={isFlare ? '#FF6B00' : '#FFD54F'}
-          transparent
-          opacity={isFlare ? 0.65 : 0.42}
-          side={THREE.BackSide}
-        />
-      </mesh>
-      {/* Outer Halo */}
-      <mesh>
-        <sphereGeometry args={[4.8, 24, 24]} />
-        <meshBasicMaterial
-          color={isFlare ? '#FF1744' : '#FFE082'}
-          transparent
-          opacity={isFlare ? 0.35 : 0.18}
-          side={THREE.BackSide}
-        />
-      </mesh>
+    <group ref={sunGroupRef} position={position}>
+      <primitive object={clonedSun} />
     </group>
+  );
+}
+
+function EarthInSky({ position = [-6.5, 24.1, -12.7], reducedMotion = false }) {
+  const gltf = useGLTF('/models/Moon_base.glb');
+  const earthRef = useRef(null);
+
+  const clonedEarth = useMemo(() => {
+    const orig = gltf.scene.getObjectByName('The_earth');
+    if (!orig) return null;
+    const cloned = orig.clone(true);
+
+    // Realistic physical scale: Earth diameter = 0.850 units
+    // Raw Earth diameter with earth.scale=1 is 0.505864
+    // targetEarthD = 0.850 -> scaleEarth = 1.680293
+    // Sun/Earth diameter ratio = 92.90496 / 0.850 = 109.29995 (Exact 1,392,700 km / 12,742 km)
+    const scaleEarth = 1.680293;
+    cloned.scale.set(scaleEarth, scaleEarth, scaleEarth);
+    cloned.position.set(0, 0, 0);
+
+    cloned.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = false;
+        child.receiveShadow = false;
+        if (child.material) {
+          child.material = child.material.clone();
+          // Keep illuminated and dark portions accurately represented:
+          // Zero emissive so the night side remains dark, while the day side
+          // shines brilliantly under direct solar illumination
+          child.material.emissive.set('#000000');
+          child.material.emissiveIntensity = 0;
+
+          // Oceano: Ocean water from provided model
+          if (child.name.includes('Oceano') || child.material.name.includes('eart_water')) {
+            child.material.roughness = 0.22;
+            child.material.metalness = 0.12;
+            child.material.color.set('#2563EB');
+          }
+          // tierra: Continents & terrain from provided model
+          else if (child.name.includes('tierra') || child.material.name.includes('earth_terrain')) {
+            child.material.roughness = 0.72;
+            child.material.metalness = 0.05;
+            child.material.color.set('#22C55E');
+          }
+        }
+      }
+    });
+
+    return cloned;
+  }, [gltf.scene]);
+
+  useFrame((_, delta) => {
+    if (earthRef.current && !reducedMotion) {
+      // Dynamic continuous axial rotation using provided model
+      earthRef.current.rotation.y += delta * 0.12;
+    }
+  });
+
+  if (!clonedEarth) return null;
+
+  return (
+    <group ref={earthRef} position={position} rotation={[0.41, 0, 0]}>
+      <primitive object={clonedEarth} />
+    </group>
+  );
+}
+
+function StarfieldEnclosure({ reducedMotion = false }) {
+  const gltf = useGLTF('/models/night_sky_transparent_with_stars.glb');
+  const texture = useTexture('/textures/starfield_enclosure_2048.png');
+  const enclosureRef = useRef(null);
+  const matRef = useRef(null);
+
+  const starMesh = useMemo(() => {
+    const orig = gltf.scene.getObjectByName('Starfield_Enclosure');
+    if (!orig) return null;
+    const cloned = orig.clone(true);
+
+    // Center enclosure so it encompasses the whole lunar sky symmetrically
+    cloned.position.set(0, 0, 0);
+
+    // Setup high-definition star texture
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    // Fully transparent enclosure with softly glowing emissive stars and halos
+    const starMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 1.0,
+      depthWrite: false, // Ensures enclosure NEVER obstructs Sun, Earth, Base, or Camera
+      depthTest: true,
+      side: THREE.DoubleSide, // Visible from both inside and different viewing angles
+      blending: THREE.AdditiveBlending, // Zero visible surface: black space is completely invisible, stars radiate light
+      toneMapped: false, // Emissive stars trigger restrained post-processing bloom
+    });
+
+    matRef.current = starMaterial;
+    cloned.material = starMaterial;
+    cloned.renderOrder = -100;
+    return cloned;
+  }, [gltf.scene, texture]);
+
+  useFrame(({ clock }) => {
+    if (enclosureRef.current && !reducedMotion) {
+      // Subtle celestial diurnal drift
+      enclosureRef.current.rotation.y = clock.getElapsedTime() * 0.0012;
+    }
+    if (matRef.current) {
+      const t = clock.getElapsedTime();
+      // Subtle natural stellar shimmer across starfield
+      matRef.current.opacity = 1.0 + Math.sin(t * 1.6) * 0.06;
+    }
+  });
+
+  if (!starMesh) return null;
+
+  return (
+    <group ref={enclosureRef} name="SphericalStarfieldEnclosure">
+      <primitive object={starMesh} />
+    </group>
+  );
+}
+
+function CharacterWalker({
+  actor,
+  characterPosition,
+  targetStation,
+  isTravelling,
+  reachStation,
+  setCharacterPosition,
+  reducedMotion,
+}) {
+  const currentPosRef = useRef(new THREE.Vector3(...characterPosition));
+  const [flipX, setFlipX] = useState(false);
+  const [renderPos, setRenderPos] = useState(characterPosition);
+
+  useFrame((_, delta) => {
+    if (!isTravelling || !targetStation) {
+      return;
+    }
+    const dest = BASE_STATIONS[targetStation]?.position;
+    if (!dest) return;
+
+    const targetVec = new THREE.Vector3(...dest);
+    const dist = currentPosRef.current.distanceTo(targetVec);
+
+    if (dist > 0.04) {
+      const step = Math.min(1.0, (delta * 2.6) / dist);
+      if (targetVec.x > currentPosRef.current.x + 0.015) {
+        setFlipX(false);
+      } else if (targetVec.x < currentPosRef.current.x - 0.015) {
+        setFlipX(true);
+      }
+      currentPosRef.current.lerp(targetVec, step);
+      const nextArr = [currentPosRef.current.x, currentPosRef.current.y, currentPosRef.current.z];
+      setRenderPos(nextArr);
+      setCharacterPosition?.(nextArr);
+    } else {
+      currentPosRef.current.copy(targetVec);
+      const nextArr = [targetVec.x, targetVec.y, targetVec.z];
+      setRenderPos(nextArr);
+      setCharacterPosition?.(nextArr);
+      reachStation?.(targetStation);
+    }
+  });
+
+  return (
+    <SpriteActor
+      key={actor.id}
+      id={actor.id}
+      name={actor.name}
+      mood={actor.mood}
+      health={actor.health}
+      position={renderPos}
+      isWalking={Boolean(isTravelling)}
+      flipX={flipX}
+      reducedMotion={reducedMotion}
+    />
   );
 }
 
 export function Diorama() {
   const game = useGameStore((s) => s.game);
   const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
+  const characterPosition = useGameStore((s) => s.characterPosition) || [0.0, -0.45, 1.8];
+  const targetStation = useGameStore((s) => s.targetStation);
+  const isTravelling = useGameStore((s) => s.isTravelling);
+  const reachStation = useGameStore((s) => s.reachStation);
+  const setCharacterPosition = useGameStore((s) => s.setCharacterPosition);
+  const commandMoveToStation = useGameStore((s) => s.commandMoveToStation);
+  const setChoice = useGameStore((s) => s.setChoice);
+  const actionToast = useGameStore((s) => s.actionToast);
+  const showToast = useGameStore((s) => s.showToast);
+
+  const dustCountdown = useGameStore((s) => s.dustCountdown);
+  const dustWarningActive = useGameStore((s) => s.dustWarningActive);
+  const stormResolved = useGameStore((s) => s.stormResolved);
+  const setDustCountdown = useGameStore((s) => s.setDustCountdown);
+  const setDustWarningActive = useGameStore((s) => s.setDustWarningActive);
+  const setStormResolved = useGameStore((s) => s.setStormResolved);
+  const setSolarBroken = useGameStore((s) => s.setSolarBroken);
+  const solarBroken = Boolean(game?.solarBroken);
+
   const quality = useGameStore((s) => s.settings?.quality) || 'high';
   const reducedMotion = useGameStore((s) => s.settings?.reducedMotion) || false;
   const updateSettings = useGameStore((s) => s.updateSettings);
@@ -383,10 +545,92 @@ export function Diorama() {
   const isDust = eventsToday.includes('dust');
   const isLowPower = (gauges.power ?? 80) <= 25;
 
-  const sunPosition = useMemo(
-    () => getSolarPosition(rawEventsToday, sol, isNight),
-    [rawEventsToday, sol, isNight]
-  );
+  // NASA/JPL Horizons Ephemeris astronomical positions (Sun & Earth)
+  const [astroData, setAstroData] = useState(() => ({
+    sun: getAnalyticalPositions(sol, isNight).sun,
+    earth: getAnalyticalPositions(sol, isNight).earth,
+    isLive: false,
+    source: 'NASA/JPL Ephemeris',
+  }));
+
+  useEffect(() => {
+    let active = true;
+    loadAstronomicalPositions(sol, isNight).then((res) => {
+      if (active && res) {
+        setAstroData(res);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [sol, isNight]);
+
+  const sunPosition = astroData.sun;
+  const earthPosition = astroData.earth;
+
+  // 1. Trigger dust storm 60-second countdown when storm begins and panels are exposed
+  useEffect(() => {
+    if (isDust && choices.panelsOut && !solarBroken && !stormResolved) {
+      if (dustCountdown === null) {
+        setDustCountdown(60);
+        setDustWarningActive(true);
+        soundManager.play('warning');
+        showToast('⚠️ DUST STORM WARNING: High-velocity winds! Retract solar panels within 60s to prevent structural failure!');
+      }
+    }
+  }, [isDust, choices.panelsOut, solarBroken, stormResolved, dustCountdown, setDustCountdown, setDustWarningActive, showToast]);
+
+  // 2. Decrement countdown every 1 second
+  useEffect(() => {
+    if (!dustWarningActive || dustCountdown === null || dustCountdown <= 0) return;
+
+    const interval = setInterval(() => {
+      const cur = useGameStore.getState().dustCountdown;
+      if (cur === null) return;
+      const next = cur - 1;
+      setDustCountdown(next);
+
+      if (next <= 0) {
+        // Countdown reached 0 while panels are still out -> Failure sequence!
+        const panelsStillOut = useGameStore.getState().game?.choices?.panelsOut;
+        if (panelsStillOut) {
+          setSolarBroken(true);
+          setDustWarningActive(false);
+          soundManager.play('warning');
+          showToast('💥 CRITICAL FAILURE: Solar Panel detached and crashed onto lunar surface in dust storm!');
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [dustWarningActive, dustCountdown, setDustCountdown, setSolarBroken, setDustWarningActive, showToast]);
+
+  // 3. Prevent damage if player retracts panels before timer reaches 0
+  useEffect(() => {
+    if (dustWarningActive && !choices.panelsOut && !solarBroken) {
+      setStormResolved(true);
+      setDustWarningActive(false);
+      setDustCountdown(null);
+      soundManager.play('click');
+      showToast('✅ Solar array safely secured in underground bay. Storm damage prevented!');
+    }
+  }, [dustWarningActive, choices.panelsOut, solarBroken, setStormResolved, setDustWarningActive, setDustCountdown, showToast]);
+
+  // 4. Reset dust storm countdown on Sol advance
+  useEffect(() => {
+    setDustCountdown(null);
+    setDustWarningActive(false);
+    setStormResolved(false);
+  }, [sol, setDustCountdown, setDustWarningActive, setStormResolved]);
+
+  // Auto-dismiss action toast after 3.5 seconds
+  useEffect(() => {
+    if (!actionToast) return;
+    const timer = setTimeout(() => {
+      showToast(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [actionToast, showToast]);
 
   // Keep ONLY ONE crew member in the scene, dynamically matching the selected character
   const activeActor = useMemo(() => {
@@ -416,6 +660,69 @@ export function Diorama() {
     };
   }, [selectedCrewId, commander, crew, isFlare, choices.shieldOn, isLowPower]);
 
+  // Physical station click handler
+  const handleStationInteract = (stationId) => {
+    switch (stationId) {
+      case 'shield':
+        commandMoveToStation('shield', () => {
+          soundManager.play('click');
+          const next = !choices.shieldOn;
+          setChoice('shieldOn', next);
+          showToast(next ? 'Radiation Shield Dome Activated at Central Base' : 'Shield Dome Deactivated');
+        }, 'Main Shield Station');
+        break;
+      case 'solar':
+        if (solarBroken) {
+          soundManager.play('warning');
+          showToast('Solar Array is BROKEN: Panels detached and shattered on lunar surface.');
+          return;
+        }
+        commandMoveToStation('solar', () => {
+          soundManager.play('motor');
+          const next = !choices.panelsOut;
+          setChoice('panelsOut', next);
+          showToast(next ? 'Solar Panels Extended at Solar Installation' : 'Solar Panels Retracted into Underground Bay');
+        }, 'Solar Panel Installation');
+        break;
+      case 'oxygen':
+        commandMoveToStation('oxygen', () => {
+          soundManager.play('click');
+          const modes = ['low', 'normal', 'high'];
+          const idx = modes.indexOf(choices.oxygenLevel || 'normal');
+          const nextMode = modes[(idx + 1) % 3];
+          setChoice('oxygenLevel', nextMode);
+          showToast(`Oxygen Life Support Set to ${nextMode.toUpperCase()} at O₂ Tanks`);
+        }, 'Oxygen Control Station');
+        break;
+      case 'greenhouse':
+        if (sol < 2) {
+          showToast('Greenhouse Deck is LOCKED (Unlocks on Sol 2)');
+          return;
+        }
+        commandMoveToStation('greenhouse', () => {
+          soundManager.play('click');
+          const next = !choices.waterGreenhouse;
+          setChoice('waterGreenhouse', next);
+          showToast(next ? 'Greenhouse Irrigation Activated' : 'Irrigation Switched to Standby');
+        }, 'Greenhouse Control Station');
+        break;
+      case 'comms':
+        if (sol < 3) {
+          showToast('Earth Comms Antenna is LOCKED (Unlocks on Sol 3)');
+          return;
+        }
+        commandMoveToStation('comms', () => {
+          soundManager.play('click');
+          const next = !choices.queueComms;
+          setChoice('queueComms', next);
+          showToast(next ? 'Earth Packet Queued on High-Gain Dish' : 'Comms Dish Switched to Standby');
+        }, 'Earth Communications Unit');
+        break;
+      default:
+        break;
+    }
+  };
+
   const handleAutoDowngrade = (measuredFps) => {
     if (quality === 'high') {
       updateSettings({ quality: 'medium' });
@@ -439,33 +746,71 @@ export function Diorama() {
       data-fps={fps}
       data-quality={quality}
     >
+      {/* Floating Action Feedback Toast */}
+      {actionToast && (
+        <div className="action-toast-pill" role="status">
+          <span>{actionToast}</span>
+        </div>
+      )}
+
+      {/* Dust Storm Warning & 60-Second Countdown Banner */}
+      {dustWarningActive && dustCountdown !== null && (
+        <div className="dust-storm-warning-banner" role="alert">
+          <div className="dust-warning-header">
+            <span className="dust-warning-title">⚠️ DUST STORM EMERGENCY – RETRACT PANELS</span>
+            <span className="countdown-timer-pill">{dustCountdown}s</span>
+          </div>
+          <div className="dust-warning-desc">
+            Violent surface winds will detach the solar array from its joint if exposed when the countdown reaches zero!
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm dust-warning-action-btn"
+            onClick={() => handleStationInteract('solar')}
+          >
+            🚶 Walk to Solar Station & Retract ({dustCountdown}s remaining)
+          </button>
+        </div>
+      )}
+
+      {/* Top Status & Info Overlay */}
       <div className="diorama-overlay-top">
-        <div className="diorama-status-pill">
-          <span>{isNight ? '🌑' : isFlare ? '☄️' : isDust ? '🌪️' : '☀️'}</span>
-          <span>
-            {isFlare
-              ? 'SOLAR STORM / RADIATION ALERT'
-              : isDust
-                ? 'ELECTROSTATIC DUST HAZE'
-                : isNight
-                  ? 'LONG LUNAR NIGHT (EARTHLIGHT)'
-                  : 'LUNAR DAYLIGHT (SUNLIT)'}
-          </span>
-        </div>
-        <div className="diorama-status-pill">
-          <span>
-            HD-2D ({quality.toUpperCase()}) · {fps} FPS
-          </span>
-        </div>
-        <div className="diorama-status-pill">
-          <span>🔄 360° Orbit Drag</span>
+        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <div className="diorama-status-pill">
+            <span>{isNight ? '🌑' : isFlare ? '☄️' : isDust ? '🌪️' : '☀️'}</span>
+            <span>
+              {isFlare
+                ? 'SOLAR STORM / RADIATION ALERT'
+                : isDust
+                  ? 'ELECTROSTATIC DUST HAZE'
+                  : isNight
+                    ? 'LONG LUNAR NIGHT (EARTHLIGHT)'
+                    : 'LUNAR DAYLIGHT (SUNLIT)'}
+            </span>
+          </div>
+          <div className="diorama-status-pill">
+            <span>
+              Sol {sol} · Day {sol}
+            </span>
+          </div>
+          <div className="diorama-status-pill">
+            <span>
+              HD-2D ({quality.toUpperCase()}) · {fps} FPS
+            </span>
+          </div>
+          <div className="diorama-status-pill" title={astroData.source}>
+            <span>🪐 {astroData.isLive ? 'JPL Horizons (Live)' : 'JPL Ephemeris'}</span>
+          </div>
+          <div className="diorama-status-pill">
+            <span>🔄 360° Orbit Drag</span>
+          </div>
         </div>
       </div>
 
       <Canvas
         shadows={quality !== 'low'}
         dpr={quality === 'low' ? [1, 1] : [1, 2]}
-        camera={{ position: [0, 6.2, 13.5], fov: 42, near: 0.1, far: 90 }}
+        camera={{ position: [0, 6.2, 13.5], fov: 42, near: 0.2, far: 650 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -505,20 +850,27 @@ export function Diorama() {
           power={gauges.power ?? 80}
           reducedMotion={reducedMotion}
           sunPosition={sunPosition}
+          earthPosition={earthPosition}
+        />
+
+        {/* Spherical Starfield Enclosure from provided night_sky_transparent_with_stars.glb */}
+        <Suspense fallback={null}>
+          <StarfieldEnclosure reducedMotion={reducedMotion} />
+        </Suspense>
+
+        {/* Deep astronomical space point stars background */}
+        <Stars
+          radius={320}
+          depth={80}
+          count={quality === 'low' ? 900 : 2200}
+          factor={4.5}
+          saturation={0.3}
+          fade={false}
+          speed={reducedMotion ? 0 : 0.08}
         />
 
         <SunInSky position={sunPosition} isNight={isNight} isFlare={isFlare} />
-
-        {/* Dense, bright deep-space starfield */}
-        <Stars
-          radius={60}
-          depth={35}
-          count={quality === 'low' ? 900 : 2800}
-          factor={5.5}
-          saturation={0.35}
-          fade={false}
-          speed={reducedMotion ? 0 : 0.12}
-        />
+        <EarthInSky position={earthPosition} reducedMotion={reducedMotion} />
 
         <OutpostMeshes
           panelsOut={Boolean(choices.panelsOut)}
@@ -527,18 +879,29 @@ export function Diorama() {
           isFlare={isFlare}
           power={gauges.power ?? 80}
           level={level}
+          sol={sol}
+          solarBroken={solarBroken}
           queueComms={Boolean(choices.queueComms)}
           reducedMotion={reducedMotion}
         />
 
-        {/* Selected Crew Member (Only ONE in the scene, dynamically updated) */}
-        <SpriteActor
-          key={activeActor.id}
-          id={activeActor.id}
-          name={activeActor.name}
-          mood={activeActor.mood}
-          health={activeActor.health}
-          position={[0, 0.48, 2.0]}
+        {/* 3D Physical Interaction Stations on the lunar terrain */}
+        <StationMarkers
+          sol={sol}
+          choices={choices}
+          solarBroken={solarBroken}
+          characterPosition={characterPosition}
+          onInteractStation={handleStationInteract}
+        />
+
+        {/* Selected Single Crew Member (Proportionate, Grounded, Physically walking) */}
+        <CharacterWalker
+          actor={activeActor}
+          characterPosition={characterPosition}
+          targetStation={targetStation}
+          isTravelling={isTravelling}
+          reachStation={reachStation}
+          setCharacterPosition={setCharacterPosition}
           reducedMotion={reducedMotion}
         />
 
@@ -559,16 +922,20 @@ export function Diorama() {
 
       <div className="diorama-overlay-bottom">
         <div className="node-tag-list">
-          <span className="node-tag active">Habitat</span>
-          <span className={`node-tag ${choices.panelsOut ? 'active' : ''}`}>
-            SolarArray: {choices.panelsOut ? 'DEPLOYED' : 'RETRACTED'}
+          <span className="node-tag active">Habitat (Day 1)</span>
+          <span className={`node-tag ${solarBroken ? 'broken-danger' : choices.panelsOut ? 'active' : ''}`}>
+            SolarArray: {solarBroken ? 'BROKEN (DETACHED)' : choices.panelsOut ? 'EXTENDED' : 'RETRACTED'}
           </span>
           <span className={`node-tag ${choices.shieldOn ? 'active' : ''}`}>
             ShieldDome: {choices.shieldOn ? 'ON' : 'OFF'}
           </span>
-          <span className={`node-tag ${level >= 2 ? 'active' : ''}`}>Greenhouse</span>
-          <span className={`node-tag ${level >= 3 ? 'active' : ''}`}>Antenna</span>
-          <span className="node-tag active">Oxygen Storage</span>
+          <span className={`node-tag ${sol >= 2 ? 'active' : 'locked'}`}>
+            Greenhouse {sol >= 2 ? '(UNLOCKED)' : '(Day 2)'}
+          </span>
+          <span className={`node-tag ${sol >= 3 ? 'active' : 'locked'}`}>
+            Earth Antenna {sol >= 3 ? (choices.queueComms ? '(TRANSMITTING)' : '(UNLOCKED)') : '(Day 3)'}
+          </span>
+          <span className="node-tag active">Oxygen Storage (Day 1)</span>
           <span className="node-tag active">Rover Pad</span>
           <span className="node-tag active">Terrain</span>
         </div>

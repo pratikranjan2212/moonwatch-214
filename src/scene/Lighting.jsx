@@ -11,10 +11,11 @@ export function Lighting({
   isFlare = false,
   isDust = false,
   isLowPower = false,
-  shieldOn = false,
+  _shieldOn = false,
   power = 80,
   reducedMotion = false,
   sunPosition = null,
+  earthPosition = null,
 }) {
   const beaconRef = useRef(null);
   const windowLightRef = useRef(null);
@@ -44,7 +45,8 @@ export function Lighting({
   const ambientColor = isNight ? '#0E1122' : isDust ? '#483828' : isFlare ? '#2B1220' : '#3E4250';
   const ambientIntensity = isNight ? 0.3 : isDust ? 0.5 : 0.38;
 
-  const lightPosition = sunPosition || (isNight ? [-8, 10, -6] : [14, 18, 12]);
+  const lightPosition = sunPosition || (isNight ? [-45, -70, -35] : [40, 60, 30]);
+  const moonEarthPosition = earthPosition || [-26, 18, -28];
 
   return (
     <group name="OutpostLighting">
@@ -61,19 +63,19 @@ export function Lighting({
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-bias={-0.0001}
-        shadow-camera-near={0.5}
-        shadow-camera-far={65}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
-        shadow-camera-top={14}
-        shadow-camera-bottom={-14}
+        shadow-camera-near={1.0}
+        shadow-camera-far={320}
+        shadow-camera-left={-16}
+        shadow-camera-right={16}
+        shadow-camera-top={16}
+        shadow-camera-bottom={-16}
       />
 
       {/* Earth-shine directional fill light (ocean blue specular reflection on shadowed sides) */}
       <directionalLight
         color="#70B0FF"
-        intensity={isNight ? 0.5 : 0.32}
-        position={[-16, 12, -24]}
+        intensity={isNight ? 0.45 : 0.22}
+        position={moonEarthPosition}
       />
 
       {/* Habitat warm window point light */}
@@ -94,15 +96,7 @@ export function Lighting({
         position={[0, 2.8, 0]}
       />
 
-      {/* Shield dome violet luminescence */}
-      {shieldOn && (
-        <pointLight
-          color="#8E6CFF"
-          intensity={1.35}
-          distance={12}
-          position={[0, 3.2, 0]}
-        />
-      )}
+      {/* Note: Shield dome does not emit artificial glow light when on; transparent glass material only */}
     </group>
   );
 }

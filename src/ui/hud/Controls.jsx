@@ -9,6 +9,13 @@ export function Controls() {
   const game = useGameStore((s) => s.game);
   const setChoice = useGameStore((s) => s.setChoice);
   const advanceSol = useGameStore((s) => s.advanceSol);
+  const commandMoveToStation = useGameStore((s) => s.commandMoveToStation);
+  const cancelTravel = useGameStore((s) => s.cancelTravel);
+  const isTravelling = useGameStore((s) => s.isTravelling);
+  const travelFeedback = useGameStore((s) => s.travelFeedback);
+  const showToast = useGameStore((s) => s.showToast);
+  const dustCountdown = useGameStore((s) => s.dustCountdown);
+  const dustWarningActive = useGameStore((s) => s.dustWarningActive);
 
   const choices = game?.choices || {
     panelsOut: true,
@@ -19,9 +26,9 @@ export function Controls() {
     queueComms: false,
   };
 
-  const level = game?.level || 1;
   const sol = game?.sol || 1;
   const isPlaying = game?.status === 'playing';
+  const isSolarBroken = Boolean(game?.solarBroken);
   const solEvents = getEventsForSol(game?.timeline, sol);
   const isNight =
     isLunarNightSol(sol) ||
@@ -29,42 +36,86 @@ export function Controls() {
   const hasDust = solEvents.some((e) => normalizeEventType(e.type || e.code) === 'dust');
   const isPanelDamaged = (game?.sol214?.panelDamagedSolsRemaining || 0) > 0;
 
-  const handleTogglePanels = () => {
-    soundManager.play('motor');
-    setChoice('panelsOut', !choices.panelsOut);
+  const handleRequestPanels = () => {
+    if (isSolarBroken) {
+      soundManager.play('warning');
+      showToast?.('Solar Array is BROKEN: Panels detached and shattered on lunar surface.');
+      return;
+    }
+    commandMoveToStation('solar', () => {
+      soundManager.play('motor');
+      const next = !choices.panelsOut;
+      setChoice('panelsOut', next);
+      showToast?.(
+        next
+          ? 'Solar Panels Extended at Solar Installation'
+          : 'Solar Panels Retracted into Underground Bay'
+      );
+    }, 'Solar Panel Installation');
   };
 
-  const handleToggleShield = () => {
-    soundManager.play('click');
-    setChoice('shieldOn', !choices.shieldOn);
+  const handleRequestShield = () => {
+    commandMoveToStation('shield', () => {
+      soundManager.play('click');
+      const next = !choices.shieldOn;
+      setChoice('shieldOn', next);
+      showToast?.(next ? 'Radiation Shield Dome Activated at Central Base' : 'Shield Dome Deactivated');
+    }, 'Central Base Shield Station');
   };
 
-  const handleCycleOxygen = () => {
-    soundManager.play('click');
-    const idx = OXYGEN_MODES.indexOf(choices.oxygenLevel || 'normal');
-    const nextMode = OXYGEN_MODES[(idx + 1) % OXYGEN_MODES.length];
-    setChoice('oxygenLevel', nextMode);
+  const handleRequestOxygen = () => {
+    commandMoveToStation('oxygen', () => {
+      soundManager.play('click');
+      const idx = OXYGEN_MODES.indexOf(choices.oxygenLevel || 'normal');
+      const nextMode = OXYGEN_MODES[(idx + 1) % OXYGEN_MODES.length];
+      setChoice('oxygenLevel', nextMode);
+      showToast?.(`Oxygen Life Support Set to ${nextMode.toUpperCase()} at O₂ Tanks`);
+    }, 'Oxygen Control Station');
   };
 
-  const handleToggleWaterGreenhouse = () => {
-    soundManager.play('click');
-    setChoice('waterGreenhouse', !choices.waterGreenhouse);
+  const handleRequestWaterGreenhouse = () => {
+    if (sol < 2) {
+      showToast?.('Greenhouse is LOCKED (Unlocks on Sol 2)');
+      return;
+    }
+    commandMoveToStation('greenhouse', () => {
+      soundManager.play('click');
+      const next = !choices.waterGreenhouse;
+      setChoice('waterGreenhouse', next);
+      showToast?.(next ? 'Greenhouse Irrigation Activated' : 'Irrigation Switched to Standby');
+    }, 'Greenhouse Control Station');
   };
 
-  const handleToggleTendGreenhouse = () => {
-    soundManager.play('click');
-    setChoice('tendGreenhouse', !choices.tendGreenhouse);
+  const handleRequestTendGreenhouse = () => {
+    if (sol < 2) {
+      showToast?.('Greenhouse is LOCKED (Unlocks on Sol 2)');
+      return;
+    }
+    commandMoveToStation('greenhouse', () => {
+      soundManager.play('click');
+      const next = !choices.tendGreenhouse;
+      setChoice('tendGreenhouse', next);
+      showToast?.(next ? 'Tending Hydroponic Crops' : 'Crop Tending Completed');
+    }, 'Greenhouse Control Station');
   };
 
-  const handleToggleQueueComms = () => {
-    soundManager.play('click');
-    setChoice('queueComms', !choices.queueComms);
+  const handleRequestQueueComms = () => {
+    if (sol < 3) {
+      showToast?.('Earth Communications Antenna is LOCKED (Unlocks on Sol 3)');
+      return;
+    }
+    commandMoveToStation('comms', () => {
+      soundManager.play('click');
+      const next = !choices.queueComms;
+      setChoice('queueComms', next);
+      showToast?.(next ? 'Earth Packet Queued on High-Gain Dish' : 'Comms Dish Switched to Standby');
+    }, 'Earth Communications Unit');
   };
 
   // Estimate per-Sol power budget preview matching tick.js generation & dust/damage multipliers
   const o2Key = OXYGEN_MODES.includes(choices.oxygenLevel) ? choices.oxygenLevel : 'normal';
   const o2Spec = BALANCE.oxygenConsumptionByLevel[o2Key];
-  let estGen = choices.panelsOut && !isNight ? BALANCE.solarGenerationDay : 0;
+  let estGen = choices.panelsOut && !isNight && !isSolarBroken ? BALANCE.solarGenerationDay : 0;
   if (estGen > 0 && hasDust) {
     estGen *= BALANCE.dustMultiplier;
   }
@@ -78,16 +129,16 @@ export function Controls() {
     (choices.shieldOn ? BALANCE.shieldCost : 0) +
     o2Spec.powerCost +
     (choices.panelsOut && hasDust ? BALANCE.dustExposedPanelPowerLoss : 0) +
-    (level >= 2 && (choices.waterGreenhouse || choices.tendGreenhouse)
+    (sol >= 2 && (choices.waterGreenhouse || choices.tendGreenhouse)
       ? BALANCE.greenhouse.waterPowerCost
       : 0) +
-    (level >= 3 && choices.queueComms ? BALANCE.comms.antennaPowerCost : 0);
+    (sol >= 3 && choices.queueComms ? BALANCE.comms.antennaPowerCost : 0);
   const estNetPower = estGen - estDraw;
 
   return (
     <section className="hud-panel controls-panel" aria-label="Per-Sol Power Allocation Controls">
       <div className="hud-section-title">
-        <span>Sol {sol} Command Allocation</span>
+        <span>Sol {sol} Physical Command Allocation</span>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
           Est. Net Power:{' '}
           <strong style={{ color: estNetPower >= 0 ? '#34D399' : 'var(--power)' }}>
@@ -96,12 +147,27 @@ export function Controls() {
         </span>
       </div>
 
+      {/* Real-time Physical Character Movement feedback banner */}
+      {isTravelling && (
+        <div className="controls-travel-banner">
+          <span>🚶 {travelFeedback}</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={cancelTravel}
+            style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', color: '#FFB020' }}
+          >
+            Cancel Walk
+          </button>
+        </div>
+      )}
+
       <div className="controls-toggles-grid">
         {/* 1. Solar Panels Toggle */}
         <button
           type="button"
-          className={`control-toggle-btn ${choices.panelsOut ? 'active-power' : ''}`}
-          onClick={handleTogglePanels}
+          className={`control-toggle-btn ${isSolarBroken ? 'broken-danger' : choices.panelsOut ? 'active-power' : ''} ${dustWarningActive ? 'pulse-warning' : ''}`}
+          onClick={handleRequestPanels}
           disabled={!isPlaying}
           aria-pressed={Boolean(choices.panelsOut)}
         >
@@ -110,14 +176,22 @@ export function Controls() {
             <span className="kbd-hint">[1 / P]</span>
           </div>
           <div className="control-state-value">
-            {choices.panelsOut ? 'EXTENDED' : 'RETRACTED'}
+            {isSolarBroken
+              ? 'BROKEN (DETACHED)'
+              : dustWarningActive
+                ? `⚠️ RETRACT NOW (${dustCountdown ?? 60}s)`
+                : choices.panelsOut
+                  ? 'EXTENDED'
+                  : 'RETRACTED'}
           </div>
           <div className="control-cost-hint">
-            {choices.panelsOut
-              ? isNight
-                ? '+0 Power (Night) · Exposed'
-                : `+${BALANCE.solarGenerationDay} Power/Sol · Exposed`
-              : '+0 Power · Protected'}
+            {isSolarBroken
+              ? '+0 Power · Detached in Storm'
+              : choices.panelsOut
+                ? isNight
+                  ? '+0 Power (Night) · Exposed'
+                  : `+${BALANCE.solarGenerationDay} Power/Sol · Exposed`
+                : '+0 Power · Protected'}
           </div>
         </button>
 
@@ -125,7 +199,7 @@ export function Controls() {
         <button
           type="button"
           className={`control-toggle-btn ${choices.shieldOn ? 'active-shield' : ''}`}
-          onClick={handleToggleShield}
+          onClick={handleRequestShield}
           disabled={!isPlaying}
           aria-pressed={Boolean(choices.shieldOn)}
         >
@@ -143,7 +217,7 @@ export function Controls() {
         <button
           type="button"
           className="control-toggle-btn active-oxygen"
-          onClick={handleCycleOxygen}
+          onClick={handleRequestOxygen}
           disabled={!isPlaying}
           aria-label={`Oxygen Level ${o2Key.toUpperCase()}. Click to cycle Low, Normal, High`}
         >
@@ -162,13 +236,13 @@ export function Controls() {
           </div>
         </button>
 
-        {/* Level 2 Conditional Controls: Water Greenhouse & Tend Crops */}
-        {level >= 2 && (
+        {/* Day 2 Progressive Unlocks: Water Greenhouse & Tend Crops */}
+        {sol >= 2 ? (
           <>
             <button
               type="button"
               className={`control-toggle-btn ${choices.waterGreenhouse ? 'active-oxygen' : ''}`}
-              onClick={handleToggleWaterGreenhouse}
+              onClick={handleRequestWaterGreenhouse}
               disabled={!isPlaying}
               aria-pressed={Boolean(choices.waterGreenhouse)}
             >
@@ -187,7 +261,7 @@ export function Controls() {
             <button
               type="button"
               className={`control-toggle-btn ${choices.tendGreenhouse ? 'active-oxygen' : ''}`}
-              onClick={handleToggleTendGreenhouse}
+              onClick={handleRequestTendGreenhouse}
               disabled={!isPlaying}
               aria-pressed={Boolean(choices.tendGreenhouse)}
             >
@@ -203,14 +277,25 @@ export function Controls() {
               </div>
             </button>
           </>
+        ) : (
+          <div className="control-toggle-btn control-locked-placeholder">
+            <div className="control-top-line">
+              <span>Greenhouse Deck</span>
+              <span className="kbd-hint">🔒 Sol 2</span>
+            </div>
+            <div className="control-state-value" style={{ color: 'var(--text-secondary)' }}>
+              LOCKED
+            </div>
+            <div className="control-cost-hint">Unlocks automatically on Sol 2</div>
+          </div>
         )}
 
-        {/* Level 3 Conditional Control: Queue Earth Comms */}
-        {level >= 3 && (
+        {/* Day 3 Progressive Unlock: Queue Earth Comms */}
+        {sol >= 3 ? (
           <button
             type="button"
             className={`control-toggle-btn ${choices.queueComms ? 'active-power' : ''}`}
-            onClick={handleToggleQueueComms}
+            onClick={handleRequestQueueComms}
             disabled={!isPlaying}
             aria-pressed={Boolean(choices.queueComms)}
           >
@@ -225,6 +310,17 @@ export function Controls() {
               -{BALANCE.comms.antennaPowerCost} Power · {game?.comms?.delaySols || 2}-Sol Earth Delay
             </div>
           </button>
+        ) : (
+          <div className="control-toggle-btn control-locked-placeholder">
+            <div className="control-top-line">
+              <span>Earth Comms</span>
+              <span className="kbd-hint">🔒 Sol 3</span>
+            </div>
+            <div className="control-state-value" style={{ color: 'var(--text-secondary)' }}>
+              LOCKED
+            </div>
+            <div className="control-cost-hint">Unlocks automatically on Sol 3</div>
+          </div>
         )}
       </div>
 
