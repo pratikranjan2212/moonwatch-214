@@ -407,6 +407,179 @@
   padding: 24px 28px;
   max-width: 480px;
   width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.tutorial-modal {
+  max-width: 540px;
+  background: #111827;
+  border: 3px solid #38bdf8;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.85), 0 0 24px rgba(56, 189, 248, 0.25);
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.modal-title-text {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #f8fafc;
+}
+
+.modal-sub-text {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  background: #1f2937;
+  border: 2px solid #4b5563;
+  color: #9ca3af;
+  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.modal-close-btn:hover {
+  background: #374151;
+  color: #fff;
+  border-color: #9ca3af;
+  transform: scale(1.1);
+}
+
+.tutorial-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tutorial-step-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1f2937;
+  border: 2px solid #374151;
+  border-left: 5px solid var(--step-accent, #38bdf8);
+  border-radius: 14px;
+  padding: 10px 14px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.tutorial-step-card:hover {
+  transform: translateX(3px);
+  border-color: var(--step-accent, #38bdf8);
+}
+
+.step-num-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--step-accent, #38bdf8);
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.step-info {
+  flex: 1;
+}
+
+.step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.step-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f3f4f6;
+}
+
+.step-desc {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.key-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.key-cap {
+  background: #0f172a;
+  border: 1px solid #64748b;
+  border-bottom: 2px solid #38bdf8;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #38bdf8;
+  font-family: inherit;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.pro-tip-banner {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px dashed rgba(251, 191, 36, 0.45);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: #fef08a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pro-tip-icon {
+  font-size: 1.1rem;
+}
+
+.modal-submit-btn {
+  width: 100%;
+  text-align: center;
+  padding: 12px 24px;
+  font-size: 1.05rem;
 }
 
 .tutorial-list {

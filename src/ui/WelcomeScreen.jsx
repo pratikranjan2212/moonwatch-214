@@ -10,7 +10,7 @@ const CAMPAIGN_LEVELS = [
     stars: '⭐',
     accent: '#fbbf24',
     bgImage: '/images/level1-power.jpg',
-    goal: 'Learn to charge your lunar batteries and raise the Shield Dome when solar storms hit!',
+    goal: 'Charge your batteries with sunlight and raise the shield dome when space storms hit!',
     unlockedKeys: ['[1 / P] Solar Panels', '[2 / S] Shield Dome', '[3 / O] Oxygen'],
   },
   {
@@ -21,7 +21,7 @@ const CAMPAIGN_LEVELS = [
     stars: '⭐⭐',
     accent: '#38bdf8',
     bgImage: '/images/level2-greenhouse.jpg',
-    goal: 'Grow space crops inside the Hydroponic Dome and keep your crew breathing fresh oxygen!',
+    goal: 'Grow fresh space plants in the greenhouse and keep clean oxygen flowing for your crew!',
     unlockedKeys: ['All Level 1 Keys', '[4 / G] Water Greenhouse'],
   },
   {
@@ -32,7 +32,7 @@ const CAMPAIGN_LEVELS = [
     stars: '⭐⭐⭐',
     accent: '#a855f7',
     bgImage: '/images/level3-comms.jpg',
-    goal: 'Master the full moonbase and beam emergency weather data back to Mission Control on Earth!',
+    goal: 'Master your full moonbase and beam emergency weather signals back home to Earth!',
     unlockedKeys: ['All Level 1 & 2 Keys', '[5 / C] Queue Earth Comms'],
   },
 ];
@@ -150,24 +150,115 @@ export default function WelcomeScreen({
       {/* Kid-Friendly How to Play Modal */}
       {activeModal === 'TUTORIAL' && (
         <div className="modal-backdrop" onClick={() => setActiveModal(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h2>🧑‍🚀 Commander's Quick Guide</h2>
-            <ul className="tutorial-list">
-              <li>
-                <strong>☀️ Watch the Sun:</strong> Extend Solar Panels <code>[1/P]</code> on calm days to charge batteries.
-              </li>
-              <li>
-                <strong>🛡️ Block Solar Storms:</strong> When a NASA Flare alert pops up, retract panels and turn ON your Shield Dome <code>[2/S]</code>!
-              </li>
-              <li>
-                <strong>🫧 Keep Crew Happy:</strong> Cycle Oxygen <code>[3/O]</code>, water crops <code>[4/G]</code>, and beam data to Earth <code>[5/C]</code>.
-              </li>
-              <li>
-                <strong>⏭️ Advance Days:</strong> Press <code>[Space]</code> or <code>[Enter]</code> when your base is ready for the next Sol!
-              </li>
-            </ul>
-            <button className="start-mission-btn" onClick={() => setActiveModal(null)}>
-              Got It! Let's Play
+          <div className="modal-box tutorial-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-row">
+              <div>
+                <h2 className="modal-title-text">
+                  🧑‍🚀 How to Play: 4 Easy Steps
+                </h2>
+                <p className="modal-sub-text">
+                  Your mission: Keep your moonbase powered, protected, and healthy!
+                </p>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setActiveModal(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="tutorial-cards-grid">
+              {/* Step 1 */}
+              <div className="tutorial-step-card" style={{ '--step-accent': '#fbbf24' }}>
+                <div className="step-num-badge">1</div>
+                <div className="step-info">
+                  <div className="step-header">
+                    <span className="step-title">☀️ Catch Sunlight</span>
+                    <div className="key-badge-group">
+                      <span>Press</span>
+                      <kbd className="key-cap">1</kbd>
+                      <span>or</span>
+                      <kbd className="key-cap">P</kbd>
+                    </div>
+                  </div>
+                  <p className="step-desc">
+                    Open solar panels on calm sunny days to fill up your base batteries!
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="tutorial-step-card" style={{ '--step-accent': '#38bdf8' }}>
+                <div className="step-num-badge">2</div>
+                <div className="step-info">
+                  <div className="step-header">
+                    <span className="step-title">🛡️ Shield Against Storms</span>
+                    <div className="key-badge-group">
+                      <span>Press</span>
+                      <kbd className="key-cap">2</kbd>
+                      <span>or</span>
+                      <kbd className="key-cap">S</kbd>
+                    </div>
+                  </div>
+                  <p className="step-desc">
+                    When NASA warns you of a solar flare, close panels and turn ON the shield dome!
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="tutorial-step-card" style={{ '--step-accent': '#34d399' }}>
+                <div className="step-num-badge">3</div>
+                <div className="step-info">
+                  <div className="step-header">
+                    <span className="step-title">🌱 Keep Crew Healthy</span>
+                    <div className="key-badge-group">
+                      <span>Press</span>
+                      <kbd className="key-cap">3</kbd>
+                      <span>or</span>
+                      <kbd className="key-cap">O</kbd>
+                    </div>
+                  </div>
+                  <p className="step-desc">
+                    Pump clean oxygen and water greenhouse plants so your astronauts stay breathing!
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="tutorial-step-card" style={{ '--step-accent': '#a855f7' }}>
+                <div className="step-num-badge">4</div>
+                <div className="step-info">
+                  <div className="step-header">
+                    <span className="step-title">🚀 Finish the Day</span>
+                    <div className="key-badge-group">
+                      <span>Press</span>
+                      <kbd className="key-cap">SPACE</kbd>
+                    </div>
+                  </div>
+                  <p className="step-desc">
+                    Once your base is safe and prepared, advance the day to survive to the next Sol!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pro-tip-banner">
+              <span className="pro-tip-icon">💡</span>
+              <span>
+                <strong>Space Fact:</strong> A <strong>"Sol"</strong> is simply the scientific word for <strong>one day</strong> on the Moon!
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="start-mission-btn modal-submit-btn"
+              onClick={() => setActiveModal(null)}
+            >
+              Got It! Let's Play 🚀
             </button>
           </div>
         </div>
