@@ -259,99 +259,58 @@ function OutpostMeshes({
 }
 
 function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, reducedMotion = false }) {
-  const gltf = useGLTF('/models/Moon_base.glb');
-  const sunTexture = useTexture('/textures/sun_surface_2048.jpg');
   const sunGroupRef = useRef(null);
   const sunCoreRef = useRef(null);
   const sunHaloRef = useRef(null);
-  const sunCoronaRef = useRef(null);
   const coreMatRef = useRef(null);
   const haloMatRef = useRef(null);
 
+  const sunTexture = useTexture('/textures/sun_surface_2048.jpg');
+
   useEffect(() => {
     if (sunTexture) {
+      // Equirectangular spherical mapping — 2:1 aspect ratio wraps cleanly around a SphereGeometry
       sunTexture.wrapS = THREE.RepeatWrapping;
-      sunTexture.wrapT = THREE.ClampToEdgeWrapping;
+      sunTexture.wrapT = THREE.RepeatWrapping;
       sunTexture.colorSpace = THREE.SRGBColorSpace;
       sunTexture.generateMipmaps = true;
       sunTexture.minFilter = THREE.LinearMipmapLinearFilter;
       sunTexture.magFilter = THREE.LinearFilter;
+      sunTexture.needsUpdate = true;
     }
   }, [sunTexture]);
 
-  const clonedSun = useMemo(() => {
-    const orig = gltf.scene.getObjectByName('The_Sun');
-    if (!orig) return null;
-    const cloned = orig.clone(true);
+  // Core material — created once so useFrame can update it without re-cloning
+  const coreMat = useMemo(() => new THREE.MeshStandardMaterial({
+    map: sunTexture,
+    emissiveMap: sunTexture,
+    emissive: new THREE.Color(isFlare ? '#FFA000' : '#FF7700'),
+    emissiveIntensity: isFlare ? 12.0 : 8.5,
+    roughness: 0.42,
+    metalness: 0.0,
+    toneMapped: false,
+  }), [sunTexture, isFlare]);
 
-    // Realistic physical scale: Sun core diameter = 92.90496 units
-    // Raw Sphere001 diameter with sun.scale=1 is 0.8114296
-    // targetSunD = 92.90496 -> scaleSun = 114.4954
-    const scaleSun = 114.4954;
-    cloned.scale.set(scaleSun, scaleSun, scaleSun);
+  // Corona halo — slightly larger sphere behind, additive glow
+  const haloMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: new THREE.Color('#FF5500'),
+    emissive: new THREE.Color(isFlare ? '#FF9900' : '#FF6600'),
+    emissiveIntensity: isFlare ? 5.8 : 3.6,
+    transparent: true,
+    opacity: isFlare ? 0.88 : 0.72,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.BackSide,
+  }), [isFlare]);
 
-    // Center Sphere001 (photosphere core) at origin (0, 0, 0)
-    // In local coords of The_Sun, Sphere001 is at y = 0.4037914
-    cloned.position.set(0, -0.4037914 * scaleSun, 0);
+  useEffect(() => {
+    coreMatRef.current = coreMat;
+    haloMatRef.current = haloMat;
+  }, [coreMat, haloMat]);
 
-    cloned.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = false;
-        child.receiveShadow = false;
-        if (child.material) {
-          // Sphere001: Blazing solar photosphere core with high-definition NASA SDO texture
-          if (child.name.includes('Sphere001') || child.name.includes('Sphere.001') || child.material.name.includes('Material.005')) {
-            sunCoreRef.current = child;
-            const coreMat = new THREE.MeshStandardMaterial({
-              map: sunTexture,
-              emissiveMap: sunTexture,
-              emissive: new THREE.Color(isFlare ? '#FFA000' : '#FF7700'),
-              emissiveIntensity: isFlare ? 12.0 : 8.5,
-              roughness: 0.42,
-              metalness: 0.05,
-              toneMapped: false,
-            });
-            coreMatRef.current = coreMat;
-            child.material = coreMat;
-          }
-          // Sphere002: Solar flare corona halo
-          else if (child.name.includes('Sphere002') || child.name.includes('Sphere.002') || child.material.name.includes('Material.006')) {
-            sunHaloRef.current = child;
-            const haloMat = new THREE.MeshStandardMaterial({
-              map: sunTexture,
-              color: new THREE.Color('#FF5500'),
-              emissive: new THREE.Color(isFlare ? '#FF9900' : '#FF6600'),
-              emissiveIntensity: isFlare ? 5.8 : 3.6,
-              transparent: true,
-              opacity: isFlare ? 0.92 : 0.78,
-              blending: THREE.AdditiveBlending,
-              depthWrite: false,
-              toneMapped: false,
-              side: THREE.BackSide, // Visible as glowing limb halo around the photosphere
-            });
-            haloMatRef.current = haloMat;
-            child.material = haloMat;
-          }
-          // Smoke_Domain: Coronal plasma envelope
-          else if (child.name.includes('Smoke_Domain') || child.name.includes('Smoke Domain') || child.material.name.includes('Smoke Domain')) {
-            sunCoronaRef.current = child;
-            const coronaMat = new THREE.MeshBasicMaterial({
-              color: new THREE.Color(isFlare ? '#FF4400' : '#FF2A00'),
-              transparent: true,
-              opacity: isFlare ? 0.38 : 0.18,
-              blending: THREE.AdditiveBlending,
-              depthWrite: false,
-              toneMapped: false,
-              side: THREE.DoubleSide,
-            });
-            child.material = coronaMat;
-          }
-        }
-      }
-    });
-
-    return cloned;
-  }, [gltf.scene, isFlare, sunTexture]);
+  // Sun physical radius in scene units = 92.90496 / 2 = 46.45248
+  const sunRadius = 46.45248;
 
   useFrame(({ clock }, delta) => {
     const t = clock.getElapsedTime();
@@ -360,25 +319,20 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
       if (sunTexture) {
         sunTexture.offset.x += delta * 0.005;
         sunTexture.offset.y = Math.sin(t * 0.25) * 0.008;
+        sunTexture.needsUpdate = true;
       }
-      // 2. Continuous solar differential axial rotation
+      // 2. Continuous solar differential axial rotation on core mesh
       if (sunCoreRef.current) {
         sunCoreRef.current.rotation.y += delta * 0.015;
       }
-      // 3. Dynamic coronal flare drift and pulsation
+      // 3. Corona halo pulsation
       if (sunHaloRef.current) {
         sunHaloRef.current.rotation.y -= delta * 0.032;
         sunHaloRef.current.rotation.z += delta * 0.012;
         const pulse = 1.0 + Math.sin(t * 2.8) * 0.018;
         sunHaloRef.current.scale.set(pulse, pulse, pulse);
       }
-      // 4. Outer coronal envelope subtle wobble
-      if (sunCoronaRef.current) {
-        sunCoronaRef.current.rotation.y += delta * 0.01;
-        const coronaPulse = 1.0 + Math.cos(t * 1.6) * 0.025;
-        sunCoronaRef.current.scale.set(coronaPulse, coronaPulse, coronaPulse);
-      }
-      // 5. Blazing emissive shimmer simulating solar magnetic reconnection flares
+      // 4. Blazing emissive shimmer simulating solar magnetic reconnection
       if (coreMatRef.current) {
         const shimmer = 1.0 + Math.sin(t * 3.4) * 0.07 + Math.cos(t * 7.1) * 0.03;
         coreMatRef.current.emissiveIntensity = (isFlare ? 12.0 : 8.5) * shimmer;
@@ -390,11 +344,31 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
     }
   });
 
-  if (isNight || !clonedSun) return null;
+  if (isNight) return null;
 
   return (
     <group ref={sunGroupRef} position={position}>
-      <primitive object={clonedSun} />
+      {/* Photosphere core — procedural SphereGeometry for clean equirectangular UV mapping */}
+      <mesh ref={sunCoreRef} material={coreMat}>
+        <sphereGeometry args={[sunRadius, 64, 32]} />
+      </mesh>
+      {/* Corona halo — slightly larger additive glow sphere */}
+      <mesh ref={sunHaloRef} material={haloMat}>
+        <sphereGeometry args={[sunRadius * 1.08, 32, 16]} />
+      </mesh>
+      {/* Outer atmospheric corona bloom sphere */}
+      <mesh>
+        <sphereGeometry args={[sunRadius * 1.22, 24, 12]} />
+        <meshBasicMaterial
+          color={isFlare ? '#FF4400' : '#FF2200'}
+          transparent
+          opacity={isFlare ? 0.14 : 0.07}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+          side={THREE.BackSide}
+        />
+      </mesh>
     </group>
   );
 }
