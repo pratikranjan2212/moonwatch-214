@@ -810,7 +810,7 @@ export function Diorama() {
       <Canvas
         shadows={quality !== 'low'}
         dpr={quality === 'low' ? [1, 1] : [1, 2]}
-        camera={{ position: [0, 6.2, 13.5], fov: 42, near: 0.2, far: 650 }}
+        camera={{ position: [0, 6.2, 14.5], fov: 44, near: 0.2, far: 650 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -818,21 +818,21 @@ export function Diorama() {
           toneMappingExposure: 1.15,
         }}
         onCreated={({ camera }) => {
-          camera.lookAt(0.2, 0.6, 0);
+          camera.lookAt(0.2, 0.15, 0);
         }}
         fallback={<Parallax2D reason="WebGL unavailable" />}
       >
         <color
           attach="background"
-          args={[isFlare ? '#140410' : isDust ? '#2C2016' : '#020308']}
+          args={[isFlare ? '#1A0505' : isDust ? '#1E1510' : '#050302']}
         />
         {isDust && <fog attach="fog" args={['#C9A878', 8, 32]} />}
 
         <OrbitControls
           makeDefault
-          target={[0.2, 0.6, 0.0]}
+          target={[0.2, 0.15, 0.0]}
           minDistance={7.0}
-          maxDistance={22.0}
+          maxDistance={24.0}
           minPolarAngle={Math.PI / 12}
           maxPolarAngle={Math.PI / 2.08}
           enableDamping

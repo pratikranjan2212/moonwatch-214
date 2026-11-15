@@ -93,8 +93,10 @@ export function AlertModal() {
             style={{
               margin: '0 0 0.4rem 0',
               fontFamily: 'var(--font-display)',
-              fontSize: '1.5rem',
-              color: 'var(--sun-highlight)',
+              fontSize: '2.15rem',
+              lineHeight: 0.95,
+              textTransform: 'uppercase',
+              color: 'var(--power)',
             }}
           >
             {activeAlert.title || 'Solar Hazard Detected'}
@@ -123,9 +125,8 @@ export function AlertModal() {
 
         <div
           style={{
-            background: 'rgba(15, 17, 35, 0.78)',
+            background: 'var(--bg-card)',
             border: '1px solid var(--border-subtle)',
-            borderRadius: '8px',
             padding: '0.85rem 1rem',
             display: 'flex',
             flexDirection: 'column',

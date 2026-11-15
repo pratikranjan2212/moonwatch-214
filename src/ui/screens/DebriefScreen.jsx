@@ -40,8 +40,10 @@ export function DebriefScreen() {
               style={{
                 margin: '0.45rem 0 0.25rem 0',
                 fontFamily: 'var(--font-display)',
-                fontSize: '1.9rem',
-                color: isWon ? '#34D399' : 'var(--sun-highlight)',
+                fontSize: '2.6rem',
+                lineHeight: 0.92,
+                textTransform: 'uppercase',
+                color: isWon ? '#34D399' : 'var(--power)',
               }}
             >
               {debrief.headline}
@@ -170,9 +172,8 @@ export function DebriefScreen() {
                       style={{
                         marginTop: '0.45rem',
                         padding: '0.5rem 0.6rem',
-                        borderRadius: '6px',
-                        background: 'rgba(255, 176, 32, 0.12)',
-                        border: '1px solid rgba(255, 176, 32, 0.35)',
+                        background: 'rgba(255, 143, 85, 0.12)',
+                        border: '1px solid rgba(255, 143, 85, 0.4)',
                         fontSize: '0.82rem',
                         color: 'var(--text-primary)',
                       }}

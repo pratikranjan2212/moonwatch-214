@@ -155,7 +155,7 @@ export function Controls() {
             type="button"
             className="btn btn-ghost btn-sm"
             onClick={cancelTravel}
-            style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', color: '#FFB020' }}
+            style={{ color: 'var(--power)' }}
           >
             Cancel Walk
           </button>
@@ -335,7 +335,7 @@ export function Controls() {
           disabled={!isPlaying}
         >
           <span>Advance to Next Sol (Sol {sol} → {Math.min(game?.targetSols || 14, sol + 1)})</span>
-          <span className="kbd-hint" style={{ color: '#FFF1C9', background: '#1C1F3A' }}>
+          <span className="kbd-hint" style={{ color: '#FFFFFF', background: '#050302' }}>
             [Space / Enter]
           </span>
         </button>

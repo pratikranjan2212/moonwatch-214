@@ -25,10 +25,12 @@ export function BriefingScreen() {
             <span className="nasa-badge">SHACKLETON RIM OUTPOST · MISSION BRIEFING</span>
             <h1
               style={{
-                margin: '0.4rem 0 0 0',
+                margin: '0.45rem 0 0 0',
                 fontFamily: 'var(--font-display)',
-                fontSize: '1.85rem',
-                color: 'var(--sun-highlight)',
+                fontSize: '2.5rem',
+                lineHeight: 0.92,
+                textTransform: 'uppercase',
+                color: 'var(--power)',
               }}
             >
               {briefing.headline}
@@ -85,8 +87,7 @@ export function BriefingScreen() {
             <div
               style={{
                 padding: '0.85rem',
-                borderRadius: '8px',
-                background: 'rgba(255, 176, 32, 0.14)',
+                background: 'rgba(255, 143, 85, 0.14)',
                 border: '1px solid var(--power)',
               }}
             >

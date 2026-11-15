@@ -3,10 +3,10 @@ import useGameStore from '../../store/useGameStore.js';
 import { MOOD_META } from '../tokens.js';
 
 const PORTRAIT_COLORS = {
-  commander: { suit: '#FFB020', visor: '#35D0E6', hair: '#FFF1C9', skin: '#F4C7A1' },
-  engineer: { suit: '#FFB020', visor: '#8A8D99', hair: '#8D5524', skin: '#E0AC69' },
-  doctor: { suit: '#35D0E6', visor: '#FFF1C9', hair: '#1C1F3A', skin: '#F9D5B8' },
-  botanist: { suit: '#34D399', visor: '#FFB020', hair: '#3B2219', skin: '#C68642' },
+  commander: { suit: '#FF8F55', visor: '#35D0E6', hair: '#FFFFFF', skin: '#F4C7A1' },
+  engineer: { suit: '#FF8F55', visor: '#8A8D99', hair: '#8D5524', skin: '#E0AC69' },
+  doctor: { suit: '#35D0E6', visor: '#FFFFFF', hair: '#050302', skin: '#F9D5B8' },
+  botanist: { suit: '#34D399', visor: '#FF8F55', hair: '#3B2219', skin: '#C68642' },
   pilot: { suit: '#8E6CFF', visor: '#FF4D4D', hair: '#D97706', skin: '#F1C27D' },
 };
 
@@ -28,7 +28,7 @@ function PixelPortrait({ roleKey = 'engineer', mood = 'idle' }) {
       aria-hidden="true"
     >
       {/* Deep space backdrop */}
-      <rect width="16" height="16" fill="#1C1F3A" />
+      <rect width="16" height="16" fill="#050302" />
       {/* Helmet rim */}
       <rect x="3" y="2" width="10" height="10" fill="#8A8D99" />
       <rect x="4" y="3" width="8" height="8" fill={palette.skin} />
@@ -37,20 +37,20 @@ function PixelPortrait({ roleKey = 'engineer', mood = 'idle' }) {
       {/* Eyes */}
       {isExhausted ? (
         <>
-          <rect x="5" y="6" width="2" height="1" fill="#1C1F3A" />
-          <rect x="9" y="6" width="2" height="1" fill="#1C1F3A" />
+          <rect x="5" y="6" width="2" height="1" fill="#050302" />
+          <rect x="9" y="6" width="2" height="1" fill="#050302" />
         </>
       ) : (
         <>
-          <rect x="5" y="6" width="1" height="2" fill="#1C1F3A" />
-          <rect x="10" y="6" width="1" height="2" fill="#1C1F3A" />
+          <rect x="5" y="6" width="1" height="2" fill="#050302" />
+          <rect x="10" y="6" width="1" height="2" fill="#050302" />
         </>
       )}
       {/* Mouth expression */}
       {isCheer && <rect x="6" y="9" width="4" height="1" fill="#34D399" />}
       {(isWorried || isShelter) && <rect x="7" y="9" width="2" height="2" fill="#FF4D4D" />}
       {!isCheer && !isWorried && !isShelter && (
-        <rect x="6" y="9" width="4" height="1" fill="#1C1F3A" />
+        <rect x="6" y="9" width="4" height="1" fill="#050302" />
       )}
       {/* Suit shoulders */}
       <rect x="2" y="12" width="12" height="4" fill={palette.suit} />

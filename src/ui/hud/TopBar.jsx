@@ -1,7 +1,8 @@
 import { getLevelConfig } from '../../engine/levels.js';
 import useGameStore from '../../store/useGameStore.js';
+import { AstraPlanetBadge } from '../landing/Icons.jsx';
 
-export function TopBar() {
+export function TopBar({ hudHidden = false, onToggleHud = null }) {
   const game = useGameStore((s) => s.game);
   const data = useGameStore((s) => s.data);
   const setScreen = useGameStore((s) => s.setScreen);
@@ -20,15 +21,13 @@ export function TopBar() {
       <div className="topbar-left">
         <button
           type="button"
-          className="btn btn-ghost"
+          className="topbar-brand-btn"
           onClick={() => setScreen('title')}
-          style={{ padding: '0.35rem 0.7rem', minHeight: '38px' }}
-          title="Return to Title Screen"
+          title="Return to Welcome Screen"
+          aria-label="Return to MOONWATCH Welcome Screen"
         >
-          <span className="brand-pill">
-            <span aria-hidden="true">🌙</span>
-            <span>MOONWATCH: SOL 214</span>
-          </span>
+          <AstraPlanetBadge className="topbar-brand-badge" />
+          <span className="brand-pill">MOONWATCH</span>
         </button>
 
         <div className="sol-counter-box" aria-label={`Sol ${sol} of ${targetSols}, Mission Sol ${missionSol}`}>
@@ -56,24 +55,34 @@ export function TopBar() {
           <span>{isLive ? 'LIVE NASA DONKI' : 'CURATED SNAPSHOT'}</span>
         </div>
 
+        {onToggleHud && (
+          <button
+            type="button"
+            className={`btn topbar-hud-toggle ${hudHidden ? 'topbar-hud-toggle--active' : 'btn-ghost'}`}
+            onClick={onToggleHud}
+            aria-pressed={hudHidden}
+            title="Toggle Full-Screen 3D Exploration View [H]"
+          >
+            <span>{hudHidden ? 'Show HUD [H]' : 'Clear View [H]'}</span>
+          </button>
+        )}
+
         <button
           type="button"
-          className="btn btn-ghost"
+          className="btn btn-ghost btn-sm"
           onClick={() => setScreen('tutorial')}
           aria-label="Open Mission Tutorial"
           title="Tutorial & Guide (?)"
-          style={{ padding: '0.4rem 0.75rem', minHeight: '38px' }}
         >
           <span>? Tutorial</span>
         </button>
 
         <button
           type="button"
-          className="btn btn-ghost"
+          className="btn btn-ghost btn-sm"
           onClick={() => setScreen('settings')}
           aria-label="Open Settings"
           title="Accessibility, Audio & Quality Settings"
-          style={{ padding: '0.4rem 0.75rem', minHeight: '38px' }}
         >
           <span aria-hidden="true">⚙</span>
           <span>Settings</span>

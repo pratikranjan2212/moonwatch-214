@@ -21,7 +21,7 @@ const TUTORIAL_STEPS = [
     summary:
       'Your outpost has 3 big gauges (0–100%) plus individual health bars for your 4 crew specialists.',
     details: [
-      'Power (#FFB020, Bolt icon): Charges during daytime when panels are out; drains during night and when shields run.',
+      'Power (#FF8F55, Bolt icon): Charges during daytime when panels are out; drains during night and when shields run.',
       'Oxygen (#35D0E6, Droplet icon): Keeps the crew breathing. If Battery hits 0%, the oxygen generator shuts down!',
       'Shield (#8E6CFF, Dome icon): Absorbs 80% of solar flare and CME radiation when turned ON.',
     ],
@@ -100,8 +100,10 @@ export function TutorialScreen() {
           style={{
             margin: 0,
             fontFamily: 'var(--font-display)',
-            fontSize: '1.75rem',
-            color: 'var(--sun-highlight)',
+            fontSize: '2.4rem',
+            lineHeight: 0.92,
+            textTransform: 'uppercase',
+            color: 'var(--power)',
           }}
         >
           {current.title}

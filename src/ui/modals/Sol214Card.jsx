@@ -93,8 +93,10 @@ export function Sol214Card() {
           style={{
             margin: 0,
             fontFamily: 'var(--font-display)',
-            fontSize: '1.65rem',
-            color: 'var(--sun-highlight)',
+            fontSize: '2.3rem',
+            lineHeight: 0.95,
+            textTransform: 'uppercase',
+            color: 'var(--power)',
           }}
         >
           Sol 214 X-Class Super-Flare Incoming!
@@ -108,7 +110,7 @@ export function Sol214Card() {
               cy="38"
               r={radius}
               fill="none"
-              stroke="rgba(255, 241, 201, 0.2)"
+              stroke="rgba(255, 255, 255, 0.2)"
               strokeWidth="6"
             />
             <circle
@@ -168,8 +170,7 @@ export function Sol214Card() {
           <div
             style={{
               padding: '0.65rem 0.8rem',
-              borderRadius: '8px',
-              background: 'rgba(15, 17, 35, 0.78)',
+              background: 'var(--bg-card)',
               borderLeft: '3px solid var(--power)',
               fontSize: '0.9rem',
             }}
@@ -181,8 +182,7 @@ export function Sol214Card() {
           <div
             style={{
               padding: '0.65rem 0.8rem',
-              borderRadius: '8px',
-              background: 'rgba(15, 17, 35, 0.78)',
+              background: 'var(--bg-card)',
               borderLeft: '3px solid var(--oxygen)',
               fontSize: '0.9rem',
             }}

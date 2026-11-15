@@ -29,10 +29,12 @@ export function SettingsScreen() {
             <span className="nasa-badge">ACCESSIBILITY & DISPLAY CONTROLS</span>
             <h1
               style={{
-                margin: '0.35rem 0 0 0',
+                margin: '0.4rem 0 0 0',
                 fontFamily: 'var(--font-display)',
-                fontSize: '1.75rem',
-                color: 'var(--sun-highlight)',
+                fontSize: '2.4rem',
+                lineHeight: 0.92,
+                textTransform: 'uppercase',
+                color: 'var(--power)',
               }}
             >
               Mission Settings

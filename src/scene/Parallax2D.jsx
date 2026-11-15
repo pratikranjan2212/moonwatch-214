@@ -86,24 +86,24 @@ export function Parallax2D({ reason = null }) {
       >
         <defs>
           <linearGradient id="p2d-sky-day" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0E1124" />
-            <stop offset="65%" stopColor="#1C1F3A" />
-            <stop offset="100%" stopColor="#2E3359" />
+            <stop offset="0%" stopColor="#050302" />
+            <stop offset="65%" stopColor="#0E0A08" />
+            <stop offset="100%" stopColor="#261812" />
           </linearGradient>
           <linearGradient id="p2d-sky-night" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#05060F" />
-            <stop offset="70%" stopColor="#0F1329" />
-            <stop offset="100%" stopColor="#1C1F3A" />
+            <stop offset="0%" stopColor="#050302" />
+            <stop offset="70%" stopColor="#090605" />
+            <stop offset="100%" stopColor="#140D0A" />
           </linearGradient>
           <linearGradient id="p2d-sky-flare" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#451222" />
-            <stop offset="55%" stopColor="#2B1638" />
-            <stop offset="100%" stopColor="#1C1F3A" />
+            <stop offset="0%" stopColor="#2E0907" />
+            <stop offset="55%" stopColor="#1D0B09" />
+            <stop offset="100%" stopColor="#050302" />
           </linearGradient>
           <linearGradient id="p2d-sky-dust" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2B2422" />
-            <stop offset="65%" stopColor="#4A3C31" />
-            <stop offset="100%" stopColor="#6E5A47" />
+            <stop offset="0%" stopColor="#1C140F" />
+            <stop offset="65%" stopColor="#3B2B20" />
+            <stop offset="100%" stopColor="#5C4433" />
           </linearGradient>
           <radialGradient id="p2d-shield-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#8E6CFF" stopOpacity="0.08" />
@@ -317,19 +317,19 @@ export function Parallax2D({ reason = null }) {
           <g id="CrewSprites" transform="translate(365, 318)">
             {(() => {
               const SUIT_COLORS = {
-                commander: '#FFB020',
-                'commander-nova': '#FFB020',
-                engineer: '#FF9800',
-                doctor: '#00E5FF',
-                botanist: '#00E676',
-                pilot: '#B388FF',
+                commander: '#FF8F55',
+                'commander-nova': '#FF8F55',
+                engineer: '#FF8F55',
+                doctor: '#35D0E6',
+                botanist: '#34D399',
+                pilot: '#8E6CFF',
               };
               const isCmd = selectedCrewId === 'commander' || selectedCrewId === 'commander-nova';
               const member = isCmd
                 ? { id: 'commander', name: commander?.name || 'Commander Nova', health: 100, mood: isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle' }
                 : (crew || []).find((c) => c.id === selectedCrewId) || { id: 'commander', name: 'Commander Nova', health: 100, mood: 'idle' };
               const inShelter = member.mood === 'run-to-shelter';
-              const suitColor = SUIT_COLORS[member.id] || '#FFB020';
+              const suitColor = SUIT_COLORS[member.id] || '#FF8F55';
 
               return (
                 <g
