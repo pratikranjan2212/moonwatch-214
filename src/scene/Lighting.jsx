@@ -64,7 +64,7 @@ export function Lighting({
         shadow-mapSize-height={2048}
         shadow-bias={-0.0001}
         shadow-camera-near={1.0}
-        shadow-camera-far={320}
+        shadow-camera-far={450}
         shadow-camera-left={-16}
         shadow-camera-right={16}
         shadow-camera-top={16}
