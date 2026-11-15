@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../../engine/events.js';
 import useGameStore from '../../store/useGameStore.js';
 import Controls from '../hud/Controls.jsx';
-import CrewPanel from '../hud/CrewPanel.jsx';
 import Forecast from '../hud/Forecast.jsx';
 import Gauges from '../hud/Gauges.jsx';
 import TopBar from '../hud/TopBar.jsx';
@@ -36,14 +35,6 @@ function PlaceholderDiorama() {
         ? 'sky-night'
         : 'sky-day';
 
-  const environmentLabel = isFlare
-    ? 'SOLAR STORM / RADIATION ALERT'
-    : isDust
-      ? 'ELECTROSTATIC DUST HAZE'
-      : isNight
-        ? 'LONG LUNAR NIGHT (EARTHLIGHT)'
-        : 'LUNAR DAYLIGHT (SUNLIT)';
-
   const windowColor = isLowPower ? '#FF4D4D' : '#FFF1C9';
   const windowOpacity = (gauges.power ?? 80) <= 0 ? 0.15 : isLowPower ? 0.55 : 0.95;
 
@@ -52,11 +43,9 @@ function PlaceholderDiorama() {
       {/* Top Overlay Status Pill */}
       <div className="diorama-overlay-top">
         <div className="diorama-status-pill">
-          <span>{isNight ? '🌑' : isFlare ? '☄️' : isDust ? '🌪️' : '☀️'}</span>
-          <span>{environmentLabel}</span>
-        </div>
-        <div className="diorama-status-pill">
-          <span>SHACKLETON RIM DIORAMA</span>
+          <span>
+            Sol {sol} · Day {sol}
+          </span>
         </div>
       </div>
 
@@ -421,14 +410,6 @@ export function GameScreen({ SceneComponent = null }) {
             <div className="mobile-hud-pills-group">
               <button
                 type="button"
-                className={`btn btn-sm ${mobilePanel === 'crew' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => toggleMobilePanel('crew')}
-                aria-pressed={mobilePanel === 'crew'}
-              >
-                Crew
-              </button>
-              <button
-                type="button"
                 className={`btn btn-sm ${mobilePanel === 'forecast' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => toggleMobilePanel('forecast')}
                 aria-pressed={mobilePanel === 'forecast'}
@@ -446,12 +427,6 @@ export function GameScreen({ SceneComponent = null }) {
                 {mobileControlsOpen ? 'Hide Systems' : 'Show Systems'}
               </button>
             </div>
-          </div>
-
-          <div
-            className={`game-crew-col ${mobilePanel === 'crew' ? 'mobile-panel-open' : ''}`.trim()}
-          >
-            <CrewPanel />
           </div>
 
           <div className="game-center-clear" aria-hidden="true" />

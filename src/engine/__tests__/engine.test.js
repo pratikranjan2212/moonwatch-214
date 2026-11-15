@@ -11,6 +11,10 @@ import {
   resolveCharacterMovement,
 } from '../collision.js';
 import {
+  COMPANION_BASE_SPOTS,
+  splitCrewForScene,
+} from '../crewPlacement.js';
+import {
   BASE_STATIONS,
   findNearestStation,
   isNearStation,
@@ -568,6 +572,37 @@ describe('8. Outpost Obstacle Collisions & Station Reachability', () => {
       const [sx, sz] = testStandSpots[id];
       expect(isPositionBlocked(sx, sz, { sol: 3, panelsOut: true })).toBe(false);
       expect(isNearStation([sx, -0.45, sz], id)).toBe(true);
+    });
+  });
+
+  it('places the 4 companion crewmates at collision-free spots apart from main character', () => {
+    const crew = createInitialCrew().map((member, index) => ({
+      ...member,
+      health: 95 - index * 15,
+      mood: index === 1 ? 'worried' : 'idle',
+    }));
+
+    const { mainActor, companions } = splitCrewForScene({
+      commander: COMMANDER,
+      crew,
+      selectedCrewId: 'commander',
+    });
+
+    expect(mainActor.id).toBe('commander');
+    expect(companions).toHaveLength(4);
+    expect(companions.map((c) => c.id)).toEqual(['engineer', 'doctor', 'botanist', 'pilot']);
+    expect(companions[0].health).toBe(95);
+    expect(companions[1].health).toBe(80);
+    expect(companions[1].mood).toBe('worried');
+
+    Object.entries(COMPANION_BASE_SPOTS).forEach(([, spot]) => {
+      const [cx, , cz] = spot.position;
+      expect(isPositionBlocked(cx, cz, { sol: 3, panelsOut: true })).toBe(false);
+      // Even when shifting -0.9 in Z during 'run-to-shelter', spot remains clear of obstacles
+      expect(isPositionBlocked(cx, cz - 0.9, { sol: 3, panelsOut: true })).toBe(false);
+      // Kept safely apart from player spawn [0, -0.45, 1.8]
+      const distFromSpawn = Math.hypot(cx - 0.0, cz - 1.8);
+      expect(distFromSpawn).toBeGreaterThan(2.0);
     });
   });
 });

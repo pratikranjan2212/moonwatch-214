@@ -10,7 +10,7 @@ import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/
 import useGameStore from '../store/useGameStore.js';
 import { PALETTE } from '../ui/tokens.js';
 
-export function Parallax2D({ reason = null }) {
+export function Parallax2D({ reason: _reason = null }) {
   const game = useGameStore((s) => s.game);
   const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
   const commander = useGameStore((s) => s.game?.commander);
@@ -49,14 +49,6 @@ export function Parallax2D({ reason = null }) {
         ? 'p2d-sky-night'
         : 'p2d-sky-day';
 
-  const environmentLabel = isFlare
-    ? 'SOLAR STORM / RADIATION ALERT'
-    : isDust
-      ? 'ELECTROSTATIC DUST HAZE'
-      : isNight
-        ? 'LONG LUNAR NIGHT (EARTHLIGHT)'
-        : 'LUNAR DAYLIGHT (SUNLIT)';
-
   const windowColor = isLowPower ? '#FF4D4D' : '#FFF1C9';
   const windowOpacity = (gauges.power ?? 80) <= 0 ? 0.15 : isLowPower ? 0.55 : 0.95;
 
@@ -70,11 +62,9 @@ export function Parallax2D({ reason = null }) {
     >
       <div className="diorama-overlay-top">
         <div className="diorama-status-pill">
-          <span>{isNight ? '🌑' : isFlare ? '☄️' : isDust ? '🌪️' : '☀️'}</span>
-          <span>{environmentLabel}</span>
-        </div>
-        <div className="diorama-status-pill">
-          <span>2D PARALLAX MODE {reason ? `(${reason})` : ''}</span>
+          <span>
+            Sol {sol} · Day {sol}
+          </span>
         </div>
       </div>
 

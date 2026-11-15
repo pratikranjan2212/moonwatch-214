@@ -26,7 +26,9 @@ import Parallax2D from './Parallax2D.jsx';
 import Particles from './Particles.jsx';
 import PostFX from './PostFX.jsx';
 import SpriteActor from './SpriteActor.jsx';
+import CompanionCrew from './CompanionCrew.jsx';
 import StationMarkers from './StationMarkers.jsx';
+import { splitCrewForScene } from '../engine/crewPlacement.js';
 
 // Configure local Draco decoder path for 100% offline reliability
 useGLTF.setDecoderPath('/draco/');
@@ -675,7 +677,7 @@ function CharacterAndCameraRig({
       if (el.closest('.station-3d-badge')) return false;
       return Boolean(
         el.closest(
-          '.topbar, .game-crew-col, .game-forecast-col, .mobile-hud-pills, .game-bottom-bar, .station-interact-card, .modal-backdrop, button, a, input, select, textarea'
+          '.topbar, .game-forecast-col, .mobile-hud-pills, .game-bottom-bar, .station-interact-card, .modal-backdrop, button, a, input, select, textarea'
         )
       );
     };
@@ -979,7 +981,6 @@ export function Diorama() {
   const setCharacterPosition = useGameStore((s) => s.setCharacterPosition);
   const setNearbyStationId = useGameStore((s) => s.setNearbyStationId);
   const interactWithStation = useGameStore((s) => s.interactWithStation);
-  const cycleCameraMode = useGameStore((s) => s.cycleCameraMode);
   const actionToast = useGameStore((s) => s.actionToast);
   const showToast = useGameStore((s) => s.showToast);
   const screen = useGameStore((s) => s.ui?.screen) || 'game';
@@ -1106,33 +1107,19 @@ export function Diorama() {
     return () => clearTimeout(timer);
   }, [actionToast, showToast]);
 
-  // Keep ONLY ONE crew member in the scene, dynamically matching the selected character
-  const activeActor = useMemo(() => {
-    if (selectedCrewId === 'commander' || selectedCrewId === 'commander-nova') {
-      return {
-        id: 'commander',
-        name: commander?.name || 'Commander Nova',
-        mood: isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle',
-        health: 100,
-      };
-    }
-    const crewList = crew || [];
-    const found = crewList.find((c) => c.id === selectedCrewId);
-    if (found) {
-      return {
-        id: found.id,
-        name: found.name,
-        mood: found.mood || 'idle',
-        health: found.health ?? 100,
-      };
-    }
-    return {
-      id: 'commander',
-      name: commander?.name || 'Commander Nova',
-      mood: 'idle',
-      health: 100,
-    };
-  }, [selectedCrewId, commander, crew, isFlare, choices.shieldOn, isLowPower]);
+  // Split outpost roster into the single controllable main character and 4 courtyard companions
+  const { mainActor: activeActor, companions: companionActors } = useMemo(
+    () =>
+      splitCrewForScene({
+        commander,
+        crew,
+        selectedCrewId,
+        isFlare,
+        shieldOn: Boolean(choices.shieldOn),
+        isLowPower,
+      }),
+    [selectedCrewId, commander, crew, isFlare, choices.shieldOn, isLowPower]
+  );
 
   // Proximity-only station interaction (no auto-walk / no teleporting)
   const handleStationInteract = useCallback(
@@ -1214,49 +1201,10 @@ export function Diorama() {
 
       {/* Top Status & Info Overlay */}
       <div className="diorama-overlay-top">
-        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-          <div className="diorama-status-pill">
-            <span>{isNight ? '🌑' : isFlare ? '☄️' : isDust ? '🌪️' : '☀️'}</span>
-            <span>
-              {isFlare
-                ? 'SOLAR STORM / RADIATION ALERT'
-                : isDust
-                  ? 'ELECTROSTATIC DUST HAZE'
-                  : isNight
-                    ? 'LONG LUNAR NIGHT (EARTHLIGHT)'
-                    : 'LUNAR DAYLIGHT (SUNLIT)'}
-            </span>
-          </div>
-          <div className="diorama-status-pill">
-            <span>
-              Sol {sol} · Day {sol}
-            </span>
-          </div>
-          <div className="diorama-status-pill">
-            <span>
-              HD-2D ({quality.toUpperCase()}) · {fps} FPS
-            </span>
-          </div>
-          <div className="diorama-status-pill" title={astroData.source}>
-            <span>🪐 {astroData.isLive ? 'JPL Horizons (Live)' : 'JPL Ephemeris'}</span>
-          </div>
-          <button
-            type="button"
-            className="diorama-status-pill diorama-status-pill-btn"
-            onClick={() => {
-              soundManager.play('click');
-              cycleCameraMode?.();
-            }}
-            title="Switch Perspective [V]: Orbit / TPP / FPP"
-          >
-            <span>
-              {cameraMode === 'fpp'
-                ? '👁️ FPP · WASD Move · Mouse Look · [E] Use'
-                : cameraMode === 'tpp'
-                  ? '🧭 TPP · WASD Move · Mouse Look · [E] Use'
-                  : '🔄 ORBIT · WASD Walk · Drag Orbit · [E] Use'}
-            </span>
-          </button>
+        <div className="diorama-status-pill">
+          <span>
+            Sol {sol} · Day {sol}
+          </span>
         </div>
       </div>
 
@@ -1449,6 +1397,9 @@ export function Diorama() {
           setCharacterPosition={setCharacterPosition}
           setNearbyStationId={setNearbyStationId}
         />
+
+        {/* Other Four Crew Specialists Placed in the Lunar Outpost With Live Health Tags */}
+        <CompanionCrew companions={companionActors} reducedMotion={reducedMotion} />
 
         <Particles
           isDust={isDust}
