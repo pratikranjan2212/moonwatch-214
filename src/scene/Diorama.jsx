@@ -299,11 +299,10 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
   useFrame(({ clock }, delta) => {
     const t = clock.getElapsedTime();
     if (!reducedMotion) {
-      // Turbulent plasma surface drift simulating solar convection
+      // Turbulent plasma surface drift simulating solar convection (lightweight uniform offset, zero GPU reupload stall)
       if (sunTexture) {
-        sunTexture.offset.x += delta * 0.005;
-        sunTexture.offset.y = Math.sin(t * 0.25) * 0.008;
-        sunTexture.needsUpdate = true;
+        sunTexture.offset.x += delta * 0.004;
+        sunTexture.offset.y = Math.sin(t * 0.25) * 0.006;
       }
       // Solar differential axial rotation
       if (sunCoreRef.current) {
@@ -321,15 +320,15 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
 
   return (
     <group ref={sunGroupRef} position={position}>
-      {/* Photosphere core — SphereGeometry gives perfect equirectangular UV wrap */}
+      {/* Optimized photosphere core — 48x24 segments, perfectly round, zero GPU overhead */}
       <mesh ref={sunCoreRef} material={coreMat}>
-        <sphereGeometry args={[sunRadius, 64, 32]} />
+        <sphereGeometry args={[sunRadius, 48, 24]} />
       </mesh>
     </group>
   );
 }
 
-function EarthInSky({ position = [-9.0, 4.8, -21.7], reducedMotion = false }) {
+function EarthInSky({ position = [-18.3, 7.2, -61.9], reducedMotion = false }) {
   const gltf = useGLTF('/models/Moon_base.glb');
   const earthRef = useRef(null);
 
@@ -338,29 +337,10 @@ function EarthInSky({ position = [-9.0, 4.8, -21.7], reducedMotion = false }) {
     if (!orig) return null;
     const cloned = orig.clone(true);
 
-    // ── Realistic angular size from the Moon's surface ──
-    // From the Moon, Earth subtends ~1.90° and the Sun ~0.53°.
-    // Earth appears ~3.57× LARGER than the Sun in the lunar sky.
-    //
-    // In our scene the Sun photosphere has radius = 46.45248 units
-    // placed at distance ~150 units → angular radius ≈ 17.2°.
-    //
-    // We place Earth at distance ~22 units.
-    // To match Earth/Sun angular ratio (3.57):
-    //   earthAngular = 3.57 × sunAngular = 3.57 × 17.2° = 61.4° → too big for scene.
-    //
-    // We keep the visual scene compressed: Earth is a clearly visible
-    // globe about 1/4 the apparent width of the Sun on screen.
-    // Target Earth angular radius ≈ 4.3° at d=22 → Earth radius = 22 × tan(4.3°) ≈ 1.65 units.
-    //
-    // Raw The_earth children mesh sizes (Oceano scale 0.251, tierra scale 0.242):
-    // effective radius at parent scale=1 ≈ 0.505864 / 2 = 0.2529 units
-    // scaleEarth = 1.65 / 0.2529 = 6.525  (gives diameter ~3.3 units)
-    //
-    // Sun/Earth physical diameter ratio = 109.3 — preserved in scene scale:
-    //   Sun diameter = 92.90 units; Earth diameter = 92.90/109.3 = 0.850 units
-    // This is for 3D physics consistency; visually Earth is boosted for readability.
-    const scaleEarth = 6.525;
+    // Realistic angular presence: from the lunar surface, Earth hangs as a majestic,
+    // large blue-marble globe deep in the space sky, clearly dwarfing the outpost modules.
+    // scaleEarth = 28.0 gives ~14.2 units diameter at distance ~65 units.
+    const scaleEarth = 28.0;
     cloned.scale.set(scaleEarth, scaleEarth, scaleEarth);
     cloned.position.set(0, 0, 0);
 

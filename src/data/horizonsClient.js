@@ -16,8 +16,8 @@ const TIMEOUT_MS = 3500;
 // In-memory cache for ephemerides
 const ephemerisCache = new Map();
 
-export const ASTRONOMICAL_SUN_DISTANCE = 150;
-export const ASTRONOMICAL_EARTH_DISTANCE = 24;
+export const ASTRONOMICAL_SUN_DISTANCE = 220;
+export const ASTRONOMICAL_EARTH_DISTANCE = 65;
 
 /**
  * Parses Cartesian vector lines between $$SOE and $$EOE in Horizons response.
@@ -149,14 +149,14 @@ export function getAnalyticalPositions(sol = 1, isNight = false) {
   // Real physical libration of Earth in the lunar sky as seen from South Pole Outpost
   // Earth hangs stably in the celestial sky with subtle libration oscillations (~3.5 to 4.5 deg)
   const librationAz = Math.sin(((sol - 1) / 14) * Math.PI) * 4.5;
-  const librationEl = Math.cos(((sol - 1) / 14) * Math.PI) * 3.5;
+  const librationEl = Math.cos(((sol - 1) / 14) * Math.PI) * 2.0;
   const earthAz = 358 + librationAz;
-  const earthEl = 11.5 + librationEl;
-  const earth = convertAzElToSceneCoords(earthAz, earthEl, earthRadius, -28);
+  const earthEl = 5.2 + librationEl;
+  const earth = convertAzElToSceneCoords(earthAz, earthEl, earthRadius, -22);
 
   if (isNight) {
     return {
-      sun: [75, -115, 45],
+      sun: [110, -160, 65],
       earth,
     };
   }
@@ -311,9 +311,9 @@ export async function loadAstronomicalPositions(sol = 1, isNight = false) {
 
       const earthCoord = convertAzElToSceneCoords(
         eData.azimuth,
-        eData.elevation,
+        eData.elevation * 0.55,
         ASTRONOMICAL_EARTH_DISTANCE,
-        -28
+        -22
       );
 
       const sunCoord = isNight
