@@ -30,6 +30,7 @@ useGLTF.setDecoderPath('/draco/');
 
 // Preload assets for instant presentation
 useTexture.preload('/textures/starfield_enclosure_2048.png');
+useTexture.preload('/textures/sun_surface_2048.jpg');
 useGLTF.preload('/models/night_sky_transparent_with_stars.glb');
 useGLTF.preload('/models/Moon_base.glb');
 
@@ -257,9 +258,26 @@ function OutpostMeshes({
   );
 }
 
-function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false }) {
+function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, reducedMotion = false }) {
   const gltf = useGLTF('/models/Moon_base.glb');
+  const sunTexture = useTexture('/textures/sun_surface_2048.jpg');
   const sunGroupRef = useRef(null);
+  const sunCoreRef = useRef(null);
+  const sunHaloRef = useRef(null);
+  const sunCoronaRef = useRef(null);
+  const coreMatRef = useRef(null);
+  const haloMatRef = useRef(null);
+
+  useEffect(() => {
+    if (sunTexture) {
+      sunTexture.wrapS = THREE.RepeatWrapping;
+      sunTexture.wrapT = THREE.ClampToEdgeWrapping;
+      sunTexture.colorSpace = THREE.SRGBColorSpace;
+      sunTexture.generateMipmaps = true;
+      sunTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      sunTexture.magFilter = THREE.LinearFilter;
+    }
+  }, [sunTexture]);
 
   const clonedSun = useMemo(() => {
     const orig = gltf.scene.getObjectByName('The_Sun');
@@ -281,29 +299,96 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false })
         child.castShadow = false;
         child.receiveShadow = false;
         if (child.material) {
-          child.material = child.material.clone();
-          child.material.toneMapped = false;
-          // Sphere001: Blazing solar photosphere core
-          if (child.name.includes('Sphere001') || child.material.name.includes('Material.005')) {
-            child.material.emissiveIntensity = isFlare ? 12.0 : 8.0;
+          // Sphere001: Blazing solar photosphere core with high-definition NASA SDO texture
+          if (child.name.includes('Sphere001') || child.name.includes('Sphere.001') || child.material.name.includes('Material.005')) {
+            sunCoreRef.current = child;
+            const coreMat = new THREE.MeshStandardMaterial({
+              map: sunTexture,
+              emissiveMap: sunTexture,
+              emissive: new THREE.Color(isFlare ? '#FFA000' : '#FF7700'),
+              emissiveIntensity: isFlare ? 12.0 : 8.5,
+              roughness: 0.42,
+              metalness: 0.05,
+              toneMapped: false,
+            });
+            coreMatRef.current = coreMat;
+            child.material = coreMat;
           }
           // Sphere002: Solar flare corona halo
-          else if (child.name.includes('Sphere002') || child.material.name.includes('Material.006')) {
-            child.material.emissiveIntensity = isFlare ? 4.5 : 2.5;
-            child.material.transparent = true;
-            child.material.opacity = isFlare ? 0.95 : 0.82;
+          else if (child.name.includes('Sphere002') || child.name.includes('Sphere.002') || child.material.name.includes('Material.006')) {
+            sunHaloRef.current = child;
+            const haloMat = new THREE.MeshStandardMaterial({
+              map: sunTexture,
+              color: new THREE.Color('#FF5500'),
+              emissive: new THREE.Color(isFlare ? '#FF9900' : '#FF6600'),
+              emissiveIntensity: isFlare ? 5.8 : 3.6,
+              transparent: true,
+              opacity: isFlare ? 0.92 : 0.78,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+              toneMapped: false,
+              side: THREE.BackSide, // Visible as glowing limb halo around the photosphere
+            });
+            haloMatRef.current = haloMat;
+            child.material = haloMat;
           }
           // Smoke_Domain: Coronal plasma envelope
-          else if (child.name.includes('Smoke_Domain') || child.material.name.includes('Smoke Domain')) {
-            child.material.transparent = true;
-            child.material.opacity = isFlare ? 0.45 : 0.22;
+          else if (child.name.includes('Smoke_Domain') || child.name.includes('Smoke Domain') || child.material.name.includes('Smoke Domain')) {
+            sunCoronaRef.current = child;
+            const coronaMat = new THREE.MeshBasicMaterial({
+              color: new THREE.Color(isFlare ? '#FF4400' : '#FF2A00'),
+              transparent: true,
+              opacity: isFlare ? 0.38 : 0.18,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+              toneMapped: false,
+              side: THREE.DoubleSide,
+            });
+            child.material = coronaMat;
           }
         }
       }
     });
 
     return cloned;
-  }, [gltf.scene, isFlare]);
+  }, [gltf.scene, isFlare, sunTexture]);
+
+  useFrame(({ clock }, delta) => {
+    const t = clock.getElapsedTime();
+    if (!reducedMotion) {
+      // 1. Turbulent plasma surface drift across the solar sphere
+      if (sunTexture) {
+        sunTexture.offset.x += delta * 0.005;
+        sunTexture.offset.y = Math.sin(t * 0.25) * 0.008;
+      }
+      // 2. Continuous solar differential axial rotation
+      if (sunCoreRef.current) {
+        sunCoreRef.current.rotation.y += delta * 0.015;
+      }
+      // 3. Dynamic coronal flare drift and pulsation
+      if (sunHaloRef.current) {
+        sunHaloRef.current.rotation.y -= delta * 0.032;
+        sunHaloRef.current.rotation.z += delta * 0.012;
+        const pulse = 1.0 + Math.sin(t * 2.8) * 0.018;
+        sunHaloRef.current.scale.set(pulse, pulse, pulse);
+      }
+      // 4. Outer coronal envelope subtle wobble
+      if (sunCoronaRef.current) {
+        sunCoronaRef.current.rotation.y += delta * 0.01;
+        const coronaPulse = 1.0 + Math.cos(t * 1.6) * 0.025;
+        sunCoronaRef.current.scale.set(coronaPulse, coronaPulse, coronaPulse);
+      }
+      // 5. Blazing emissive shimmer simulating solar magnetic reconnection flares
+      if (coreMatRef.current) {
+        const shimmer = 1.0 + Math.sin(t * 3.4) * 0.07 + Math.cos(t * 7.1) * 0.03;
+        coreMatRef.current.emissiveIntensity = (isFlare ? 12.0 : 8.5) * shimmer;
+      }
+      if (haloMatRef.current) {
+        const haloShimmer = 1.0 + Math.sin(t * 2.2) * 0.09;
+        haloMatRef.current.emissiveIntensity = (isFlare ? 5.8 : 3.6) * haloShimmer;
+      }
+    }
+  });
 
   if (isNight || !clonedSun) return null;
 
@@ -314,7 +399,7 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false })
   );
 }
 
-function EarthInSky({ position = [-6.5, 24.1, -12.7], reducedMotion = false }) {
+function EarthInSky({ position = [-9.0, 4.8, -21.7], reducedMotion = false }) {
   const gltf = useGLTF('/models/Moon_base.glb');
   const earthRef = useRef(null);
 
@@ -810,7 +895,7 @@ export function Diorama() {
       <Canvas
         shadows={quality !== 'low'}
         dpr={quality === 'low' ? [1, 1] : [1, 2]}
-        camera={{ position: [0, 6.2, 13.5], fov: 42, near: 0.2, far: 650 }}
+        camera={{ position: [0, 5.8, 14.2], fov: 44, near: 0.2, far: 650 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -818,7 +903,7 @@ export function Diorama() {
           toneMappingExposure: 1.15,
         }}
         onCreated={({ camera }) => {
-          camera.lookAt(0.2, 0.6, 0);
+          camera.lookAt(0.2, 0.8, 0);
         }}
         fallback={<Parallax2D reason="WebGL unavailable" />}
       >
@@ -830,7 +915,7 @@ export function Diorama() {
 
         <OrbitControls
           makeDefault
-          target={[0.2, 0.6, 0.0]}
+          target={[0.2, 0.8, 0.0]}
           minDistance={7.0}
           maxDistance={22.0}
           minPolarAngle={Math.PI / 12}
