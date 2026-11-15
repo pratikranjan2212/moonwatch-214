@@ -512,6 +512,9 @@ function CharacterAndCameraRig({
 
   const keysRef = useRef(new Set());
   const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
+  const hoverRef = useRef({ hasPrev: false, lastX: 0, lastY: 0 });
+  const inputPausedRef = useRef(inputPaused);
+  inputPausedRef.current = inputPaused;
   const prevModeRef = useRef(cameraMode);
   const prevResetRef = useRef(positionResetCount);
   const lastNearIdRef = useRef(
@@ -594,6 +597,7 @@ function CharacterAndCameraRig({
     const clearKeys = () => {
       keysRef.current.clear();
       dragRef.current.active = false;
+      hoverRef.current.hasPrev = false;
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -608,16 +612,22 @@ function CharacterAndCameraRig({
   }, []);
 
   useEffect(() => {
+    hoverRef.current.hasPrev = false;
     if (inputPaused) {
       keysRef.current.clear();
       dragRef.current.active = false;
+      if (document.pointerLockElement === gl?.domElement) {
+        document.exitPointerLock?.();
+      }
     }
-  }, [inputPaused]);
+  }, [inputPaused, gl]);
 
   // Smooth camera transitions when switching between Orbit, TPP, and FPP
   useEffect(() => {
     const prev = prevModeRef.current;
     prevModeRef.current = cameraMode;
+    hoverRef.current.hasPrev = false;
+    dragRef.current.active = false;
     if (prev === cameraMode) return;
 
     if (prev === 'orbit' && (cameraMode === 'tpp' || cameraMode === 'fpp')) {
@@ -636,6 +646,9 @@ function CharacterAndCameraRig({
     } else if (cameraMode === 'fpp') {
       fppPitchRef.current = THREE.MathUtils.clamp(fppPitchRef.current, -0.35, 0.35);
     } else if (cameraMode === 'orbit') {
+      if (document.pointerLockElement === gl?.domElement) {
+        document.exitPointerLock?.();
+      }
       camera.position.set(0, 6.2, 14.5);
       if (orbitRef.current) {
         orbitRef.current.target.set(0.2, 0.15, 0.0);
@@ -644,48 +657,101 @@ function CharacterAndCameraRig({
         camera.lookAt(0.2, 0.15, 0.0);
       }
     }
-  }, [cameraMode, camera]);
+  }, [cameraMode, camera, gl]);
 
-  // Mouse drag look + scroll zoom in TPP / FPP modes
+  // Direct mouse-movement look + drag look + optional [M] pointer lock + scroll zoom in TPP / FPP modes
   useEffect(() => {
+    const dom = gl?.domElement;
     if (cameraMode !== 'tpp' && cameraMode !== 'fpp') {
       dragRef.current.active = false;
+      hoverRef.current.hasPrev = false;
+      if (dom && document.pointerLockElement === dom) {
+        document.exitPointerLock?.();
+      }
       return undefined;
     }
 
-    const dom = gl?.domElement;
     if (!dom) return undefined;
 
-    const onPointerDown = (e) => {
-      if (e.button !== 0 && e.button !== 2) return;
-      dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
+    const isInteractiveHudTarget = (target) => {
+      const el = target instanceof Element ? target : target?.parentElement;
+      if (!el) return false;
+      if (el.closest('.station-3d-badge')) return false;
+      return Boolean(
+        el.closest(
+          '.topbar, .game-crew-col, .game-forecast-col, .mobile-hud-pills, .game-bottom-bar, .station-interact-card, .modal-backdrop, button, a, input, select, textarea'
+        )
+      );
     };
 
-    const onPointerMove = (e) => {
-      if (!dragRef.current.active) return;
-      const dx = e.clientX - dragRef.current.lastX;
-      const dy = e.clientY - dragRef.current.lastY;
-      dragRef.current.lastX = e.clientX;
-      dragRef.current.lastY = e.clientY;
-
-      yawRef.current -= dx * 0.0055;
+    const applyLookDelta = (dx, dy) => {
+      if (dx === 0 && dy === 0) return;
+      yawRef.current -= dx * 0.0062;
       if (cameraMode === 'tpp') {
         tppPitchRef.current = THREE.MathUtils.clamp(
-          tppPitchRef.current + dy * 0.0045,
-          0.12,
-          1.05
+          tppPitchRef.current + dy * 0.0036,
+          0.06,
+          1.12
         );
       } else {
         fppPitchRef.current = THREE.MathUtils.clamp(
-          fppPitchRef.current - dy * 0.0045,
+          fppPitchRef.current - dy * 0.004,
           -0.85,
           1.15
         );
       }
     };
 
-    const onPointerUp = () => {
+    const onPointerDown = (e) => {
+      if (e.button !== 0 && e.button !== 2) return;
+      dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
+      hoverRef.current = { hasPrev: true, lastX: e.clientX, lastY: e.clientY };
+    };
+
+    const onPointerMove = (e) => {
+      if (inputPausedRef.current) {
+        hoverRef.current.hasPrev = false;
+        dragRef.current.active = false;
+        return;
+      }
+
+      if (document.pointerLockElement === dom) {
+        applyLookDelta(e.movementX || 0, e.movementY || 0);
+        return;
+      }
+
+      if (dragRef.current.active) {
+        const dx = e.clientX - dragRef.current.lastX;
+        const dy = e.clientY - dragRef.current.lastY;
+        dragRef.current.lastX = e.clientX;
+        dragRef.current.lastY = e.clientY;
+        hoverRef.current = { hasPrev: true, lastX: e.clientX, lastY: e.clientY };
+        applyLookDelta(dx, dy);
+        return;
+      }
+
+      if (e.pointerType === 'touch') return;
+
+      if (isInteractiveHudTarget(e.target)) {
+        hoverRef.current.hasPrev = false;
+        return;
+      }
+
+      if (!hoverRef.current.hasPrev) {
+        hoverRef.current = { hasPrev: true, lastX: e.clientX, lastY: e.clientY };
+        return;
+      }
+
+      const dx = e.clientX - hoverRef.current.lastX;
+      const dy = e.clientY - hoverRef.current.lastY;
+      hoverRef.current.lastX = e.clientX;
+      hoverRef.current.lastY = e.clientY;
+      applyLookDelta(dx, dy);
+    };
+
+    const resetLookTracking = () => {
       dragRef.current.active = false;
+      hoverRef.current.hasPrev = false;
     };
 
     const onWheel = (e) => {
@@ -693,17 +759,46 @@ function CharacterAndCameraRig({
       tppDistRef.current = THREE.MathUtils.clamp(tppDistRef.current + e.deltaY * 0.0025, 1.5, 5.5);
     };
 
+    const onLockKey = (event) => {
+      if (inputPausedRef.current) return;
+      const state = useGameStore.getState();
+      if (state.ui?.screen !== 'game') return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const tag = event.target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (event.key.toLowerCase() === 'm') {
+        event.preventDefault();
+        if (document.pointerLockElement === dom) {
+          document.exitPointerLock?.();
+        } else {
+          try {
+            dom.requestPointerLock?.();
+          } catch {
+            // Ignore environments where Pointer Lock is unavailable
+          }
+        }
+      }
+    };
+
     dom.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerup', resetLookTracking);
+    window.addEventListener('pointercancel', resetLookTracking);
+    window.addEventListener('blur', resetLookTracking);
+    document.addEventListener('mouseleave', resetLookTracking);
+    document.addEventListener('pointerlockchange', resetLookTracking);
+    window.addEventListener('keydown', onLockKey);
     dom.addEventListener('wheel', onWheel, { passive: true });
 
     return () => {
       dom.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
+      window.removeEventListener('pointerup', resetLookTracking);
+      window.removeEventListener('pointercancel', resetLookTracking);
+      window.removeEventListener('blur', resetLookTracking);
+      document.removeEventListener('mouseleave', resetLookTracking);
+      document.removeEventListener('pointerlockchange', resetLookTracking);
+      window.removeEventListener('keydown', onLockKey);
       dom.removeEventListener('wheel', onWheel);
     };
   }, [cameraMode, gl]);
@@ -826,7 +921,7 @@ function CharacterAndCameraRig({
         Math.max(-0.5, posRef.current.y + 0.18 + dist * Math.sin(pitch)),
         posRef.current.z + Math.cos(yaw) * horiz
       );
-      const alpha = reducedMotion ? 1 : Math.min(1, 1 - Math.exp(-12 * dt));
+      const alpha = reducedMotion ? 1 : Math.min(1, 1 - Math.exp(-16 * dt));
       camera.position.lerp(desired, alpha);
       camera.lookAt(posRef.current.x, posRef.current.y + 0.14, posRef.current.z);
     } else if (cameraMode === 'fpp') {
@@ -1154,9 +1249,9 @@ export function Diorama() {
           >
             <span>
               {cameraMode === 'fpp'
-                ? '👁️ FPP · WASD Move · Drag/←→ Look · [E] Use'
+                ? '👁️ FPP · WASD Move · Mouse Look · [E] Use'
                 : cameraMode === 'tpp'
-                  ? '🧭 TPP · WASD Move · Drag/←→ Look · [E] Use'
+                  ? '🧭 TPP · WASD Move · Mouse Look · [E] Use'
                   : '🔄 ORBIT · WASD Walk · Drag Orbit · [E] Use'}
             </span>
           </button>

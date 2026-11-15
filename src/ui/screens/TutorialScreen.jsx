@@ -23,7 +23,7 @@ const TUTORIAL_STEPS = [
     badge: 'STEP 3 OF 4 // WALK & OPERATE',
     title: 'Walk Up to Base Stations to Flip Switches',
     summary:
-      'In missions, press [V] for Orbit, TPP, or FPP view, walk to a station with WASD, and press [E] or click it! Practice shielding against the Sun Storm here:',
+      'In missions, press [V] for Orbit, TPP, or FPP view, move your mouse to look around, walk to a station with WASD, and press [E] or click it! Practice shielding against the Sun Storm here:',
     tip: 'On Level 2 you also walk to the Greenhouse to water Space Wheat plants for extra fresh air!',
   },
   {

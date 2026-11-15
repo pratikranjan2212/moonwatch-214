@@ -18,7 +18,7 @@ const HOW_TO_PLAY_STEPS = [
     shortTitle: 'Walk Up & Flip Switches',
     title: 'Explore in Orbit, TPP, or FPP & Operate Stations',
     detail:
-      'Press [V] to pick Orbit, Third-Person (TPP), or First-Person (FPP) view. Move around your Moon Base with WASD, walk up close to Solar Panels, Shield Bubble, or Air Tanks, and press [E] (or click!) to flip them.',
+      'Press [V] to pick Orbit, Third-Person (TPP), or First-Person (FPP) view. Move around your Moon Base with WASD, move your mouse to look around, walk up close to Solar Panels, Shield Bubble, or Air Tanks, and press [E] (or click!) to flip them.',
     tip: 'Your Air Maker keeps everyone breathing nicely all day and all night.',
   },
   {

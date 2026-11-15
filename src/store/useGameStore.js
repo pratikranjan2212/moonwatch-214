@@ -395,8 +395,8 @@ export const useGameStore = create((set, get) => {
     const valid = mode === 'tpp' || mode === 'fpp' || mode === 'orbit' ? mode : 'orbit';
     const labels = {
       orbit: 'Orbit View — WASD Walk · Drag Orbit · [E] Operate Nearby',
-      tpp: 'TPP Third-Person — WASD Move · Drag or ←/→ Look · [E] Operate Nearby',
-      fpp: 'FPP First-Person Visor — WASD Move · Drag or ←/→ Look · [E] Operate Nearby',
+      tpp: 'TPP Third-Person — WASD Move · Mouse Look · [M] Lock · [E] Operate',
+      fpp: 'FPP First-Person Visor — WASD Move · Mouse Look · [M] Lock · [E] Operate',
     };
     set({
       cameraMode: valid,
