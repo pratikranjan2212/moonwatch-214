@@ -109,13 +109,11 @@ export function SpriteActor({
     }
   });
 
-  const shelterZ = mood === 'run-to-shelter' ? position[2] - 0.9 : position[2];
-
   return (
     <group
       ref={groupRef}
       name={`SpriteActor_${id}`}
-      position={[position[0], position[1], shelterZ]}
+      position={[position[0], position[1], position[2]]}
     >
       {/* Proportionate HD-2D astronaut sprite (feet anchored at Y = -0.27) */}
       <mesh castShadow>

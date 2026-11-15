@@ -33,7 +33,7 @@ export const BASE_STATIC_BOXES = [
   { id: 'oxygen_corridor', minX: 3.04, maxX: 3.60, minZ: -1.62, maxZ: -0.56 },
 
   // Rover Pad Platform (`rover_pad`)
-  { id: 'rover_pad', minX: 2.82, maxX: 4.41, minZ: 4.35, maxZ: 5.71 },
+  { id: 'rover_pad', minX: 2.80, maxX: 4.43, minZ: 4.33, maxZ: 5.73 },
 
   // Excavated Underground Solar Bay Housing (`base_metal` pit)
   { id: 'solar_bay', minX: -6.72, maxX: -1.80, minZ: -5.20, maxZ: 3.36 },
@@ -59,18 +59,27 @@ export function getActiveObstacles({ sol = 1, panelsOut = true, solarBroken = fa
   }
 
   if ((sol ?? 1) >= 2) {
-    boxes.push({
-      id: 'greenhouse_corridor',
-      minX: 3.04,
-      maxX: 3.60,
-      minZ: 0.02,
-      maxZ: 1.56,
-    });
+    boxes.push(
+      {
+        id: 'greenhouse_corridor',
+        minX: 3.04,
+        maxX: 3.60,
+        minZ: 0.02,
+        maxZ: 1.56,
+      },
+      {
+        id: 'greenhouse_rover_gap',
+        minX: 2.80,
+        maxX: 4.43,
+        minZ: 3.00,
+        maxZ: 5.73,
+      }
+    );
     circles.push({
       id: 'greenhouse_dome',
       cx: 3.32,
       cz: 2.71,
-      r: 1.24,
+      r: 1.28,
     });
   }
 

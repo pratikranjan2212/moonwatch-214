@@ -598,11 +598,31 @@ describe('8. Outpost Obstacle Collisions & Station Reachability', () => {
     Object.entries(COMPANION_BASE_SPOTS).forEach(([, spot]) => {
       const [cx, , cz] = spot.position;
       expect(isPositionBlocked(cx, cz, { sol: 3, panelsOut: true })).toBe(false);
-      // Even when shifting -0.9 in Z during 'run-to-shelter', spot remains clear of obstacles
-      expect(isPositionBlocked(cx, cz - 0.9, { sol: 3, panelsOut: true })).toBe(false);
       // Kept safely apart from player spawn [0, -0.45, 1.8]
       const distFromSpawn = Math.hypot(cx - 0.0, cz - 1.8);
       expect(distFromSpawn).toBeGreaterThan(2.0);
+    });
+  });
+
+  it('blocks player movement into the greenhouse dome, corridor, rover pad, and pinch gap', () => {
+    const opts = { sol: 2, panelsOut: true };
+
+    expect(isPositionBlocked(3.32, 2.71, opts)).toBe(true);
+    expect(isPositionBlocked(3.32, 0.80, opts)).toBe(true);
+    expect(isPositionBlocked(3.60, 5.03, opts)).toBe(true);
+    expect(isPositionBlocked(3.32, 4.15, opts)).toBe(true);
+
+    const probes = [
+      [3.32, 2.71],
+      [3.32, 0.80],
+      [3.45, 5.03],
+      [3.32, 4.15],
+      [2.20, 3.80],
+    ];
+
+    probes.forEach(([x, z]) => {
+      const resolved = resolveCharacterMovement(x, z, opts);
+      expect(isPositionBlocked(resolved.x, resolved.z, opts)).toBe(false);
     });
   });
 });

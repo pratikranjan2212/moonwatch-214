@@ -17,7 +17,6 @@ export function CompanionCrew({ companions = [], reducedMotion = false }) {
       {companions.map((member) => {
         const hp = Math.max(0, Math.min(100, Math.round(member.health ?? 100)));
         const tone = hp <= 25 ? 'critical' : hp <= 55 ? 'caution' : 'optimal';
-        const shelterZOffset = member.mood === 'run-to-shelter' ? -0.9 : 0;
 
         return (
           <group
@@ -37,7 +36,7 @@ export function CompanionCrew({ companions = [], reducedMotion = false }) {
             />
 
             <Html
-              position={[0, 0.42, shelterZOffset]}
+              position={[0, 0.42, 0]}
               center
               zIndexRange={[2, 8]}
               style={{
