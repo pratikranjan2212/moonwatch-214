@@ -25,10 +25,12 @@ export function BriefingScreen() {
             <span className="nasa-badge">SHACKLETON RIM OUTPOST · MISSION BRIEFING</span>
             <h1
               style={{
-                margin: '0.4rem 0 0 0',
+                margin: '0.45rem 0 0 0',
                 fontFamily: 'var(--font-display)',
-                fontSize: '1.85rem',
-                color: 'var(--sun-highlight)',
+                fontSize: '2.5rem',
+                lineHeight: 0.92,
+                textTransform: 'uppercase',
+                color: 'var(--power)',
               }}
             >
               {briefing.headline}
@@ -36,7 +38,7 @@ export function BriefingScreen() {
           </div>
 
           <span className="forecast-sol-pill" style={{ fontSize: '0.9rem' }}>
-            Seed #{game?.seed || 2142026} · {levelConfig.targetSols} Sols
+            {levelConfig.targetSols} Sols
           </span>
         </div>
 
@@ -85,8 +87,7 @@ export function BriefingScreen() {
             <div
               style={{
                 padding: '0.85rem',
-                borderRadius: '8px',
-                background: 'rgba(255, 176, 32, 0.14)',
+                background: 'rgba(255, 143, 85, 0.14)',
                 border: '1px solid var(--power)',
               }}
             >
@@ -94,9 +95,6 @@ export function BriefingScreen() {
               <div style={{ fontSize: '0.82rem', color: 'var(--power)', fontWeight: 700 }}>
                 {COMMANDER.role} · {COMMANDER.personality}
               </div>
-              <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {COMMANDER.bio}
-              </p>
             </div>
 
             {/* 4 Crew Specialists */}
@@ -114,9 +112,6 @@ export function BriefingScreen() {
                 <div style={{ fontSize: '0.82rem', color: 'var(--oxygen)', fontWeight: 700 }}>
                   {c.role} · {c.personality}
                 </div>
-                <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  {c.bio}
-                </p>
               </div>
             ))}
           </div>
@@ -134,9 +129,14 @@ export function BriefingScreen() {
             borderTop: '1px solid var(--border-subtle)',
           }}
         >
-          <button type="button" className="btn btn-ghost" onClick={() => setScreen('title')}>
-            ← Back to Title
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button type="button" className="btn btn-ghost" onClick={() => setScreen('levels')}>
+              ← Back to Levels
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setScreen('title')}>
+              🏠 Home
+            </button>
+          </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button type="button" className="btn btn-cyan" onClick={() => setScreen('tutorial')}>

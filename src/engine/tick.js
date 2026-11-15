@@ -46,6 +46,7 @@ export function cloneState(state) {
     activeEvents: Array.isArray(state.activeEvents) ? state.activeEvents.map((e) => ({ ...e })) : [],
     eventsLog: Array.isArray(state.eventsLog) ? state.eventsLog.map((e) => ({ ...e })) : [],
     causeLog: Array.isArray(state.causeLog) ? state.causeLog.map((c) => ({ ...c })) : [],
+    solarBroken: Boolean(state.solarBroken),
     sol214: state.sol214
       ? { ...state.sol214 }
       : {
@@ -420,7 +421,7 @@ export function tick(state, choices = undefined, rng = undefined) {
 
   // 1. Solar Generation
   let solarGenerated = 0;
-  if (effectiveChoices.panelsOut && !isNight) {
+  if (effectiveChoices.panelsOut && !isNight && !workingState.solarBroken) {
     solarGenerated = BALANCE.solarGenerationDay; // +18/Sol
     if (hasDustStorm) {
       solarGenerated *= BALANCE.dustStormSolarMultiplier; // * 0.3

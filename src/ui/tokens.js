@@ -5,10 +5,10 @@
 
 export const PALETTE = {
   moonSurface: '#8A8D99',
-  shadow: '#1C1F3A',
-  deepSpace: '#1C1F3A',
-  sunHighlight: '#FFF1C9',
-  power: '#FFB020',
+  shadow: '#050302',
+  deepSpace: '#050302',
+  sunHighlight: '#FFFFFF',
+  power: '#FF8F55',
   oxygen: '#35D0E6',
   shield: '#8E6CFF',
   alert: '#FF4D4D',
@@ -17,9 +17,9 @@ export const PALETTE = {
 
 export const COLOUR_BLIND_PALETTE = {
   moonSurface: '#9CA0AD',
-  shadow: '#12152B',
-  deepSpace: '#12152B',
-  sunHighlight: '#FFF8DE',
+  shadow: '#050302',
+  deepSpace: '#050302',
+  sunHighlight: '#FFFFFF',
   power: '#FFA500', // High-contrast Okabe-Ito orange/amber
   oxygen: '#56B4E9', // Sky blue
   shield: '#CC79A7', // Reddish purple / violet

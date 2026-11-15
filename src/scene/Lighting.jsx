@@ -11,9 +11,11 @@ export function Lighting({
   isFlare = false,
   isDust = false,
   isLowPower = false,
-  shieldOn = false,
+  _shieldOn = false,
   power = 80,
   reducedMotion = false,
+  sunPosition = null,
+  earthPosition = null,
 }) {
   const beaconRef = useRef(null);
   const windowLightRef = useRef(null);
@@ -39,24 +41,41 @@ export function Lighting({
   });
 
   const sunColor = isFlare ? '#FFB020' : isDust ? '#C9A878' : isNight ? '#35D0E6' : '#FFF1C9';
-  const sunIntensity = isNight ? 0.32 : isDust ? 0.85 : isFlare ? 2.4 : 1.75;
-  const ambientColor = isNight ? '#1C1F3A' : isDust ? '#6E5A47' : isFlare ? '#3B1929' : '#8A8D99';
-  const ambientIntensity = isNight ? 0.38 : isDust ? 0.65 : 0.55;
+  const sunIntensity = isNight ? 0.22 : isDust ? 0.9 : isFlare ? 2.8 : 1.95;
+  const ambientColor = isNight ? '#0E1122' : isDust ? '#483828' : isFlare ? '#2B1220' : '#3E4250';
+  const ambientIntensity = isNight ? 0.3 : isDust ? 0.5 : 0.38;
+
+  const lightPosition = sunPosition || (isNight ? [-45, -70, -35] : [40, 60, 30]);
+  const moonEarthPosition = earthPosition || [-26, 18, -28];
 
   return (
     <group name="OutpostLighting">
       <ambientLight color={ambientColor} intensity={ambientIntensity} />
       <hemisphereLight
-        args={[sunColor, '#1C1F3A', isNight ? 0.35 : 0.55]}
-        position={[0, 12, 0]}
+        args={[sunColor, '#020308', isNight ? 0.22 : 0.4]}
+        position={[0, 15, 0]}
       />
       <directionalLight
         color={sunColor}
         intensity={sunIntensity}
-        position={isNight ? [-8, 10, -6] : [10, 14, 8]}
+        position={lightPosition}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0001}
+        shadow-camera-near={1.0}
+        shadow-camera-far={320}
+        shadow-camera-left={-16}
+        shadow-camera-right={16}
+        shadow-camera-top={16}
+        shadow-camera-bottom={-16}
+      />
+
+      {/* Earth-shine directional fill light (ocean blue specular reflection on shadowed sides) */}
+      <directionalLight
+        color="#70B0FF"
+        intensity={isNight ? 0.45 : 0.22}
+        position={moonEarthPosition}
       />
 
       {/* Habitat warm window point light */}
@@ -77,15 +96,7 @@ export function Lighting({
         position={[0, 2.8, 0]}
       />
 
-      {/* Shield dome violet luminescence */}
-      {shieldOn && (
-        <pointLight
-          color="#8E6CFF"
-          intensity={1.35}
-          distance={12}
-          position={[0, 3.2, 0]}
-        />
-      )}
+      {/* Note: Shield dome does not emit artificial glow light when on; transparent glass material only */}
     </group>
   );
 }

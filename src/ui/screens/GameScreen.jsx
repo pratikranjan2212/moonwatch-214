@@ -1,7 +1,7 @@
+import { useEffect, useState } from 'react';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../../engine/events.js';
 import useGameStore from '../../store/useGameStore.js';
 import Controls from '../hud/Controls.jsx';
-import CrewPanel from '../hud/CrewPanel.jsx';
 import Forecast from '../hud/Forecast.jsx';
 import Gauges from '../hud/Gauges.jsx';
 import TopBar from '../hud/TopBar.jsx';
@@ -35,14 +35,6 @@ function PlaceholderDiorama() {
         ? 'sky-night'
         : 'sky-day';
 
-  const environmentLabel = isFlare
-    ? 'SOLAR STORM / RADIATION ALERT'
-    : isDust
-      ? 'ELECTROSTATIC DUST HAZE'
-      : isNight
-        ? 'LONG LUNAR NIGHT (EARTHLIGHT)'
-        : 'LUNAR DAYLIGHT (SUNLIT)';
-
   const windowColor = isLowPower ? '#FF4D4D' : '#FFF1C9';
   const windowOpacity = (gauges.power ?? 80) <= 0 ? 0.15 : isLowPower ? 0.55 : 0.95;
 
@@ -51,11 +43,9 @@ function PlaceholderDiorama() {
       {/* Top Overlay Status Pill */}
       <div className="diorama-overlay-top">
         <div className="diorama-status-pill">
-          <span>{isNight ? '🌑' : isFlare ? '☄️' : isDust ? '🌪️' : '☀️'}</span>
-          <span>{environmentLabel}</span>
-        </div>
-        <div className="diorama-status-pill">
-          <span>SHACKLETON RIM DIORAMA</span>
+          <span>
+            Sol {sol} · Day {sol}
+          </span>
         </div>
       </div>
 
@@ -68,24 +58,24 @@ function PlaceholderDiorama() {
       >
         <defs>
           <linearGradient id="sky-day" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0E1124" />
-            <stop offset="65%" stopColor="#1C1F3A" />
-            <stop offset="100%" stopColor="#2E3359" />
+            <stop offset="0%" stopColor="#050302" />
+            <stop offset="65%" stopColor="#0E0A08" />
+            <stop offset="100%" stopColor="#261812" />
           </linearGradient>
           <linearGradient id="sky-night" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#05060F" />
-            <stop offset="70%" stopColor="#0F1329" />
-            <stop offset="100%" stopColor="#1C1F3A" />
+            <stop offset="0%" stopColor="#050302" />
+            <stop offset="70%" stopColor="#090605" />
+            <stop offset="100%" stopColor="#140D0A" />
           </linearGradient>
           <linearGradient id="sky-flare" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#451222" />
-            <stop offset="55%" stopColor="#2B1638" />
-            <stop offset="100%" stopColor="#1C1F3A" />
+            <stop offset="0%" stopColor="#2E0907" />
+            <stop offset="55%" stopColor="#1D0B09" />
+            <stop offset="100%" stopColor="#050302" />
           </linearGradient>
           <linearGradient id="sky-dust" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2B2422" />
-            <stop offset="65%" stopColor="#4A3C31" />
-            <stop offset="100%" stopColor="#6E5A47" />
+            <stop offset="0%" stopColor="#1C140F" />
+            <stop offset="65%" stopColor="#3B2B20" />
+            <stop offset="100%" stopColor="#5C4433" />
           </linearGradient>
           <radialGradient id="shield-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#8E6CFF" stopOpacity="0.08" />
@@ -316,7 +306,7 @@ function PlaceholderDiorama() {
           {crew.map((member, idx) => {
             const xOffset = idx * 62;
             const inShelter = member.mood === 'run-to-shelter';
-            const suitColors = ['#FFB020', '#35D0E6', '#34D399', '#8E6CFF'];
+            const suitColors = ['#FF8F55', '#35D0E6', '#34D399', '#8E6CFF'];
             const suitColor = suitColors[idx % suitColors.length];
 
             return (
@@ -373,27 +363,91 @@ function PlaceholderDiorama() {
 }
 
 export function GameScreen({ SceneComponent = null }) {
+  const [hudHidden, setHudHidden] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState(null);
+  const [mobileControlsOpen, setMobileControlsOpen] = useState(true);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      const state = useGameStore.getState();
+      if (state.ui?.screen !== 'game') return;
+      if (state.ui?.sol214Open || state.ui?.activeAlert) return;
+
+      const tag = event.target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+      if (event.key.toLowerCase() === 'h' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        setHudHidden((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const toggleMobilePanel = (panel) => {
+    setMobilePanel((prev) => (prev === panel ? null : panel));
+  };
+
   return (
-    <div className="game-screen">
-      <TopBar />
+    <div
+      className={`game-screen ${hudHidden ? 'hud-hidden' : ''} ${
+        mobilePanel ? 'mobile-drawer-active' : ''
+      }`.trim()}
+    >
+      {/* Full-Screen 3D / HD-2D Lunar Base Environment Layer */}
+      <div className="game-environment-layer">
+        {SceneComponent ? <SceneComponent /> : <PlaceholderDiorama />}
+      </div>
 
-      <main className="game-main-grid" aria-label="Lunar Outpost Tactical Command Center">
-        <div className="game-crew-col">
-          <CrewPanel />
+      {/* Non-Blocking Floating Tactical HUD Overlay */}
+      <div className="game-hud-overlay">
+        <TopBar hudHidden={hudHidden} onToggleHud={() => setHudHidden((prev) => !prev)} />
+
+        <main className="game-hud-middle" aria-label="Lunar Outpost Tactical Command Center">
+          {/* Compact Panel Toggles for Tablet & Mobile Viewports */}
+          <div className="mobile-hud-pills">
+            <div className="mobile-hud-pills-group">
+              <button
+                type="button"
+                className={`btn btn-sm ${mobilePanel === 'forecast' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => toggleMobilePanel('forecast')}
+                aria-pressed={mobilePanel === 'forecast'}
+              >
+                Forecast
+              </button>
+            </div>
+            <div className="mobile-hud-pills-group">
+              <button
+                type="button"
+                className={`btn btn-sm ${mobileControlsOpen ? 'btn-cyan' : 'btn-ghost'}`}
+                onClick={() => setMobileControlsOpen((prev) => !prev)}
+                aria-pressed={mobileControlsOpen}
+              >
+                {mobileControlsOpen ? 'Hide Systems' : 'Show Systems'}
+              </button>
+            </div>
+          </div>
+
+          <div className="game-center-clear" aria-hidden="true" />
+
+          <div
+            className={`game-forecast-col ${
+              mobilePanel === 'forecast' ? 'mobile-panel-open' : ''
+            }`.trim()}
+          >
+            <Forecast />
+          </div>
+        </main>
+
+        <div
+          className={`game-bottom-bar ${
+            !mobileControlsOpen ? 'mobile-controls-collapsed' : ''
+          }`.trim()}
+        >
+          <Gauges />
+          <Controls />
         </div>
-
-        <div className="game-viewport-col">
-          {SceneComponent ? <SceneComponent /> : <PlaceholderDiorama />}
-        </div>
-
-        <div className="game-forecast-col">
-          <Forecast />
-        </div>
-      </main>
-
-      <div className="game-bottom-bar">
-        <Gauges />
-        <Controls />
       </div>
 
       {/* Incoming Event Alert Modal & Sol 214 10-Second Hero Decision Modal */}

@@ -1,6 +1,10 @@
 import useGameStore from '../../store/useGameStore.js';
+import { useFullscreen } from '../../utils/fullscreen.js';
 
 export function SettingsScreen() {
+  const cameraMode = useGameStore((s) => s.cameraMode);
+  const setCameraMode = useGameStore((s) => s.setCameraMode);
+  const { isFullscreen, supported: fullscreenSupported, toggleFullscreen } = useFullscreen();
   const settings = useGameStore((s) => s.settings) || {
     volume: 0.8,
     muted: false,
@@ -29,10 +33,12 @@ export function SettingsScreen() {
             <span className="nasa-badge">ACCESSIBILITY & DISPLAY CONTROLS</span>
             <h1
               style={{
-                margin: '0.35rem 0 0 0',
+                margin: '0.4rem 0 0 0',
                 fontFamily: 'var(--font-display)',
-                fontSize: '1.75rem',
-                color: 'var(--sun-highlight)',
+                fontSize: '2.4rem',
+                lineHeight: 0.92,
+                textTransform: 'uppercase',
+                color: 'var(--power)',
               }}
             >
               Mission Settings
@@ -137,7 +143,7 @@ export function SettingsScreen() {
               HD-2D Graphics Quality Preset
             </div>
             <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-              High (Bloom + Tilt-Shift + Particles), Medium (Bloom only), Low (2D/Fastest).
+              High (Bloom + Tilt-Shift + Particles), Medium (Bloom only), Low (Fast 3D).
             </span>
           </div>
 
@@ -158,6 +164,65 @@ export function SettingsScreen() {
               );
             })}
           </div>
+        </div>
+
+        {/* 6. Camera Perspective Mode */}
+        <div className="settings-row">
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+              Camera Perspective View
+            </div>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+              Orbit (overhead drag), TPP (third-person follow), or FPP (first-person helmet view). Switch anytime with [V].
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }} role="group" aria-label="Camera Perspective View">
+            {[
+              { id: 'orbit', label: 'Orbit' },
+              { id: 'tpp', label: 'TPP' },
+              { id: 'fpp', label: 'FPP' },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`btn btn-sm ${cameraMode === mode.id ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setCameraMode(mode.id)}
+                aria-pressed={cameraMode === mode.id}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 7. Browser Fullscreen Display */}
+        <div className="settings-row">
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+              Fullscreen Display Mode
+            </div>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+              Expand MOONWATCH across your entire display cleanly. Toggle anytime with [F] (Esc exits).
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className={`btn btn-sm ${isFullscreen ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => toggleFullscreen()}
+            disabled={!fullscreenSupported}
+            aria-pressed={isFullscreen}
+          >
+            <span aria-hidden="true">⛶</span>
+            <span>
+              {!fullscreenSupported
+                ? 'Unavailable'
+                : isFullscreen
+                  ? 'Exit Fullscreen [F]'
+                  : 'Enter Fullscreen [F]'}
+            </span>
+          </button>
         </div>
 
         {/* Bottom Navigation */}

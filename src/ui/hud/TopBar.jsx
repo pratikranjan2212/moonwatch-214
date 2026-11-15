@@ -1,10 +1,14 @@
 import { getLevelConfig } from '../../engine/levels.js';
 import useGameStore from '../../store/useGameStore.js';
+import { useFullscreen } from '../../utils/fullscreen.js';
+import { AstraPlanetBadge } from '../landing/Icons.jsx';
 
-export function TopBar() {
+export function TopBar({ hudHidden = false, onToggleHud = null }) {
   const game = useGameStore((s) => s.game);
-  const data = useGameStore((s) => s.data);
   const setScreen = useGameStore((s) => s.setScreen);
+  const cameraMode = useGameStore((s) => s.cameraMode);
+  const setCameraMode = useGameStore((s) => s.setCameraMode);
+  const { isFullscreen, supported: fullscreenSupported, toggleFullscreen } = useFullscreen();
 
   const sol = game?.sol || 1;
   const targetSols = game?.targetSols || 14;
@@ -12,23 +16,18 @@ export function TopBar() {
   const levelNum = game?.level || 1;
   const levelConfig = getLevelConfig(levelNum);
 
-  const isLive = data?.eventSource === 'live';
-  const snapshotName = data?.activeSnapshotName || 'May 2024 Solar Storm';
-
   return (
     <header className="topbar" role="banner">
       <div className="topbar-left">
         <button
           type="button"
-          className="btn btn-ghost"
+          className="topbar-brand-btn"
           onClick={() => setScreen('title')}
-          style={{ padding: '0.35rem 0.7rem', minHeight: '38px' }}
-          title="Return to Title Screen"
+          title="Return to Welcome Screen"
+          aria-label="Return to MOONWATCH Welcome Screen"
         >
-          <span className="brand-pill">
-            <span aria-hidden="true">🌙</span>
-            <span>MOONWATCH: SOL 214</span>
-          </span>
+          <AstraPlanetBadge className="topbar-brand-badge" />
+          <span className="brand-pill">MOONWATCH</span>
         </button>
 
         <div className="sol-counter-box" aria-label={`Sol ${sol} of ${targetSols}, Mission Sol ${missionSol}`}>
@@ -44,36 +43,56 @@ export function TopBar() {
       </div>
 
       <div className="topbar-right">
-        <div
-          className={`source-badge ${isLive ? 'source-live' : 'source-snapshot'}`}
-          title={
-            isLive
-              ? 'Connected to live NASA DONKI telemetry stream'
-              : `Using offline-safe NASA DONKI snapshot: ${snapshotName}`
-          }
-        >
-          <span aria-hidden="true">{isLive ? '📡' : '🛰️'}</span>
-          <span>{isLive ? 'LIVE NASA DONKI' : 'CURATED SNAPSHOT'}</span>
+        <div className="camera-mode-group" role="group" aria-label="Camera View Mode (Shortcut V)">
+          {[
+            { id: 'orbit', label: 'ORBIT', title: 'Top-Down Orbit Camera [V]' },
+            { id: 'tpp', label: 'TPP', title: 'Third-Person Follow View [V]' },
+            { id: 'fpp', label: 'FPP', title: 'First-Person Astronaut View [V]' },
+          ].map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              className={`camera-mode-btn ${cameraMode === mode.id ? 'camera-mode-btn--active' : ''}`}
+              onClick={() => setCameraMode(mode.id)}
+              aria-pressed={cameraMode === mode.id}
+              title={mode.title}
+            >
+              {mode.label}
+            </button>
+          ))}
         </div>
 
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={() => setScreen('tutorial')}
-          aria-label="Open Mission Tutorial"
-          title="Tutorial & Guide (?)"
-          style={{ padding: '0.4rem 0.75rem', minHeight: '38px' }}
-        >
-          <span>? Tutorial</span>
-        </button>
+        {fullscreenSupported && (
+          <button
+            type="button"
+            className={`btn btn-sm ${isFullscreen ? 'topbar-hud-toggle--active' : 'btn-ghost'}`}
+            onClick={() => toggleFullscreen()}
+            aria-pressed={isFullscreen}
+            title="Toggle Browser Fullscreen [F]"
+          >
+            <span aria-hidden="true">⛶</span>
+            <span>{isFullscreen ? 'Exit Full [F]' : 'Fullscreen [F]'}</span>
+          </button>
+        )}
+
+        {onToggleHud && (
+          <button
+            type="button"
+            className={`btn topbar-hud-toggle ${hudHidden ? 'topbar-hud-toggle--active' : 'btn-ghost'}`}
+            onClick={onToggleHud}
+            aria-pressed={hudHidden}
+            title="Toggle Full-Screen 3D Exploration View [H]"
+          >
+            <span>{hudHidden ? 'Show HUD [H]' : 'Clear View [H]'}</span>
+          </button>
+        )}
 
         <button
           type="button"
-          className="btn btn-ghost"
+          className="btn btn-ghost btn-sm"
           onClick={() => setScreen('settings')}
           aria-label="Open Settings"
           title="Accessibility, Audio & Quality Settings"
-          style={{ padding: '0.4rem 0.75rem', minHeight: '38px' }}
         >
           <span aria-hidden="true">⚙</span>
           <span>Settings</span>

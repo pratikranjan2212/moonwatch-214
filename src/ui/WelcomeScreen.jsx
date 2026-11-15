@@ -380,7 +380,7 @@ export default function WelcomeScreen({
           <button
             type="button"
             className="arcade-start-btn"
-            onClick={onStartMission}
+            onClick={() => onStartMission?.(selectedLevel)}
           >
             <span className="btn-rocket-icon">🚀</span>
             <span className="btn-main-label">START MISSION</span>

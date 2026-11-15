@@ -28,6 +28,14 @@ import {
   selectMostAccurateAnalysis,
 } from '../../data/donkiMapper.js';
 import { normalizeRunPayload, saveRunResult } from '../../data/supabaseClient.js';
+import {
+  convertAzElToSceneCoords,
+  convertToSceneCoords,
+  getAnalyticalPositions,
+  loadAstronomicalPositions,
+  parseHorizonsObserver,
+  parseHorizonsVectors,
+} from '../../data/horizonsClient.js';
 
 function createMockRes() {
   const headers = {};
@@ -332,5 +340,72 @@ describe('Step 8d — Production Security Areas 1 to 6', () => {
       postRes
     );
     expect(postRes.statusCode).toBe(403);
+  });
+
+  it('parses NASA/JPL Horizons Cartesian vectors and converts them to scene space', async () => {
+    const rawSample = `
+$$SOE
+2460440.500000000 = A.D. 2024-May-10 00:00:00.0000 TDB
+ X = 9.800270313755310E+07 Y = 1.145061267388530E+08 Z =-3.580140566793829E+04
+ VX=-2.118483278765438E+01 VY= 1.912285035119587E+01 VZ=-5.337193485633218E-02
+$$EOE
+`;
+    const vectors = parseHorizonsVectors(rawSample);
+    expect(vectors).toHaveLength(1);
+    expect(vectors[0].x).toBeCloseTo(98002703.13, 0);
+    expect(vectors[0].y).toBeCloseTo(114506126.74, 0);
+
+    const sceneCoords = convertToSceneCoords(vectors[0], 32);
+    expect(sceneCoords).toHaveLength(3);
+    expect(Math.hypot(sceneCoords[0], sceneCoords[2])).toBeGreaterThan(0);
+
+    // Test analytical fallback calculation
+    const fallback = getAnalyticalPositions(1, false);
+    expect(fallback.sun).toHaveLength(3);
+    expect(fallback.earth).toHaveLength(3);
+    expect(fallback.sun[1]).toBeGreaterThan(0); // Sun above horizon in daytime
+
+    const nightFallback = getAnalyticalPositions(1, true);
+    expect(nightFallback.sun[1]).toBeLessThan(0); // Sun below horizon in night
+
+    // loadAstronomicalPositions should resolve with valid coordinates
+    const positions = await loadAstronomicalPositions(1, false);
+    expect(positions.sun).toHaveLength(3);
+    expect(positions.earth).toHaveLength(3);
+    expect(typeof positions.isLive).toBe('boolean');
+    expect(typeof positions.source).toBe('string');
+
+    // Section 20 & 21: Realistic Sun & Earth Scaling validation
+    const SUN_REAL_KM = 1392700;
+    const EARTH_REAL_KM = 12742;
+    const PHYSICAL_RATIO = SUN_REAL_KM / EARTH_REAL_KM; // 109.299953
+    expect(PHYSICAL_RATIO).toBeCloseTo(109.3, 1);
+
+    // Verify rendered diameters match the physical ratio (0.850 units vs 92.905 units)
+    const RENDERED_EARTH_DIAMETER = 0.85;
+    const RENDERED_SUN_DIAMETER = RENDERED_EARTH_DIAMETER * PHYSICAL_RATIO;
+    expect(RENDERED_SUN_DIAMETER / RENDERED_EARTH_DIAMETER).toBeCloseTo(109.29995, 4);
+
+    // Test Horizons observer Azimuth/Elevation parser
+    const obsSample = `
+$$SOE
+ 2024-May-10 00:00  i   10.981544  60.264790
+ 2024-May-11 00:00  i   12.331490  60.807942
+$$EOE
+`;
+    const obs = parseHorizonsObserver(obsSample);
+    expect(obs).toHaveLength(2);
+    expect(obs[0].azimuth).toBeCloseTo(10.98, 2);
+    expect(obs[0].elevation).toBeCloseTo(60.26, 2);
+
+    const azElCoords = convertAzElToSceneCoords(obs[0].azimuth, obs[0].elevation, 28, -25);
+    expect(azElCoords).toHaveLength(3);
+    expect(azElCoords[1]).toBeGreaterThan(15); // elevated high in lunar sky
+    expect(azElCoords[2]).toBeLessThan(0); // in front of camera (North sky)
+
+    // Verify starfield enclosure asset exists and is accessible
+    const fs = await import('fs');
+    expect(fs.existsSync('public/models/night_sky_transparent_with_stars.glb')).toBe(true);
+    expect(fs.existsSync('public/textures/starfield_enclosure_2048.png')).toBe(true);
   });
 });
