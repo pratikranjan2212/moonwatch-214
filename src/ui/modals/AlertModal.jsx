@@ -7,7 +7,6 @@ export function AlertModal() {
   const activeAlert = useGameStore((s) => s.ui?.activeAlert);
   const sol214Open = useGameStore((s) => s.ui?.sol214Open);
   const dismissAlert = useGameStore((s) => s.dismissAlert);
-  const setChoice = useGameStore((s) => s.setChoice);
 
   useEffect(() => {
     if (!activeAlert || sol214Open) return undefined;
@@ -41,25 +40,14 @@ export function AlertModal() {
     Boolean(activeAlert.isRealNasaEvent) ||
     (typeof activeAlert.source === 'string' && activeAlert.source.includes('NASA DONKI'));
 
-  const handleQuickProtect = () => {
-    if (canonical === 'flare' || canonical === 'cme') {
-      setChoice({ shieldOn: true, panelsOut: false });
-    } else if (canonical === 'dust') {
-      setChoice({ panelsOut: false });
-    } else if (canonical === 'comms') {
-      setChoice({ queueComms: true });
-    }
-    dismissAlert();
-  };
-
-  const quickActionLabel =
+  const manualTip =
     canonical === 'flare' || canonical === 'cme'
-      ? 'Activate Shield + Retract Panels'
+      ? 'Walk to the Solar Array & Shield Dome with WASD and press [E] to retract panels and activate shielding.'
       : canonical === 'dust'
-        ? 'Retract Solar Panels Now'
+        ? 'Walk to the Solar Array with WASD and press [E] to retract panels safely underground.'
         : canonical === 'comms'
-          ? 'Queue High-Gain Comms Packet'
-          : 'Prepare Outpost Systems';
+          ? 'Walk to Earth Comms with WASD and press [E] to queue a telemetry packet.'
+          : 'Walk around your Moon base with WASD and press [E] near any station to adjust systems.';
 
   return (
     <div
@@ -138,8 +126,8 @@ export function AlertModal() {
             <span>{sheet?.oneLineFact || activeAlert.factText}</span>
           </div>
           <div>
-            <strong style={{ color: 'var(--power)' }}>How Astronauts Respond: </strong>
-            <span>{sheet?.howAstronautsRespond}</span>
+            <strong style={{ color: 'var(--power)' }}>What You Need To Do: </strong>
+            <span>{manualTip}</span>
           </div>
         </div>
 
@@ -151,13 +139,9 @@ export function AlertModal() {
             flexWrap: 'wrap',
           }}
         >
-          <button type="button" className="btn btn-ghost" onClick={dismissAlert}>
-            <span>Acknowledge</span>
+          <button type="button" className="btn btn-primary" onClick={dismissAlert}>
+            <span>Got It — Go Prepare Base</span>
             <span className="kbd-hint">[Esc]</span>
-          </button>
-
-          <button type="button" className="btn btn-primary" onClick={handleQuickProtect}>
-            <span>{quickActionLabel}</span>
           </button>
         </div>
       </div>

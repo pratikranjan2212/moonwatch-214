@@ -1,6 +1,8 @@
 import useGameStore from '../../store/useGameStore.js';
 
 export function SettingsScreen() {
+  const cameraMode = useGameStore((s) => s.cameraMode);
+  const setCameraMode = useGameStore((s) => s.setCameraMode);
   const settings = useGameStore((s) => s.settings) || {
     volume: 0.8,
     muted: false,
@@ -159,6 +161,36 @@ export function SettingsScreen() {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* 6. Camera Perspective Mode */}
+        <div className="settings-row">
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+              Camera Perspective View
+            </div>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+              Orbit (overhead drag), TPP (third-person follow), or FPP (first-person helmet view). Switch anytime with [V].
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }} role="group" aria-label="Camera Perspective View">
+            {[
+              { id: 'orbit', label: 'Orbit' },
+              { id: 'tpp', label: 'TPP' },
+              { id: 'fpp', label: 'FPP' },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`btn btn-sm ${cameraMode === mode.id ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setCameraMode(mode.id)}
+                aria-pressed={cameraMode === mode.id}
+              >
+                {mode.label}
+              </button>
+            ))}
           </div>
         </div>
 

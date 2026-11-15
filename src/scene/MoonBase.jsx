@@ -13,6 +13,27 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
+function resolveStationIdFromObject(obj) {
+  let curr = obj;
+  while (curr) {
+    const name = (curr.name || '').toLowerCase();
+    if (
+      name.includes('solar_panels') ||
+      name.includes('solar_door') ||
+      name.includes('solar_joint') ||
+      name.includes('solar_rotation')
+    ) {
+      return 'solar';
+    }
+    if (name.includes('oxygen_storage')) return 'oxygen';
+    if (name.includes('green_house_upgrade')) return 'greenhouse';
+    if (name.includes('antenna_upgrade') || name.includes('antenna_rotation')) return 'comms';
+    if (name.includes('base+shield')) return 'shield';
+    curr = curr.parent;
+  }
+  return null;
+}
+
 export function MoonBase({
   panelsOut = true,
   shieldOn = false,
@@ -24,6 +45,7 @@ export function MoonBase({
   solarBroken = false,
   _queueComms = false,
   reducedMotion = false,
+  onInteractStation = null,
 }) {
   const groupRef = useRef(null);
   const gltf = useGLTF('/models/Moon_base.glb');
@@ -148,6 +170,8 @@ export function MoonBase({
 
             shieldMeshesRef.current.push(obj);
             obj.visible = Boolean(shieldOn);
+            // Allow clicking base stations & panels right through the translucent forcefield dome
+            obj.raycast = () => {};
           }
           // 2. Moon Base White Composite Hull
           else if (matName.includes('moon_base_white')) {
@@ -374,12 +398,40 @@ export function MoonBase({
     }
   });
 
+  useEffect(() => {
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.style.cursor = '';
+      }
+    };
+  }, []);
+
   return (
     <group
       ref={groupRef}
       name="MoonBaseSceneRoot"
       position={[0.6, -0.72, -0.3]}
       scale={[0.42, 0.42, 0.42]}
+      onClick={(e) => {
+        if (e.delta > 6) return;
+        const stationId = resolveStationIdFromObject(e.object);
+        if (stationId) {
+          e.stopPropagation();
+          onInteractStation?.(stationId);
+        }
+      }}
+      onPointerOver={(e) => {
+        const stationId = resolveStationIdFromObject(e.object);
+        if (stationId && typeof document !== 'undefined') {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }
+      }}
+      onPointerOut={() => {
+        if (typeof document !== 'undefined') {
+          document.body.style.cursor = '';
+        }
+      }}
     >
       <primitive object={clonedScene} />
     </group>

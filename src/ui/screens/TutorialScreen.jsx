@@ -20,11 +20,11 @@ const TUTORIAL_STEPS = [
   },
   {
     step: 2,
-    badge: 'STEP 3 OF 4 // PRACTICE SWITCHES',
-    title: 'Try Flipping Your Base Switches',
+    badge: 'STEP 3 OF 4 // WALK & OPERATE',
+    title: 'Walk Up to Base Stations to Flip Switches',
     summary:
-      'A Sun Storm is heading toward the Moon! Flip these switches to protect your base before tapping Next Step:',
-    tip: 'On Level 2 you also water Space Wheat plants for extra fresh air!',
+      'In missions, press [V] for Orbit, TPP, or FPP view, walk to a station with WASD, and press [E] or click it! Practice shielding against the Sun Storm here:',
+    tip: 'On Level 2 you also walk to the Greenhouse to water Space Wheat plants for extra fresh air!',
   },
   {
     step: 3,
@@ -295,7 +295,7 @@ export function TutorialScreen() {
                 >
                   <span className="control-top-line">
                     <span>☀️ SOLAR PANELS</span>
-                    <span>[1]</span>
+                    <span>[E] WALK &amp; TAP</span>
                   </span>
                   <span className="control-state-value">
                     {practicePanelsOut ? 'OUT (SUNLIGHT)' : 'TUCKED SAFE'}
@@ -312,7 +312,7 @@ export function TutorialScreen() {
                 >
                   <span className="control-top-line">
                     <span>🛡️ SHIELD BUBBLE</span>
-                    <span>[2]</span>
+                    <span>[E] WALK &amp; TAP</span>
                   </span>
                   <span className="control-state-value">{practiceShieldOn ? 'ON' : 'OFF'}</span>
                   <span className="control-cost-hint">
@@ -327,7 +327,7 @@ export function TutorialScreen() {
                 >
                   <span className="control-top-line">
                     <span>💧 FRESH AIR</span>
-                    <span>[3]</span>
+                    <span>[E] WALK &amp; TAP</span>
                   </span>
                   <span className="control-state-value">
                     {practiceHighAir ? 'SUPER' : 'NORMAL'}

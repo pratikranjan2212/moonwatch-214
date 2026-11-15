@@ -12,8 +12,6 @@ import TitleScreen from './ui/screens/TitleScreen.jsx';
 import TutorialScreen from './ui/screens/TutorialScreen.jsx';
 import './ui/styles.css';
 
-const OXYGEN_LEVEL_ORDER = ['low', 'normal', 'high'];
-
 export default function App({ SceneComponent = Diorama }) {
   const screen = useGameStore((s) => s.ui?.screen) || 'title';
   const status = useGameStore((s) => s.game?.status) || 'playing';
@@ -90,72 +88,26 @@ export default function App({ SceneComponent = Diorama }) {
       const state = useGameStore.getState();
       if (state.ui?.screen !== 'game') return;
       if (state.ui?.sol214Open || state.ui?.activeAlert) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
 
       const tag = event.target?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
       const key = event.key;
       const lower = key.toLowerCase();
-      const choices = state.game?.choices || {};
 
-      if (key === '1' || lower === 'p') {
+      if (lower === 'e' && !event.repeat) {
         event.preventDefault();
-        if (state.game?.solarBroken) {
-          soundManager.play('warning');
-          state.showToast?.('Solar Array is BROKEN: Panels detached and shattered on lunar surface.');
-          return;
+        const res = state.interactWithStation?.();
+        if (res?.sound) {
+          soundManager.play(res.sound);
+        } else if (!res?.ok) {
+          soundManager.play('click');
         }
-        state.commandMoveToStation('solar', () => {
-          soundManager.play('motor');
-          const next = !choices.panelsOut;
-          state.setChoice('panelsOut', next);
-          state.showToast?.(
-            next
-              ? 'Solar Panels Extended at Solar Installation'
-              : 'Solar Panels Retracted into Underground Bay'
-          );
-        }, 'Solar Panel Installation');
-      } else if (key === '2' || lower === 's') {
+      } else if (lower === 'v' && !event.repeat) {
         event.preventDefault();
-        state.commandMoveToStation('shield', () => {
-          soundManager.play('click');
-          const next = !choices.shieldOn;
-          state.setChoice('shieldOn', next);
-          state.showToast?.(next ? 'Radiation Shield Dome Activated at Central Base' : 'Shield Dome Deactivated');
-        }, 'Central Base Shield Station');
-      } else if (key === '3' || lower === 'o') {
-        event.preventDefault();
-        state.commandMoveToStation('oxygen', () => {
-          soundManager.play('click');
-          const idx = OXYGEN_LEVEL_ORDER.indexOf(choices.oxygenLevel || 'normal');
-          const nextLevel = OXYGEN_LEVEL_ORDER[(idx + 1) % OXYGEN_LEVEL_ORDER.length];
-          state.setChoice('oxygenLevel', nextLevel);
-          state.showToast?.(`Oxygen Life Support Set to ${nextLevel.toUpperCase()} at O₂ Tanks`);
-        }, 'Oxygen Control Station');
-      } else if (key === '4' || lower === 'g') {
-        event.preventDefault();
-        if ((state.game?.sol || 1) < 2) {
-          state.showToast?.('Greenhouse is LOCKED (Unlocks on Sol 2)');
-          return;
-        }
-        state.commandMoveToStation('greenhouse', () => {
-          soundManager.play('click');
-          const nextActive = !(choices.waterGreenhouse || choices.tendGreenhouse);
-          state.setChoice({ waterGreenhouse: nextActive, tendGreenhouse: nextActive });
-          state.showToast?.(nextActive ? 'Greenhouse Crops Tended & Irrigated' : 'Greenhouse Switched to Standby');
-        }, 'Greenhouse Control Station');
-      } else if (key === '5' || lower === 'c') {
-        event.preventDefault();
-        if ((state.game?.sol || 1) < 3) {
-          state.showToast?.('Earth Communications Antenna is LOCKED (Unlocks on Sol 3)');
-          return;
-        }
-        state.commandMoveToStation('comms', () => {
-          soundManager.play('click');
-          const next = !choices.queueComms;
-          state.setChoice('queueComms', next);
-          state.showToast?.(next ? 'Earth Packet Queued on High-Gain Dish' : 'Comms Dish Standby');
-        }, 'Earth Communications Unit');
+        soundManager.play('click');
+        state.cycleCameraMode?.();
       } else if ((key === ' ' || key === 'Enter') && tag !== 'button') {
         event.preventDefault();
         soundManager.play('click');

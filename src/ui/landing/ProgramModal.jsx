@@ -14,11 +14,11 @@ const HOW_TO_PLAY_STEPS = [
   },
   {
     id: 1,
-    badge: 'RULE 2 // FLIP SWITCHES',
-    shortTitle: 'Flip Base Switches',
-    title: 'Tuck Panels & Turn On Your Shield',
+    badge: 'RULE 2 // WALK & OPERATE',
+    shortTitle: 'Walk Up & Flip Switches',
+    title: 'Explore in Orbit, TPP, or FPP & Operate Stations',
     detail:
-      'Keep your Solar Panels OUT on sunny days to charge your Battery. Before a Sun Storm hits, TUCK your Solar Panels safely inside and switch your Shield Bubble ON!',
+      'Press [V] to pick Orbit, Third-Person (TPP), or First-Person (FPP) view. Move around your Moon Base with WASD, walk up close to Solar Panels, Shield Bubble, or Air Tanks, and press [E] (or click!) to flip them.',
     tip: 'Your Air Maker keeps everyone breathing nicely all day and all night.',
   },
   {

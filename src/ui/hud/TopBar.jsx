@@ -5,6 +5,8 @@ import { AstraPlanetBadge } from '../landing/Icons.jsx';
 export function TopBar({ hudHidden = false, onToggleHud = null }) {
   const game = useGameStore((s) => s.game);
   const setScreen = useGameStore((s) => s.setScreen);
+  const cameraMode = useGameStore((s) => s.cameraMode);
+  const setCameraMode = useGameStore((s) => s.setCameraMode);
 
   const sol = game?.sol || 1;
   const targetSols = game?.targetSols || 14;
@@ -39,6 +41,25 @@ export function TopBar({ hudHidden = false, onToggleHud = null }) {
       </div>
 
       <div className="topbar-right">
+        <div className="camera-mode-group" role="group" aria-label="Camera View Mode (Shortcut V)">
+          {[
+            { id: 'orbit', label: 'ORBIT', title: 'Top-Down Orbit Camera [V]' },
+            { id: 'tpp', label: 'TPP', title: 'Third-Person Follow View [V]' },
+            { id: 'fpp', label: 'FPP', title: 'First-Person Astronaut View [V]' },
+          ].map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              className={`camera-mode-btn ${cameraMode === mode.id ? 'camera-mode-btn--active' : ''}`}
+              onClick={() => setCameraMode(mode.id)}
+              aria-pressed={cameraMode === mode.id}
+              title={mode.title}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
         {onToggleHud && (
           <button
             type="button"

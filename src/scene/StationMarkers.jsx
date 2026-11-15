@@ -1,14 +1,14 @@
 /**
  * @fileoverview 3D Interactive Station Markers on the Lunar Surface.
  * Renders holographic beacons, ground rings, current system ON/OFF statuses,
- * locked/broken states, and click-to-walk interaction triggers.
+ * locked/broken states, and proximity-gated interaction triggers.
  */
 
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { BASE_STATIONS, isStationUnlocked } from '../engine/stations.js';
+import { BASE_STATIONS, isNearStation, isStationUnlocked } from '../engine/stations.js';
 
 function SingleStationMarker({
   station,
@@ -39,19 +39,28 @@ function SingleStationMarker({
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
         onClick={(e) => {
+          if (e.delta > 6) return;
           e.stopPropagation();
           onInteract(station.id);
         }}
         cursor="pointer"
       >
-        <ringGeometry args={[0.22, 0.32, 24]} />
+        <ringGeometry args={[0.22, 0.34, 24]} />
         <meshBasicMaterial
-          color={isBroken ? '#EF4444' : isLocked ? '#64748B' : hovered ? '#38BDF8' : station.color}
+          color={isBroken ? '#EF4444' : isLocked ? '#64748B' : hovered || isCharacterNear ? '#FF8F55' : station.color}
           transparent
           opacity={isCharacterNear ? 0.95 : hovered ? 0.8 : 0.45}
           side={THREE.DoubleSide}
         />
       </mesh>
+
+      {/* Outer proximity pulse ring when player is within operating range */}
+      {isCharacterNear && !isBroken && !isLocked && (
+        <mesh position={[0, -0.263, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.4, 0.46, 28]} />
+          <meshBasicMaterial color="#FF8F55" transparent opacity={0.75} side={THREE.DoubleSide} />
+        </mesh>
+      )}
 
       {/* Vertical light beam beacon */}
       <mesh position={[0, 0.25, 0]}>
@@ -59,15 +68,14 @@ function SingleStationMarker({
         <meshBasicMaterial
           color={isBroken ? '#EF4444' : isLocked ? '#475569' : station.color}
           transparent
-          opacity={isCharacterNear ? 0.8 : 0.3}
+          opacity={isCharacterNear ? 0.85 : 0.3}
         />
       </mesh>
 
-      {/* Floating HTML Station Prompt & Status Pill */}
+      {/* Floating HTML Station Prompt & Status Pill (constant readable screen size in Orbit/TPP/FPP) */}
       <Html
-        position={[0, 0.65, 0]}
+        position={[0, 0.62, 0]}
         center
-        distanceFactor={14}
         style={{
           pointerEvents: 'auto',
           userSelect: 'none',
@@ -76,9 +84,14 @@ function SingleStationMarker({
       >
         <button
           type="button"
-          onClick={() => onInteract(station.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onInteract(station.id);
+          }}
           className={`station-3d-badge ${isCharacterNear ? 'in-range' : ''} ${isBroken ? 'broken' : ''} ${isLocked ? 'locked' : ''}`}
-          aria-label={`${station.name}: ${systemState}. Click to interact.`}
+          aria-label={`${station.name}: ${systemState}. ${
+            isCharacterNear ? 'Press E or click to operate.' : 'Walk closer with WASD to interact.'
+          }`}
         >
           <span className="station-icon" aria-hidden="true">
             {station.icon}
@@ -90,7 +103,7 @@ function SingleStationMarker({
             </span>
           </span>
           {isCharacterNear && !isBroken && !isLocked && (
-            <span className="station-action-pill">OPERATE</span>
+            <span className="station-action-pill">[E] OPERATE</span>
           )}
         </button>
       </Html>
@@ -103,6 +116,7 @@ export function StationMarkers({
   choices = {},
   solarBroken = false,
   characterPosition = [0, -0.45, 1.8],
+  nearbyStationId = null,
   onInteractStation,
 }) {
   const getSystemState = (stationId) => {
@@ -115,7 +129,7 @@ export function StationMarkers({
       case 'oxygen':
         return `O₂: ${(choices.oxygenLevel || 'normal').toUpperCase()}`;
       case 'greenhouse':
-        return choices.waterGreenhouse ? 'WATERING' : choices.tendGreenhouse ? 'TENDING' : 'STANDBY';
+        return choices.waterGreenhouse || choices.tendGreenhouse ? 'ACTIVE' : 'STANDBY';
       case 'comms':
         return choices.queueComms ? 'QUEUED' : 'IDLE';
       default:
@@ -128,11 +142,9 @@ export function StationMarkers({
       {Object.values(BASE_STATIONS).map((station) => {
         const isLocked = !isStationUnlocked(station.id, sol);
         const isBroken = station.id === 'solar' && solarBroken;
-        const dist = Math.hypot(
-          characterPosition[0] - station.position[0],
-          characterPosition[2] - station.position[2]
-        );
-        const isNear = dist < 0.65;
+        const isNear = nearbyStationId
+          ? nearbyStationId === station.id
+          : isNearStation(characterPosition, station.id);
 
         return (
           <SingleStationMarker

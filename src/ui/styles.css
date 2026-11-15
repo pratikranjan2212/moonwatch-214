@@ -1091,39 +1091,51 @@ select {
 
 .diorama-overlay-top {
   position: absolute;
-  top: 3.4rem;
-  left: 274px;
-  right: 294px;
+  top: 3.35rem;
+  left: 250px;
+  right: 260px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   pointer-events: none;
-  gap: 0.4rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
   z-index: 15;
 }
 
 .game-screen.hud-hidden .diorama-overlay-top {
-  top: 3.4rem;
+  top: 3.35rem;
   left: 0.85rem;
   right: 0.85rem;
 }
 
 @media (max-width: 1080px) {
   .diorama-overlay-top {
-    top: 5.75rem;
+    top: 3.35rem;
+    left: 202px;
+    right: 148px;
+  }
+}
+
+@media (max-width: 940px) {
+  .diorama-overlay-top {
+    top: 7.6rem;
     left: 0.65rem;
     right: 0.65rem;
+  }
+
+  .game-screen.hud-hidden .diorama-overlay-top {
+    top: 5.8rem;
   }
 }
 
 @media (max-width: 760px) {
   .diorama-overlay-top {
-    top: 7.35rem;
+    top: 8.8rem;
   }
 
   .game-screen.hud-hidden .diorama-overlay-top {
-    top: 5rem;
+    top: 6rem;
   }
 
   .diorama-status-pill:not(:first-child) {
@@ -1771,5 +1783,234 @@ select {
   to {
     box-shadow: 0 0 18px rgba(255, 143, 85, 0.9);
     border-color: #ffffff;
+  }
+}
+
+/* ==========================================================================
+   Camera Mode Selector (Orbit / TPP / FPP) & First-Person Reticle
+   ========================================================================== */
+
+.camera-mode-group {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(5, 3, 2, 0.85);
+}
+
+.camera-mode-btn {
+  appearance: none;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.56rem;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.camera-mode-btn:last-child {
+  border-right: none;
+}
+
+.camera-mode-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 143, 85, 0.18);
+}
+
+.camera-mode-btn--active {
+  background: var(--power);
+  color: #050302;
+}
+
+.camera-mode-btn--active:hover {
+  background: var(--power);
+  color: #050302;
+}
+
+.diorama-status-pill-btn {
+  appearance: none;
+  pointer-events: auto;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.52rem;
+  background: rgba(5, 3, 2, 0.84);
+  color: #ffd5bd;
+  border: 1px solid rgba(255, 143, 85, 0.55);
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+}
+
+.diorama-status-pill-btn:hover {
+  border-color: #ffffff;
+  color: #ffffff;
+  background: rgba(255, 143, 85, 0.24);
+}
+
+.fpp-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 143, 85, 0.72);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 18;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.65);
+}
+
+.fpp-crosshair-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+/* ==========================================================================
+   Proximity Station Interaction HUD (Walk-Up Operate & Exploration Hint)
+   ========================================================================== */
+
+.station-interact-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 6.75rem;
+  transform: translateX(-50%);
+  z-index: 25;
+  pointer-events: auto;
+  max-width: min(520px, calc(100vw - 2rem));
+}
+
+.game-screen.hud-hidden .station-interact-hud {
+  bottom: 1.2rem;
+}
+
+.station-interact-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.48rem 0.72rem;
+  background: rgba(10, 7, 5, 0.9);
+  border: 1px solid rgba(255, 143, 85, 0.72);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+.station-interact-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.52rem;
+  min-width: 0;
+}
+
+.station-interact-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.station-interact-title {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.station-interact-sub {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.station-interact-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.station-interact-locked {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.24rem 0.5rem;
+  color: var(--text-muted);
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  flex-shrink: 0;
+}
+
+.station-explore-hint {
+  padding: 0.3rem 0.65rem;
+  background: rgba(10, 7, 5, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+@media (max-width: 1220px) {
+  .topbar-right {
+    gap: 0.35rem;
+  }
+
+  .topbar-right .btn-sm,
+  .topbar-hud-toggle {
+    padding: 0.24rem 0.48rem;
+    font-size: 0.68rem;
+  }
+
+  .camera-mode-btn {
+    padding: 0.24rem 0.44rem;
+    font-size: 0.64rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .camera-mode-btn {
+    padding: 0.22rem 0.4rem;
+    font-size: 0.62rem;
+  }
+
+  .station-interact-hud {
+    bottom: 8.4rem;
+    width: calc(100vw - 1.2rem);
+  }
+
+  .station-interact-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+  }
+
+  .station-interact-title,
+  .station-interact-sub,
+  .station-explore-hint {
+    white-space: normal;
+  }
+
+  .game-screen.hud-hidden .station-interact-hud {
+    bottom: 0.9rem;
   }
 }

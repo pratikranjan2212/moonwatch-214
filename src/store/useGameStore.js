@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { buildDebrief } from '../engine/debrief.js';
 import { getEventsForSol, getForecast, normalizeEventType } from '../engine/events.js';
 import { createRNG, normalizeSeed } from '../engine/rng.js';
+import { BASE_STATIONS, isNearStation, isStationUnlocked } from '../engine/stations.js';
 import { createInitialState, resolveSol214Choice, tick } from '../engine/tick.js';
 
 /**
@@ -135,6 +136,14 @@ export const useGameStore = create((set, get) => {
     set((state) => ({
       game: nextGame,
       debrief: buildDebrief(nextGame),
+      characterPosition: [0.0, -0.45, 1.8],
+      nearbyStationId: 'shield',
+      activeStation: 'shield',
+      targetStation: null,
+      isTravelling: false,
+      travelFeedback: null,
+      pendingAction: null,
+      positionResetCount: (state.positionResetCount || 0) + 1,
       ui: {
         ...state.ui,
         screen: nextScreen,
@@ -382,28 +391,149 @@ export const useGameStore = create((set, get) => {
     set({ selectedCrewId: crewId || 'commander' });
   };
 
+  const setCameraMode = (mode) => {
+    const valid = mode === 'tpp' || mode === 'fpp' || mode === 'orbit' ? mode : 'orbit';
+    const labels = {
+      orbit: 'Orbit View — WASD Walk · Drag Orbit · [E] Operate Nearby',
+      tpp: 'TPP Third-Person — WASD Move · Drag or ←/→ Look · [E] Operate Nearby',
+      fpp: 'FPP First-Person Visor — WASD Move · Drag or ←/→ Look · [E] Operate Nearby',
+    };
+    set({
+      cameraMode: valid,
+      actionToast: labels[valid],
+    });
+  };
+
+  const cycleCameraMode = () => {
+    const cur = get().cameraMode || 'orbit';
+    const order = ['orbit', 'tpp', 'fpp'];
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    setCameraMode(next);
+    return next;
+  };
+
+  const setNearbyStationId = (stationId) => {
+    if (get().nearbyStationId !== stationId) {
+      set({
+        nearbyStationId: stationId || null,
+        activeStation: stationId || null,
+      });
+    }
+  };
+
   /**
-   * Commands the character to physically travel to a base station before executing an action.
-   * If already at the station, executes immediately without travel delay.
+   * Interacts physically with a base station ONLY when the character has walked
+   * close to it using manual WASD exploration. Never auto-walks or triggers remotely.
    *
-   * @param {string} stationKey - 'shield' | 'solar' | 'oxygen' | 'greenhouse' | 'comms'
-   * @param {Function} [actionCallback] - Action to perform once arrived
-   * @param {string} [stationName] - Human-readable station label
+   * @param {string|null} [stationId]
+   * @param {any} [overrideValue]
+   */
+  const interactWithStation = (stationId = null, overrideValue = undefined) => {
+    const { game, characterPosition, nearbyStationId } = get();
+    const targetId = stationId || nearbyStationId;
+    const station = targetId ? BASE_STATIONS[targetId] : null;
+
+    if (!station) {
+      set({
+        actionToast:
+          'Walk near a station (Solar Array, Shield Dome, O₂, Greenhouse, or Comms) with WASD to interact.',
+      });
+      return { ok: false, reason: 'none-nearby' };
+    }
+
+    if (!isNearStation(characterPosition, targetId)) {
+      set({
+        actionToast: `Too far from ${station.name} — walk closer with WASD first, then press [E] or click!`,
+      });
+      return { ok: false, reason: 'too-far', stationId: targetId };
+    }
+
+    const sol = game?.sol || 1;
+    if (!isStationUnlocked(targetId, sol)) {
+      set({
+        actionToast: `${station.shortName} is LOCKED (Unlocks on Sol ${station.unlockSol})`,
+      });
+      return { ok: false, reason: 'locked', stationId: targetId };
+    }
+
+    const choices = game?.choices || {};
+
+    switch (targetId) {
+      case 'solar': {
+        if (game?.solarBroken) {
+          set({
+            actionToast: 'Solar Array is BROKEN: Panels detached and shattered on lunar surface.',
+          });
+          return { ok: false, reason: 'broken', sound: 'warning', stationId: 'solar' };
+        }
+        const next = typeof overrideValue === 'boolean' ? overrideValue : !choices.panelsOut;
+        setChoice('panelsOut', next);
+        set({
+          actionToast: next
+            ? 'Solar Panels Extended at Solar Installation'
+            : 'Solar Panels Retracted into Underground Bay',
+        });
+        return { ok: true, stationId: 'solar', sound: 'motor', value: next };
+      }
+      case 'shield': {
+        const next = typeof overrideValue === 'boolean' ? overrideValue : !choices.shieldOn;
+        setChoice('shieldOn', next);
+        set({
+          actionToast: next ? 'Radiation Shield Dome Activated at Central Base' : 'Shield Dome Deactivated',
+        });
+        return { ok: true, stationId: 'shield', sound: 'click', value: next };
+      }
+      case 'oxygen': {
+        const modes = ['low', 'normal', 'high'];
+        const nextMode = modes.includes(overrideValue)
+          ? overrideValue
+          : modes[(modes.indexOf(choices.oxygenLevel || 'normal') + 1) % modes.length];
+        setChoice('oxygenLevel', nextMode);
+        set({
+          actionToast: `Oxygen Life Support Set to ${nextMode.toUpperCase()} at O₂ Tanks`,
+        });
+        return { ok: true, stationId: 'oxygen', sound: 'click', value: nextMode };
+      }
+      case 'greenhouse': {
+        const currentlyActive = Boolean(choices.waterGreenhouse || choices.tendGreenhouse);
+        const next = typeof overrideValue === 'boolean' ? overrideValue : !currentlyActive;
+        setChoice({ waterGreenhouse: next, tendGreenhouse: next });
+        set({
+          actionToast: next
+            ? 'Greenhouse Irrigated & Tended (Extra Fresh O₂ Active)'
+            : 'Greenhouse Switched to Standby',
+        });
+        return { ok: true, stationId: 'greenhouse', sound: 'click', value: next };
+      }
+      case 'comms': {
+        const next = typeof overrideValue === 'boolean' ? overrideValue : !choices.queueComms;
+        setChoice('queueComms', next);
+        set({
+          actionToast: next
+            ? 'Earth Packet Queued on High-Gain Dish'
+            : 'Earth Comms Dish Switched to Standby',
+        });
+        return { ok: true, stationId: 'comms', sound: 'click', value: next };
+      }
+      default:
+        return { ok: false, reason: 'unknown' };
+    }
+  };
+
+  /**
+   * Preserved store entry point: strictly requires physical proximity (no auto-walk).
    */
   const commandMoveToStation = (stationKey, actionCallback = null, stationName = 'Station') => {
-    const { activeStation, isTravelling } = get();
-    if (!isTravelling && activeStation === stationKey) {
+    if (isNearStation(get().characterPosition, stationKey)) {
       if (typeof actionCallback === 'function') {
         actionCallback();
+      } else {
+        interactWithStation(stationKey);
       }
       return;
     }
-
     set({
-      targetStation: stationKey,
-      isTravelling: true,
-      pendingAction: actionCallback,
-      travelFeedback: `Travelling to ${stationName}...`,
+      actionToast: `Walk closer to ${stationName} with WASD first, then press [E] or click!`,
     });
   };
 
@@ -417,12 +547,9 @@ export const useGameStore = create((set, get) => {
   };
 
   const reachStation = (stationKey) => {
-    const { pendingAction } = get();
-    if (typeof pendingAction === 'function') {
-      pendingAction();
-    }
     set({
       activeStation: stationKey,
+      nearbyStationId: stationKey,
       targetStation: null,
       isTravelling: false,
       pendingAction: null,
@@ -471,6 +598,10 @@ export const useGameStore = create((set, get) => {
     updateSettings,
     setExternalEvents,
     setSelectedCrew,
+    setCameraMode,
+    cycleCameraMode,
+    setNearbyStationId,
+    interactWithStation,
     commandMoveToStation,
     cancelTravel,
     reachStation,
@@ -486,7 +617,10 @@ export const useGameStore = create((set, get) => {
     game: initialGame,
     debrief: buildDebrief(initialGame),
     selectedCrewId: 'commander',
+    cameraMode: 'orbit',
     characterPosition: [0.0, -0.45, 1.8],
+    positionResetCount: 0,
+    nearbyStationId: 'shield',
     activeStation: 'shield',
     targetStation: null,
     isTravelling: false,

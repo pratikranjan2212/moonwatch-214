@@ -10,14 +10,14 @@
  * itself is unavailable.
  */
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import soundManager from '../audio/soundManager.js';
 import { getAnalyticalPositions, loadAstronomicalPositions } from '../data/horizonsClient.js';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
-import { BASE_STATIONS } from '../engine/stations.js';
+import { BASE_STATIONS, findNearestStation, isStationUnlocked } from '../engine/stations.js';
 import useGameStore from '../store/useGameStore.js';
 import Lighting from './Lighting.jsx';
 import MoonBase from './MoonBase.jsx';
@@ -132,6 +132,7 @@ function OutpostMeshes({
   solarBroken = false,
   queueComms = false,
   reducedMotion = false,
+  onInteractStation = null,
 }) {
   const solarRef = useRef(null);
 
@@ -288,6 +289,7 @@ function OutpostMeshes({
           solarBroken={solarBroken}
           queueComms={queueComms}
           reducedMotion={reducedMotion}
+          onInteractStation={onInteractStation}
         />
       </Suspense>
     </group>
@@ -476,76 +478,416 @@ function StarfieldEnclosure({ reducedMotion = false }) {
   );
 }
 
-function CharacterWalker({
+const WALK_BOUNDS = {
+  minX: -11.5,
+  maxX: 11.5,
+  minZ: -9.5,
+  maxZ: 9.5,
+};
+
+function CharacterAndCameraRig({
   actor,
-  characterPosition,
-  targetStation,
-  isTravelling,
-  reachStation,
+  sol,
+  cameraMode = 'orbit',
+  positionResetCount = 0,
+  reducedMotion = false,
+  inputPaused = false,
   setCharacterPosition,
-  reducedMotion,
+  setNearbyStationId,
 }) {
-  const currentPosRef = useRef(new THREE.Vector3(...characterPosition));
+  const { camera, gl } = useThree();
+  const orbitRef = useRef(null);
+  const actorGroupRef = useRef(null);
+  const initialPos = useMemo(
+    () => useGameStore.getState().characterPosition || [0.0, -0.45, 1.8],
+    []
+  );
+
+  const posRef = useRef(new THREE.Vector3(initialPos[0], initialPos[1], initialPos[2]));
+  const yawRef = useRef(0);
+  const tppPitchRef = useRef(0.36);
+  const tppDistRef = useRef(2.6);
+  const fppPitchRef = useRef(0.02);
+  const walkPhaseRef = useRef(0);
+
+  const keysRef = useRef(new Set());
+  const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
+  const prevModeRef = useRef(cameraMode);
+  const prevResetRef = useRef(positionResetCount);
+  const lastNearIdRef = useRef(
+    (() => {
+      const res = findNearestStation(initialPos, sol);
+      return res?.inRange ? res.station?.id || null : null;
+    })()
+  );
+  const lastSyncTimeRef = useRef(0);
+  const lastSyncPosRef = useRef(new THREE.Vector3(initialPos[0], initialPos[1], initialPos[2]));
+  const tmpDirRef = useRef(new THREE.Vector3());
+  const tmpCamPosRef = useRef(new THREE.Vector3());
+
+  const [isWalking, setIsWalking] = useState(false);
   const [flipX, setFlipX] = useState(false);
-  const [renderPos, setRenderPos] = useState(characterPosition);
+  const walkingStateRef = useRef(false);
+  const flipXStateRef = useRef(false);
 
-  useFrame((_, delta) => {
-    if (!isTravelling || !targetStation) {
-      return;
+  // Snap astronaut position on mission restart / new level
+  useEffect(() => {
+    if (prevResetRef.current === positionResetCount) return;
+    prevResetRef.current = positionResetCount;
+    const resetPos = useGameStore.getState().characterPosition || [0.0, -0.45, 1.8];
+    posRef.current.set(resetPos[0], resetPos[1], resetPos[2]);
+    yawRef.current = 0;
+    tppPitchRef.current = 0.36;
+    tppDistRef.current = 2.6;
+    fppPitchRef.current = 0.02;
+    lastSyncPosRef.current.copy(posRef.current);
+    if (actorGroupRef.current) {
+      actorGroupRef.current.position.copy(posRef.current);
     }
-    const dest = BASE_STATIONS[targetStation]?.position;
-    if (!dest) return;
+    const nearRes = findNearestStation(resetPos, sol);
+    const nextNear = nearRes?.inRange ? nearRes.station?.id || null : null;
+    lastNearIdRef.current = nextNear;
+    setNearbyStationId?.(nextNear);
+  }, [positionResetCount, sol, setNearbyStationId]);
 
-    const targetVec = new THREE.Vector3(...dest);
-    const dist = currentPosRef.current.distanceTo(targetVec);
+  // Keep actor grounded immediately on mount
+  useEffect(() => {
+    if (actorGroupRef.current) {
+      actorGroupRef.current.position.copy(posRef.current);
+    }
+  }, []);
 
-    if (dist > 0.04) {
-      const step = Math.min(1.0, (delta * 2.6) / dist);
-      if (targetVec.x > currentPosRef.current.x + 0.015) {
-        setFlipX(false);
-      } else if (targetVec.x < currentPosRef.current.x - 0.015) {
-        setFlipX(true);
+  // Track WASD + Arrow keys cleanly without stuck keys
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      const state = useGameStore.getState();
+      if (state.ui?.screen !== 'game') return;
+      if (state.ui?.sol214Open || state.ui?.activeAlert) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+      const tag = event.target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+      const lower = event.key.toLowerCase();
+      if (
+        lower === 'w' ||
+        lower === 'a' ||
+        lower === 's' ||
+        lower === 'd' ||
+        lower === 'shift' ||
+        lower === 'arrowup' ||
+        lower === 'arrowdown' ||
+        lower === 'arrowleft' ||
+        lower === 'arrowright'
+      ) {
+        if (lower.startsWith('arrow')) {
+          event.preventDefault();
+        }
+        keysRef.current.add(lower);
       }
-      currentPosRef.current.lerp(targetVec, step);
-      const nextArr = [currentPosRef.current.x, currentPosRef.current.y, currentPosRef.current.z];
-      setRenderPos(nextArr);
-      setCharacterPosition?.(nextArr);
-    } else {
-      currentPosRef.current.copy(targetVec);
-      const nextArr = [targetVec.x, targetVec.y, targetVec.z];
-      setRenderPos(nextArr);
-      setCharacterPosition?.(nextArr);
-      reachStation?.(targetStation);
+    };
+
+    const onKeyUp = (event) => {
+      keysRef.current.delete(event.key.toLowerCase());
+    };
+
+    const clearKeys = () => {
+      keysRef.current.clear();
+      dragRef.current.active = false;
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', clearKeys);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', clearKeys);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (inputPaused) {
+      keysRef.current.clear();
+      dragRef.current.active = false;
+    }
+  }, [inputPaused]);
+
+  // Smooth camera transitions when switching between Orbit, TPP, and FPP
+  useEffect(() => {
+    const prev = prevModeRef.current;
+    prevModeRef.current = cameraMode;
+    if (prev === cameraMode) return;
+
+    if (prev === 'orbit' && (cameraMode === 'tpp' || cameraMode === 'fpp')) {
+      const dir = tmpDirRef.current;
+      camera.getWorldDirection(dir);
+      dir.y = 0;
+      if (dir.lengthSq() > 0.001) {
+        dir.normalize();
+        yawRef.current = Math.atan2(-dir.x, -dir.z);
+      } else {
+        yawRef.current = 0;
+      }
+      if (cameraMode === 'fpp') {
+        fppPitchRef.current = 0.02;
+      }
+    } else if (cameraMode === 'fpp') {
+      fppPitchRef.current = THREE.MathUtils.clamp(fppPitchRef.current, -0.35, 0.35);
+    } else if (cameraMode === 'orbit') {
+      camera.position.set(0, 6.2, 14.5);
+      if (orbitRef.current) {
+        orbitRef.current.target.set(0.2, 0.15, 0.0);
+        orbitRef.current.update();
+      } else {
+        camera.lookAt(0.2, 0.15, 0.0);
+      }
+    }
+  }, [cameraMode, camera]);
+
+  // Mouse drag look + scroll zoom in TPP / FPP modes
+  useEffect(() => {
+    if (cameraMode !== 'tpp' && cameraMode !== 'fpp') {
+      dragRef.current.active = false;
+      return undefined;
+    }
+
+    const dom = gl?.domElement;
+    if (!dom) return undefined;
+
+    const onPointerDown = (e) => {
+      if (e.button !== 0 && e.button !== 2) return;
+      dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
+    };
+
+    const onPointerMove = (e) => {
+      if (!dragRef.current.active) return;
+      const dx = e.clientX - dragRef.current.lastX;
+      const dy = e.clientY - dragRef.current.lastY;
+      dragRef.current.lastX = e.clientX;
+      dragRef.current.lastY = e.clientY;
+
+      yawRef.current -= dx * 0.0055;
+      if (cameraMode === 'tpp') {
+        tppPitchRef.current = THREE.MathUtils.clamp(
+          tppPitchRef.current + dy * 0.0045,
+          0.12,
+          1.05
+        );
+      } else {
+        fppPitchRef.current = THREE.MathUtils.clamp(
+          fppPitchRef.current - dy * 0.0045,
+          -0.85,
+          1.15
+        );
+      }
+    };
+
+    const onPointerUp = () => {
+      dragRef.current.active = false;
+    };
+
+    const onWheel = (e) => {
+      if (cameraMode !== 'tpp') return;
+      tppDistRef.current = THREE.MathUtils.clamp(tppDistRef.current + e.deltaY * 0.0025, 1.5, 5.5);
+    };
+
+    dom.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+    dom.addEventListener('wheel', onWheel, { passive: true });
+
+    return () => {
+      dom.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      dom.removeEventListener('wheel', onWheel);
+    };
+  }, [cameraMode, gl]);
+
+  useFrame(({ clock }, delta) => {
+    const dt = Math.min(delta, 0.1);
+    const keys = keysRef.current;
+
+    let movingNow = false;
+
+    if (!inputPaused) {
+      if ((cameraMode === 'tpp' || cameraMode === 'fpp') && (keys.has('arrowleft') || keys.has('arrowright'))) {
+        const turnInput = (keys.has('arrowleft') ? 1 : 0) - (keys.has('arrowright') ? 1 : 0);
+        yawRef.current += turnInput * 2.1 * dt;
+      }
+
+      // Compute camera-relative horizontal basis (forward & right on XZ lunar ground)
+      let fwdX = 0;
+      let fwdZ = -1;
+      if (cameraMode === 'orbit') {
+        camera.getWorldDirection(tmpDirRef.current);
+        tmpDirRef.current.y = 0;
+        if (tmpDirRef.current.lengthSq() > 0.0001) {
+          tmpDirRef.current.normalize();
+          fwdX = tmpDirRef.current.x;
+          fwdZ = tmpDirRef.current.z;
+        }
+      } else {
+        fwdX = -Math.sin(yawRef.current);
+        fwdZ = -Math.cos(yawRef.current);
+      }
+      // Cross product forward x (0,1,0) = (-fwdZ, 0, fwdX)
+      const rightX = -fwdZ;
+      const rightZ = fwdX;
+
+      const moveFwd =
+        (keys.has('w') || keys.has('arrowup') ? 1 : 0) -
+        (keys.has('s') || keys.has('arrowdown') ? 1 : 0);
+      const moveStrafe =
+        cameraMode === 'orbit'
+          ? (keys.has('d') || keys.has('arrowright') ? 1 : 0) -
+            (keys.has('a') || keys.has('arrowleft') ? 1 : 0)
+          : (keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0);
+
+      let vx = fwdX * moveFwd + rightX * moveStrafe;
+      let vz = fwdZ * moveFwd + rightZ * moveStrafe;
+      const len = Math.hypot(vx, vz);
+
+      if (len > 0.001) {
+        movingNow = true;
+        vx /= len;
+        vz /= len;
+        const speed = keys.has('shift') ? 4.6 : 3.0;
+        posRef.current.x = THREE.MathUtils.clamp(
+          posRef.current.x + vx * speed * dt,
+          WALK_BOUNDS.minX,
+          WALK_BOUNDS.maxX
+        );
+        posRef.current.z = THREE.MathUtils.clamp(
+          posRef.current.z + vz * speed * dt,
+          WALK_BOUNDS.minZ,
+          WALK_BOUNDS.maxZ
+        );
+        posRef.current.y = -0.45;
+        walkPhaseRef.current += dt * 11;
+
+        const screenRightDot = vx * rightX + vz * rightZ;
+        if (screenRightDot < -0.08 && !flipXStateRef.current) {
+          flipXStateRef.current = true;
+          setFlipX(true);
+        } else if (screenRightDot > 0.08 && flipXStateRef.current) {
+          flipXStateRef.current = false;
+          setFlipX(false);
+        }
+      }
+    }
+
+    const wasWalking = walkingStateRef.current;
+    if (movingNow !== wasWalking) {
+      walkingStateRef.current = movingNow;
+      setIsWalking(movingNow);
+    }
+
+    if (actorGroupRef.current) {
+      actorGroupRef.current.position.copy(posRef.current);
+    }
+
+    // Sync nearby station immediately when entering/leaving range, and sync position without 60fps React thrashing
+    const posArr = [posRef.current.x, posRef.current.y, posRef.current.z];
+    const nearRes = findNearestStation(posArr, sol);
+    const nextNearId = nearRes?.inRange ? nearRes.station?.id || null : null;
+    if (nextNearId !== lastNearIdRef.current) {
+      lastNearIdRef.current = nextNearId;
+      setNearbyStationId?.(nextNearId);
+    }
+
+    const elapsed = clock.getElapsedTime();
+    const movedSinceSync = posRef.current.distanceTo(lastSyncPosRef.current);
+    if (
+      (movedSinceSync > 0.12 && elapsed - lastSyncTimeRef.current > 0.12) ||
+      (wasWalking && !movingNow && movedSinceSync > 0.005)
+    ) {
+      lastSyncTimeRef.current = elapsed;
+      lastSyncPosRef.current.copy(posRef.current);
+      setCharacterPosition?.([
+        Number(posRef.current.x.toFixed(3)),
+        posRef.current.y,
+        Number(posRef.current.z.toFixed(3)),
+      ]);
+    }
+
+    // Drive TPP or FPP camera smoothly
+    if (cameraMode === 'tpp') {
+      const dist = tppDistRef.current;
+      const pitch = tppPitchRef.current;
+      const yaw = yawRef.current;
+      const horiz = dist * Math.cos(pitch);
+      const desired = tmpCamPosRef.current.set(
+        posRef.current.x + Math.sin(yaw) * horiz,
+        Math.max(-0.5, posRef.current.y + 0.18 + dist * Math.sin(pitch)),
+        posRef.current.z + Math.cos(yaw) * horiz
+      );
+      const alpha = reducedMotion ? 1 : Math.min(1, 1 - Math.exp(-12 * dt));
+      camera.position.lerp(desired, alpha);
+      camera.lookAt(posRef.current.x, posRef.current.y + 0.14, posRef.current.z);
+    } else if (cameraMode === 'fpp') {
+      const headBob =
+        movingNow && !reducedMotion ? Math.sin(walkPhaseRef.current) * 0.012 : 0;
+      const eyeY = posRef.current.y + 0.24 + headBob;
+      const cosP = Math.cos(fppPitchRef.current);
+      const targetX = posRef.current.x - Math.sin(yawRef.current) * cosP * 10;
+      const targetY = eyeY + Math.sin(fppPitchRef.current) * 10;
+      const targetZ = posRef.current.z - Math.cos(yawRef.current) * cosP * 10;
+      camera.position.set(posRef.current.x, eyeY, posRef.current.z);
+      camera.lookAt(targetX, targetY, targetZ);
     }
   });
 
   return (
-    <SpriteActor
-      key={actor.id}
-      id={actor.id}
-      name={actor.name}
-      mood={actor.mood}
-      health={actor.health}
-      position={renderPos}
-      isWalking={Boolean(isTravelling)}
-      flipX={flipX}
-      reducedMotion={reducedMotion}
-    />
+    <>
+      <OrbitControls
+        ref={orbitRef}
+        enabled={cameraMode === 'orbit'}
+        target={[0.2, 0.15, 0.0]}
+        minDistance={5.0}
+        maxDistance={24.0}
+        minPolarAngle={Math.PI / 12}
+        maxPolarAngle={Math.PI / 2.08}
+        enableDamping
+        dampingFactor={0.06}
+      />
+
+      <group ref={actorGroupRef} visible={cameraMode !== 'fpp'}>
+        <SpriteActor
+          key={actor.id}
+          id={actor.id}
+          name={actor.name}
+          mood={actor.mood}
+          health={actor.health}
+          position={[0, 0, 0]}
+          isWalking={isWalking}
+          flipX={flipX}
+          reducedMotion={reducedMotion}
+        />
+      </group>
+    </>
   );
 }
 
 export function Diorama() {
   const game = useGameStore((s) => s.game);
   const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
-  const characterPosition = useGameStore((s) => s.characterPosition) || [0.0, -0.45, 1.8];
-  const targetStation = useGameStore((s) => s.targetStation);
-  const isTravelling = useGameStore((s) => s.isTravelling);
-  const reachStation = useGameStore((s) => s.reachStation);
+  const cameraMode = useGameStore((s) => s.cameraMode) || 'orbit';
+  const nearbyStationId = useGameStore((s) => s.nearbyStationId);
+  const positionResetCount = useGameStore((s) => s.positionResetCount) || 0;
   const setCharacterPosition = useGameStore((s) => s.setCharacterPosition);
-  const commandMoveToStation = useGameStore((s) => s.commandMoveToStation);
-  const setChoice = useGameStore((s) => s.setChoice);
+  const setNearbyStationId = useGameStore((s) => s.setNearbyStationId);
+  const interactWithStation = useGameStore((s) => s.interactWithStation);
+  const cycleCameraMode = useGameStore((s) => s.cycleCameraMode);
   const actionToast = useGameStore((s) => s.actionToast);
   const showToast = useGameStore((s) => s.showToast);
+  const screen = useGameStore((s) => s.ui?.screen) || 'game';
+  const sol214Open = Boolean(useGameStore((s) => s.ui?.sol214Open));
+  const activeAlert = useGameStore((s) => s.ui?.activeAlert);
 
   const dustCountdown = useGameStore((s) => s.dustCountdown);
   const dustWarningActive = useGameStore((s) => s.dustWarningActive);
@@ -695,68 +1037,18 @@ export function Diorama() {
     };
   }, [selectedCrewId, commander, crew, isFlare, choices.shieldOn, isLowPower]);
 
-  // Physical station click handler
-  const handleStationInteract = (stationId) => {
-    switch (stationId) {
-      case 'shield':
-        commandMoveToStation('shield', () => {
-          soundManager.play('click');
-          const next = !choices.shieldOn;
-          setChoice('shieldOn', next);
-          showToast(next ? 'Radiation Shield Dome Activated at Central Base' : 'Shield Dome Deactivated');
-        }, 'Main Shield Station');
-        break;
-      case 'solar':
-        if (solarBroken) {
-          soundManager.play('warning');
-          showToast('Solar Array is BROKEN: Panels detached and shattered on lunar surface.');
-          return;
-        }
-        commandMoveToStation('solar', () => {
-          soundManager.play('motor');
-          const next = !choices.panelsOut;
-          setChoice('panelsOut', next);
-          showToast(next ? 'Solar Panels Extended at Solar Installation' : 'Solar Panels Retracted into Underground Bay');
-        }, 'Solar Panel Installation');
-        break;
-      case 'oxygen':
-        commandMoveToStation('oxygen', () => {
-          soundManager.play('click');
-          const modes = ['low', 'normal', 'high'];
-          const idx = modes.indexOf(choices.oxygenLevel || 'normal');
-          const nextMode = modes[(idx + 1) % 3];
-          setChoice('oxygenLevel', nextMode);
-          showToast(`Oxygen Life Support Set to ${nextMode.toUpperCase()} at O₂ Tanks`);
-        }, 'Oxygen Control Station');
-        break;
-      case 'greenhouse':
-        if (sol < 2) {
-          showToast('Greenhouse Deck is LOCKED (Unlocks on Sol 2)');
-          return;
-        }
-        commandMoveToStation('greenhouse', () => {
-          soundManager.play('click');
-          const next = !choices.waterGreenhouse;
-          setChoice('waterGreenhouse', next);
-          showToast(next ? 'Greenhouse Irrigation Activated' : 'Irrigation Switched to Standby');
-        }, 'Greenhouse Control Station');
-        break;
-      case 'comms':
-        if (sol < 3) {
-          showToast('Earth Comms Antenna is LOCKED (Unlocks on Sol 3)');
-          return;
-        }
-        commandMoveToStation('comms', () => {
-          soundManager.play('click');
-          const next = !choices.queueComms;
-          setChoice('queueComms', next);
-          showToast(next ? 'Earth Packet Queued on High-Gain Dish' : 'Comms Dish Switched to Standby');
-        }, 'Earth Communications Unit');
-        break;
-      default:
-        break;
-    }
-  };
+  // Proximity-only station interaction (no auto-walk / no teleporting)
+  const handleStationInteract = useCallback(
+    (stationId, overrideValue = undefined) => {
+      const res = interactWithStation(stationId, overrideValue);
+      if (res?.sound) {
+        soundManager.play(res.sound);
+      } else if (!res?.ok) {
+        soundManager.play('click');
+      }
+    },
+    [interactWithStation]
+  );
 
   const handleAutoDowngrade = () => {
     if (quality === 'high') {
@@ -766,6 +1058,10 @@ export function Diorama() {
     }
   };
 
+  const nearbyStation = nearbyStationId ? BASE_STATIONS[nearbyStationId] : null;
+  const nearbyUnlocked = nearbyStation ? isStationUnlocked(nearbyStation.id, sol) : false;
+  const inputPaused = Boolean(screen !== 'game' || sol214Open || activeAlert);
+
   return (
     <div
       className="diorama-viewport"
@@ -773,7 +1069,15 @@ export function Diorama() {
       aria-label="Lunar Outpost HD-2D 3D Diorama Viewport"
       data-fps={fps}
       data-quality={quality}
+      data-camera-mode={cameraMode}
     >
+      {/* FPP Helmet Crosshair Reticle */}
+      {cameraMode === 'fpp' && !inputPaused && (
+        <div className="fpp-crosshair" aria-hidden="true">
+          <span className="fpp-crosshair-dot" />
+        </div>
+      )}
+
       {/* Floating Action Feedback Toast */}
       {actionToast && (
         <div className="action-toast-pill" role="status">
@@ -791,13 +1095,23 @@ export function Diorama() {
           <div className="dust-warning-desc">
             Violent surface winds will detach the solar array from its joint if exposed when the countdown reaches zero!
           </div>
-          <button
-            type="button"
-            className="btn btn-sm dust-warning-action-btn"
-            onClick={() => handleStationInteract('solar')}
-          >
-            🚶 Walk to Solar Station & Retract ({dustCountdown}s remaining)
-          </button>
+          {nearbyStationId === 'solar' ? (
+            <button
+              type="button"
+              className="btn btn-sm dust-warning-action-btn"
+              onClick={() => handleStationInteract('solar', false)}
+            >
+              ⚠️ Retract Solar Panels Now [E] ({dustCountdown}s left)
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-sm dust-warning-action-btn"
+              onClick={() => handleStationInteract('solar')}
+            >
+              🚶 Run to Solar Array with WASD &amp; Press [E] ({dustCountdown}s left)
+            </button>
+          )}
         </div>
       )}
 
@@ -829,16 +1143,124 @@ export function Diorama() {
           <div className="diorama-status-pill" title={astroData.source}>
             <span>🪐 {astroData.isLive ? 'JPL Horizons (Live)' : 'JPL Ephemeris'}</span>
           </div>
-          <div className="diorama-status-pill">
-            <span>🔄 360° Orbit Drag</span>
-          </div>
+          <button
+            type="button"
+            className="diorama-status-pill diorama-status-pill-btn"
+            onClick={() => {
+              soundManager.play('click');
+              cycleCameraMode?.();
+            }}
+            title="Switch Perspective [V]: Orbit / TPP / FPP"
+          >
+            <span>
+              {cameraMode === 'fpp'
+                ? '👁️ FPP · WASD Move · Drag/←→ Look · [E] Use'
+                : cameraMode === 'tpp'
+                  ? '🧭 TPP · WASD Move · Drag/←→ Look · [E] Use'
+                  : '🔄 ORBIT · WASD Walk · Drag Orbit · [E] Use'}
+            </span>
+          </button>
         </div>
+      </div>
+
+      {/* Bottom-Center Physical Station Proximity Prompt */}
+      <div className="station-interact-hud" aria-live="polite">
+        {nearbyStation ? (
+          <div className="station-interact-card">
+            <div className="station-interact-meta">
+              <span className="station-interact-icon" aria-hidden="true">
+                {nearbyStation.icon}
+              </span>
+              <div>
+                <div className="station-interact-title">{nearbyStation.name}</div>
+                <div className="station-interact-sub">
+                  {nearbyStation.id === 'solar'
+                    ? solarBroken
+                      ? 'BROKEN · Panels detached'
+                      : choices.panelsOut
+                        ? 'Currently EXTENDED'
+                        : 'Currently RETRACTED'
+                    : nearbyStation.id === 'shield'
+                      ? choices.shieldOn
+                        ? 'Shield Bubble ON'
+                        : 'Shield Bubble OFF'
+                      : nearbyStation.id === 'oxygen'
+                        ? `Fresh Air Flow: ${(choices.oxygenLevel || 'normal').toUpperCase()}`
+                        : nearbyStation.id === 'greenhouse'
+                          ? !nearbyUnlocked
+                            ? `Locked until Sol ${nearbyStation.unlockSol}`
+                            : choices.waterGreenhouse || choices.tendGreenhouse
+                              ? 'Watering & Tending Active'
+                              : 'Greenhouse Standby'
+                          : !nearbyUnlocked
+                            ? `Locked until Sol ${nearbyStation.unlockSol}`
+                            : choices.queueComms
+                              ? 'Earth Packet Queued'
+                              : 'Comms Dish Standby'}
+                </div>
+              </div>
+            </div>
+
+            {!nearbyUnlocked ? (
+              <span className="station-interact-locked">🔒 Sol {nearbyStation.unlockSol}</span>
+            ) : nearbyStation.id === 'solar' && solarBroken ? (
+              <span className="station-interact-locked">💥 Broken</span>
+            ) : nearbyStation.id === 'oxygen' ? (
+              <div className="station-interact-btn-group">
+                {['low', 'normal', 'high'].map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`btn btn-sm ${
+                      (choices.oxygenLevel || 'normal') === mode ? 'btn-cyan' : 'btn-ghost'
+                    }`}
+                    onClick={() => handleStationInteract('oxygen', mode)}
+                  >
+                    {mode.toUpperCase()}
+                  </button>
+                ))}
+                <span className="kbd-hint">[E]</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={() => handleStationInteract(nearbyStation.id)}
+              >
+                <span>
+                  {nearbyStation.id === 'solar'
+                    ? choices.panelsOut
+                      ? 'Retract Solar Panels'
+                      : 'Extend Solar Panels'
+                    : nearbyStation.id === 'shield'
+                      ? choices.shieldOn
+                        ? 'Turn Shield OFF'
+                        : 'Activate Shield'
+                      : nearbyStation.id === 'greenhouse'
+                        ? choices.waterGreenhouse || choices.tendGreenhouse
+                          ? 'Set Standby'
+                          : 'Water & Tend'
+                        : choices.queueComms
+                          ? 'Cancel Queue'
+                          : 'Queue Packet'}
+                </span>
+                <span className="kbd-hint" style={{ color: '#FFFFFF', background: '#050302' }}>
+                  E
+                </span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="station-explore-hint">
+            <span>WASD to explore · Walk near a station &amp; press [E]</span>
+          </div>
+        )}
       </div>
 
       <Canvas
         shadows={quality !== 'low'}
         dpr={quality === 'low' ? [1, 1] : [1, 2]}
-        camera={{ position: [0, 6.2, 14.5], fov: 44, near: 0.2, far: 650 }}
+        camera={{ position: [0, 6.2, 14.5], fov: 44, near: 0.08, far: 650 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -860,17 +1282,6 @@ export function Diorama() {
           args={[isFlare ? '#1A0505' : isDust ? '#1E1510' : '#050302']}
         />
         {isDust && <fog attach="fog" args={['#C9A878', 8, 32]} />}
-
-        <OrbitControls
-          makeDefault
-          target={[0.2, 0.15, 0.0]}
-          minDistance={7.0}
-          maxDistance={24.0}
-          minPolarAngle={Math.PI / 12}
-          maxPolarAngle={Math.PI / 2.08}
-          enableDamping
-          dampingFactor={0.06}
-        />
 
         <FpsMonitor onFpsUpdate={setFps} onAutoDowngrade={handleAutoDowngrade} />
 
@@ -916,6 +1327,7 @@ export function Diorama() {
           solarBroken={solarBroken}
           queueComms={Boolean(choices.queueComms)}
           reducedMotion={reducedMotion}
+          onInteractStation={handleStationInteract}
         />
 
         {/* 3D Physical Interaction Stations on the lunar terrain */}
@@ -923,19 +1335,20 @@ export function Diorama() {
           sol={sol}
           choices={choices}
           solarBroken={solarBroken}
-          characterPosition={characterPosition}
+          nearbyStationId={nearbyStationId}
           onInteractStation={handleStationInteract}
         />
 
-        {/* Selected Single Crew Member (Proportionate, Grounded, Physically walking) */}
-        <CharacterWalker
+        {/* Manual WASD Explorer & Camera Rig (Orbit / TPP / FPP) */}
+        <CharacterAndCameraRig
           actor={activeActor}
-          characterPosition={characterPosition}
-          targetStation={targetStation}
-          isTravelling={isTravelling}
-          reachStation={reachStation}
-          setCharacterPosition={setCharacterPosition}
+          sol={sol}
+          cameraMode={cameraMode}
+          positionResetCount={positionResetCount}
           reducedMotion={reducedMotion}
+          inputPaused={inputPaused}
+          setCharacterPosition={setCharacterPosition}
+          setNearbyStationId={setNearbyStationId}
         />
 
         <Particles

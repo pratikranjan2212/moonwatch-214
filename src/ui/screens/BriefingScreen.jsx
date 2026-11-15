@@ -38,7 +38,7 @@ export function BriefingScreen() {
           </div>
 
           <span className="forecast-sol-pill" style={{ fontSize: '0.9rem' }}>
-            Seed #{game?.seed || 2142026} · {levelConfig.targetSols} Sols
+            {levelConfig.targetSols} Sols
           </span>
         </div>
 
@@ -95,9 +95,6 @@ export function BriefingScreen() {
               <div style={{ fontSize: '0.82rem', color: 'var(--power)', fontWeight: 700 }}>
                 {COMMANDER.role} · {COMMANDER.personality}
               </div>
-              <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {COMMANDER.bio}
-              </p>
             </div>
 
             {/* 4 Crew Specialists */}
@@ -115,9 +112,6 @@ export function BriefingScreen() {
                 <div style={{ fontSize: '0.82rem', color: 'var(--oxygen)', fontWeight: 700 }}>
                   {c.role} · {c.personality}
                 </div>
-                <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  {c.bio}
-                </p>
               </div>
             ))}
           </div>
