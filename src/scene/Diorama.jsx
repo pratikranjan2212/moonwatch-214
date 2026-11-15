@@ -261,9 +261,7 @@ function OutpostMeshes({
 function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, reducedMotion = false }) {
   const sunGroupRef = useRef(null);
   const sunCoreRef = useRef(null);
-  const sunHaloRef = useRef(null);
   const coreMatRef = useRef(null);
-  const haloMatRef = useRef(null);
 
   const sunTexture = useTexture('/textures/sun_surface_2048.jpg');
 
@@ -280,7 +278,7 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
     }
   }, [sunTexture]);
 
-  // Core material — created once so useFrame can update it without re-cloning
+  // Core photosphere material — NASA SDO equirectangular texture
   const coreMat = useMemo(() => new THREE.MeshStandardMaterial({
     map: sunTexture,
     emissiveMap: sunTexture,
@@ -291,55 +289,30 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
     toneMapped: false,
   }), [sunTexture, isFlare]);
 
-  // Corona halo — slightly larger sphere behind, additive glow
-  const haloMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: new THREE.Color('#FF5500'),
-    emissive: new THREE.Color(isFlare ? '#FF9900' : '#FF6600'),
-    emissiveIntensity: isFlare ? 5.8 : 3.6,
-    transparent: true,
-    opacity: isFlare ? 0.88 : 0.72,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    toneMapped: false,
-    side: THREE.BackSide,
-  }), [isFlare]);
-
   useEffect(() => {
     coreMatRef.current = coreMat;
-    haloMatRef.current = haloMat;
-  }, [coreMat, haloMat]);
+  }, [coreMat]);
 
-  // Sun physical radius in scene units = 92.90496 / 2 = 46.45248
+  // Sun physical radius: diameter 92.90496 scene units → radius 46.45248
   const sunRadius = 46.45248;
 
   useFrame(({ clock }, delta) => {
     const t = clock.getElapsedTime();
     if (!reducedMotion) {
-      // 1. Turbulent plasma surface drift across the solar sphere
+      // Turbulent plasma surface drift simulating solar convection
       if (sunTexture) {
         sunTexture.offset.x += delta * 0.005;
         sunTexture.offset.y = Math.sin(t * 0.25) * 0.008;
         sunTexture.needsUpdate = true;
       }
-      // 2. Continuous solar differential axial rotation on core mesh
+      // Solar differential axial rotation
       if (sunCoreRef.current) {
         sunCoreRef.current.rotation.y += delta * 0.015;
       }
-      // 3. Corona halo pulsation
-      if (sunHaloRef.current) {
-        sunHaloRef.current.rotation.y -= delta * 0.032;
-        sunHaloRef.current.rotation.z += delta * 0.012;
-        const pulse = 1.0 + Math.sin(t * 2.8) * 0.018;
-        sunHaloRef.current.scale.set(pulse, pulse, pulse);
-      }
-      // 4. Blazing emissive shimmer simulating solar magnetic reconnection
+      // Emissive shimmer — simulates solar magnetic reconnection flickers
       if (coreMatRef.current) {
         const shimmer = 1.0 + Math.sin(t * 3.4) * 0.07 + Math.cos(t * 7.1) * 0.03;
         coreMatRef.current.emissiveIntensity = (isFlare ? 12.0 : 8.5) * shimmer;
-      }
-      if (haloMatRef.current) {
-        const haloShimmer = 1.0 + Math.sin(t * 2.2) * 0.09;
-        haloMatRef.current.emissiveIntensity = (isFlare ? 5.8 : 3.6) * haloShimmer;
       }
     }
   });
@@ -348,26 +321,9 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
 
   return (
     <group ref={sunGroupRef} position={position}>
-      {/* Photosphere core — procedural SphereGeometry for clean equirectangular UV mapping */}
+      {/* Photosphere core — SphereGeometry gives perfect equirectangular UV wrap */}
       <mesh ref={sunCoreRef} material={coreMat}>
         <sphereGeometry args={[sunRadius, 64, 32]} />
-      </mesh>
-      {/* Corona halo — slightly larger additive glow sphere */}
-      <mesh ref={sunHaloRef} material={haloMat}>
-        <sphereGeometry args={[sunRadius * 1.08, 32, 16]} />
-      </mesh>
-      {/* Outer atmospheric corona bloom sphere */}
-      <mesh>
-        <sphereGeometry args={[sunRadius * 1.22, 24, 12]} />
-        <meshBasicMaterial
-          color={isFlare ? '#FF4400' : '#FF2200'}
-          transparent
-          opacity={isFlare ? 0.14 : 0.07}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-          side={THREE.BackSide}
-        />
       </mesh>
     </group>
   );
@@ -382,11 +338,29 @@ function EarthInSky({ position = [-9.0, 4.8, -21.7], reducedMotion = false }) {
     if (!orig) return null;
     const cloned = orig.clone(true);
 
-    // Realistic physical scale: Earth diameter = 0.850 units
-    // Raw Earth diameter with earth.scale=1 is 0.505864
-    // targetEarthD = 0.850 -> scaleEarth = 1.680293
-    // Sun/Earth diameter ratio = 92.90496 / 0.850 = 109.29995 (Exact 1,392,700 km / 12,742 km)
-    const scaleEarth = 1.680293;
+    // ── Realistic angular size from the Moon's surface ──
+    // From the Moon, Earth subtends ~1.90° and the Sun ~0.53°.
+    // Earth appears ~3.57× LARGER than the Sun in the lunar sky.
+    //
+    // In our scene the Sun photosphere has radius = 46.45248 units
+    // placed at distance ~150 units → angular radius ≈ 17.2°.
+    //
+    // We place Earth at distance ~22 units.
+    // To match Earth/Sun angular ratio (3.57):
+    //   earthAngular = 3.57 × sunAngular = 3.57 × 17.2° = 61.4° → too big for scene.
+    //
+    // We keep the visual scene compressed: Earth is a clearly visible
+    // globe about 1/4 the apparent width of the Sun on screen.
+    // Target Earth angular radius ≈ 4.3° at d=22 → Earth radius = 22 × tan(4.3°) ≈ 1.65 units.
+    //
+    // Raw The_earth children mesh sizes (Oceano scale 0.251, tierra scale 0.242):
+    // effective radius at parent scale=1 ≈ 0.505864 / 2 = 0.2529 units
+    // scaleEarth = 1.65 / 0.2529 = 6.525  (gives diameter ~3.3 units)
+    //
+    // Sun/Earth physical diameter ratio = 109.3 — preserved in scene scale:
+    //   Sun diameter = 92.90 units; Earth diameter = 92.90/109.3 = 0.850 units
+    // This is for 3D physics consistency; visually Earth is boosted for readability.
+    const scaleEarth = 6.525;
     cloned.scale.set(scaleEarth, scaleEarth, scaleEarth);
     cloned.position.set(0, 0, 0);
 
@@ -396,23 +370,20 @@ function EarthInSky({ position = [-9.0, 4.8, -21.7], reducedMotion = false }) {
         child.receiveShadow = false;
         if (child.material) {
           child.material = child.material.clone();
-          // Keep illuminated and dark portions accurately represented:
-          // Zero emissive so the night side remains dark, while the day side
-          // shines brilliantly under direct solar illumination
           child.material.emissive.set('#000000');
           child.material.emissiveIntensity = 0;
 
-          // Oceano: Ocean water from provided model
+          // Ocean water
           if (child.name.includes('Oceano') || child.material.name.includes('eart_water')) {
-            child.material.roughness = 0.22;
-            child.material.metalness = 0.12;
-            child.material.color.set('#2563EB');
+            child.material.roughness = 0.18;
+            child.material.metalness = 0.14;
+            child.material.color.set('#1A56DB');
           }
-          // tierra: Continents & terrain from provided model
+          // Continents & terrain
           else if (child.name.includes('tierra') || child.material.name.includes('earth_terrain')) {
-            child.material.roughness = 0.72;
-            child.material.metalness = 0.05;
-            child.material.color.set('#22C55E');
+            child.material.roughness = 0.75;
+            child.material.metalness = 0.0;
+            child.material.color.set('#2D6A4F');
           }
         }
       }
@@ -423,7 +394,6 @@ function EarthInSky({ position = [-9.0, 4.8, -21.7], reducedMotion = false }) {
 
   useFrame((_, delta) => {
     if (earthRef.current && !reducedMotion) {
-      // Dynamic continuous axial rotation using provided model
       earthRef.current.rotation.y += delta * 0.12;
     }
   });
