@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { enterMobileFullscreen } from '../../utils/fullscreen.js';
 import PixelMoonCanvas from './PixelMoonCanvas.jsx';
 import { AstraPlanetBadge, PixelChevron } from './Icons.jsx';
 
@@ -147,7 +148,10 @@ export default function HeroSection({
 
               <button
                 type="button"
-                onClick={() => onOpenModal('start-game')}
+                onClick={() => {
+                  enterMobileFullscreen();
+                  onOpenModal('start-game');
+                }}
                 className="mw-start-cta"
               >
                 START GAME
@@ -206,6 +210,7 @@ export default function HeroSection({
               <button
                 type="button"
                 onClick={() => {
+                  enterMobileFullscreen();
                   setMobileMenuOpen(false);
                   onOpenModal('start-game');
                 }}

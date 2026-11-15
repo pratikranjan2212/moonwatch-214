@@ -74,6 +74,7 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--bg-space-deep);
   color: var(--text-primary);
   font-family: var(--font-body);
@@ -81,12 +82,15 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #root,
 .moonwatch-app {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: radial-gradient(
@@ -197,12 +201,17 @@ select {
   transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
   text-decoration: none;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.btn:hover:not(:disabled) {
-  border-color: var(--power);
-  color: var(--power);
-  background: rgba(255, 143, 85, 0.08);
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) {
+    border-color: var(--power);
+    color: var(--power);
+    background: rgba(255, 143, 85, 0.08);
+  }
 }
 
 .btn:active:not(:disabled) {
@@ -228,10 +237,12 @@ select {
   font-weight: 700;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--power);
-  color: #050302;
-  border-color: var(--power);
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--power);
+    color: #050302;
+    border-color: var(--power);
+  }
 }
 
 .btn-cyan {
@@ -240,10 +251,12 @@ select {
   border-color: var(--oxygen);
 }
 
-.btn-cyan:hover:not(:disabled) {
-  background: var(--oxygen);
-  color: #050302;
-  border-color: var(--oxygen);
+@media (hover: hover) and (pointer: fine) {
+  .btn-cyan:hover:not(:disabled) {
+    background: var(--oxygen);
+    color: #050302;
+    border-color: var(--oxygen);
+  }
 }
 
 .btn-danger {
@@ -252,10 +265,12 @@ select {
   border-color: var(--alert);
 }
 
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-  color: #ffffff;
-  border-color: #fca5a5;
+@media (hover: hover) and (pointer: fine) {
+  .btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #fca5a5;
+  }
 }
 
 .btn-ghost {
@@ -511,6 +526,7 @@ select {
   width: 100%;
   height: 100vh;
   height: 100svh;
+  height: 100dvh;
   overflow: hidden;
   background: #050302;
 }
@@ -522,6 +538,7 @@ select {
   width: 100vw;
   height: 100vh;
   height: 100svh;
+  height: 100dvh;
   z-index: 1;
 }
 
@@ -535,6 +552,9 @@ select {
   flex-direction: column;
   justify-content: space-between;
   pointer-events: none;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
 }
 
 .game-hud-middle {
@@ -1794,15 +1814,19 @@ select {
   padding: 0.28rem 0.56rem;
   cursor: pointer;
   transition: background 0.14s ease, color 0.14s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .camera-mode-btn:last-child {
   border-right: none;
 }
 
-.camera-mode-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 143, 85, 0.18);
+@media (hover: hover) and (pointer: fine) {
+  .camera-mode-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 143, 85, 0.18);
+  }
 }
 
 .camera-mode-btn--active {
@@ -1810,9 +1834,11 @@ select {
   color: #050302;
 }
 
-.camera-mode-btn--active:hover {
-  background: var(--power);
-  color: #050302;
+@media (hover: hover) and (pointer: fine) {
+  .camera-mode-btn--active:hover {
+    background: var(--power);
+    color: #050302;
+  }
 }
 
 .diorama-status-pill-btn {
@@ -2064,4 +2090,331 @@ select {
 
 .crew-3d-critical .crew-3d-hp-fill {
   background: var(--alert);
+}
+
+/* ==========================================================================
+   Mobile & Touch Dual-Thumb Controls (Left Joystick + Right Interact Button)
+   ========================================================================== */
+
+.mobile-touch-controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(7.35rem + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 calc(0.9rem + env(safe-area-inset-right, 0px)) 0
+    calc(0.9rem + env(safe-area-inset-left, 0px));
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.game-screen.hud-hidden .mobile-touch-controls {
+  bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+}
+
+.game-screen.mobile-drawer-active .mobile-touch-controls {
+  display: none;
+}
+
+.mobile-joystick-zone,
+.mobile-interact-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  pointer-events: none;
+}
+
+.mobile-touch-controls .mobile-joystick-pad,
+.mobile-touch-controls .mobile-joystick-ring,
+.mobile-touch-controls .mobile-joystick-knob,
+.mobile-touch-controls .mobile-interact-btn {
+  border-radius: 9999px !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mobile-joystick-pad {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 143, 85, 0.14) 0%,
+    rgba(10, 7, 5, 0.72) 72%,
+    rgba(5, 3, 2, 0.86) 100%
+  );
+  border: 1.5px solid rgba(255, 143, 85, 0.55);
+  box-shadow:
+    inset 0 0 18px rgba(0, 0, 0, 0.65),
+    0 8px 24px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.mobile-joystick-pad[data-active='true'] {
+  border-color: var(--power);
+  box-shadow:
+    inset 0 0 22px rgba(255, 143, 85, 0.22),
+    0 0 18px rgba(255, 143, 85, 0.32);
+}
+
+.mobile-joystick-ring {
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+.mobile-joystick-axis {
+  position: absolute;
+  font-size: 0.48rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.34);
+  pointer-events: none;
+}
+
+.mobile-joystick-axis--n {
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.mobile-joystick-axis--s {
+  bottom: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.mobile-joystick-axis--w {
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mobile-joystick-axis--e {
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mobile-joystick-knob {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(circle at 35% 32%, #ffd5bd 0%, var(--power) 58%, #9a3f15 100%);
+  border: 1.5px solid #ffffff;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.7),
+    0 0 12px rgba(255, 143, 85, 0.45);
+  pointer-events: none;
+  will-change: transform;
+  transform: translate3d(0px, 0px, 0px);
+}
+
+.mobile-interact-btn {
+  width: 82px;
+  height: 82px;
+  pointer-events: auto;
+  touch-action: manipulation;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  padding: 0.35rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: radial-gradient(
+    circle at 50% 42%,
+    rgba(28, 22, 18, 0.88) 0%,
+    rgba(8, 6, 4, 0.92) 100%
+  );
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mobile-interact-btn:active {
+  transform: scale(0.93);
+}
+
+.mobile-interact-btn--ready {
+  border-color: var(--power);
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(255, 143, 85, 0.36) 0%,
+    rgba(24, 14, 8, 0.92) 78%
+  );
+  box-shadow:
+    0 0 20px rgba(255, 143, 85, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.72);
+}
+
+.mobile-interact-btn--idle {
+  border-color: rgba(255, 255, 255, 0.32);
+  opacity: 0.84;
+}
+
+.mobile-interact-btn--locked {
+  border-color: rgba(255, 77, 77, 0.55);
+  color: #fca5a5;
+}
+
+.mobile-interact-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.mobile-interact-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-interact-sub {
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.mobile-control-tag {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.68);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+@media (pointer: coarse) {
+  .station-explore-hint {
+    display: none;
+  }
+
+  .game-bottom-bar {
+    padding-bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .station-interact-hud {
+    bottom: calc(14.35rem + env(safe-area-inset-bottom, 0px));
+    max-width: min(360px, calc(100vw - 1.4rem));
+  }
+
+  .game-screen.hud-hidden .station-interact-hud {
+    bottom: calc(7.8rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.game-screen:has(.mobile-touch-controls) .station-explore-hint,
+.game-screen:has(.mobile-touch-controls) .gauges-panel .hud-section-title,
+.game-screen:has(.mobile-touch-controls) .controls-compact-dock .kbd-hint,
+.game-screen:has(.mobile-touch-controls) .station-interact-card .kbd-hint,
+.game-screen:has(.mobile-touch-controls) .gauge-shape-label {
+  display: none;
+}
+
+.game-screen:has(.mobile-touch-controls) .gauges-panel {
+  padding: 0.28rem 0.42rem;
+}
+
+.game-screen:has(.mobile-touch-controls) .station-interact-hud {
+  bottom: calc(15.35rem + env(safe-area-inset-bottom, 0px));
+  max-width: min(360px, calc(100vw - 1.4rem));
+}
+
+.game-screen.hud-hidden:has(.mobile-touch-controls) .station-interact-hud {
+  bottom: calc(8.4rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Landscape mobile: tuck joystick & button to outer corners with center HUD between them */
+@media (max-height: 540px) and (min-width: 560px) {
+  .game-screen:has(.mobile-touch-controls) .mobile-touch-controls {
+    bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .game-screen:has(.mobile-touch-controls) .mobile-joystick-pad {
+    width: 92px;
+    height: 92px;
+  }
+
+  .game-screen:has(.mobile-touch-controls) .mobile-joystick-ring {
+    width: 58px;
+    height: 58px;
+  }
+
+  .game-screen:has(.mobile-touch-controls) .mobile-joystick-knob {
+    width: 38px;
+    height: 38px;
+  }
+
+  .game-screen:has(.mobile-touch-controls) .mobile-interact-btn {
+    width: 78px;
+    height: 78px;
+  }
+
+  .game-screen:has(.mobile-touch-controls) .game-bottom-bar {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-end !important;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0 calc(6.4rem + env(safe-area-inset-right, 0px))
+      calc(0.4rem + env(safe-area-inset-bottom, 0px))
+      calc(7.1rem + env(safe-area-inset-left, 0px));
+  }
+
+  .game-screen:has(.mobile-touch-controls) .game-bottom-bar .gauges-panel {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 318px;
+    padding: 0.22rem 0.34rem;
+  }
+
+  .game-screen:has(.mobile-touch-controls) .game-bottom-bar .controls-compact-dock {
+    align-self: flex-end;
+    flex-shrink: 0;
+  }
+
+  .game-screen:has(.mobile-touch-controls) .next-sol-btn {
+    min-height: 32px;
+    padding: 0.26rem 0.52rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+  }
+
+  .game-screen:has(.mobile-touch-controls) .station-interact-hud {
+    bottom: calc(4.85rem + env(safe-area-inset-bottom, 0px));
+    max-width: min(360px, calc(100vw - 14.5rem));
+  }
+
+  .game-screen:has(.mobile-touch-controls) .station-interact-card {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.32rem 0.52rem;
+  }
 }

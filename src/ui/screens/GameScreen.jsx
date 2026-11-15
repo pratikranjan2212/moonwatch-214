@@ -4,6 +4,7 @@ import useGameStore from '../../store/useGameStore.js';
 import Controls from '../hud/Controls.jsx';
 import Forecast from '../hud/Forecast.jsx';
 import Gauges from '../hud/Gauges.jsx';
+import MobileControls from '../hud/MobileControls.jsx';
 import TopBar from '../hud/TopBar.jsx';
 import AlertModal from '../modals/AlertModal.jsx';
 import Sol214Card from '../modals/Sol214Card.jsx';
@@ -439,6 +440,8 @@ export function GameScreen({ SceneComponent = null }) {
             <Forecast />
           </div>
         </main>
+
+        <MobileControls />
 
         <div
           className={`game-bottom-bar ${

@@ -9,6 +9,7 @@ import { getEventsForSol, getForecast, normalizeEventType } from '../engine/even
 import { createRNG, normalizeSeed } from '../engine/rng.js';
 import { BASE_STATIONS, isNearStation, isStationUnlocked } from '../engine/stations.js';
 import { createInitialState, resolveSol214Choice, tick } from '../engine/tick.js';
+import { enterMobileFullscreen } from '../utils/fullscreen.js';
 
 /**
  * @typedef {Object} GaugesState
@@ -114,6 +115,10 @@ export const useGameStore = create((set, get) => {
    * @param {Object} [options={}]
    */
   const startLevel = (level = 1, seed = undefined, options = {}) => {
+    const nextScreen = options.screen || 'game';
+    if (nextScreen === 'game' || nextScreen === 'briefing' || nextScreen === 'tutorial') {
+      enterMobileFullscreen();
+    }
     const currentData = get().data;
     const resolvedSeed =
       seed !== undefined && seed !== null
@@ -131,7 +136,6 @@ export const useGameStore = create((set, get) => {
     const sol214Open = Boolean(
       initialAlert && normalizeEventType(initialAlert.type) === 'sol214' && !nextGame.sol214.resolved
     );
-    const nextScreen = options.screen || 'game';
 
     set((state) => ({
       game: nextGame,
@@ -285,6 +289,9 @@ export const useGameStore = create((set, get) => {
    * @param {'title'|'briefing'|'tutorial'|'game'|'debrief'|'settings'} screen
    */
   const setScreen = (screen) => {
+    if (screen === 'game' || screen === 'briefing' || screen === 'tutorial') {
+      enterMobileFullscreen();
+    }
     set((state) => ({
       ui: {
         ...state.ui,
@@ -436,14 +443,14 @@ export const useGameStore = create((set, get) => {
     if (!station) {
       set({
         actionToast:
-          'Walk near a station (Solar Array, Shield Dome, O₂, Greenhouse, or Comms) with WASD to interact.',
+          'Walk near a station (Solar Array, Shield Dome, O₂, Greenhouse, or Comms) to interact.',
       });
       return { ok: false, reason: 'none-nearby' };
     }
 
     if (!isNearStation(characterPosition, targetId)) {
       set({
-        actionToast: `Too far from ${station.name} — walk closer with WASD first, then press [E] or click!`,
+        actionToast: `Too far from ${station.name} — walk closer first, then interact!`,
       });
       return { ok: false, reason: 'too-far', stationId: targetId };
     }

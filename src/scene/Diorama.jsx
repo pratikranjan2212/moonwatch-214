@@ -25,6 +25,7 @@ import {
 import { resolveCharacterMovement } from '../engine/collision.js';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
 import { BASE_STATIONS, findNearestStation, isStationUnlocked } from '../engine/stations.js';
+import { getVirtualJoystick, resetVirtualJoystick } from '../engine/touchInput.js';
 import useGameStore from '../store/useGameStore.js';
 import Lighting from './Lighting.jsx';
 import MoonBase from './MoonBase.jsx';
@@ -547,7 +548,7 @@ function CharacterAndCameraRig({
   const walkPhaseRef = useRef(0);
 
   const keysRef = useRef(new Set());
-  const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
+  const dragRef = useRef({ active: false, pointerId: null, lastX: 0, lastY: 0 });
   const hoverRef = useRef({ hasPrev: false, lastX: 0, lastY: 0 });
   const inputPausedRef = useRef(inputPaused);
   inputPausedRef.current = inputPaused;
@@ -662,7 +663,9 @@ function CharacterAndCameraRig({
     const clearKeys = () => {
       keysRef.current.clear();
       dragRef.current.active = false;
+      dragRef.current.pointerId = null;
       hoverRef.current.hasPrev = false;
+      resetVirtualJoystick();
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -673,6 +676,7 @@ function CharacterAndCameraRig({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', clearKeys);
+      resetVirtualJoystick();
     };
   }, []);
 
@@ -681,6 +685,8 @@ function CharacterAndCameraRig({
     if (inputPaused) {
       keysRef.current.clear();
       dragRef.current.active = false;
+      dragRef.current.pointerId = null;
+      resetVirtualJoystick();
       if (document.pointerLockElement === gl?.domElement) {
         document.exitPointerLock?.();
       }
@@ -769,7 +775,7 @@ function CharacterAndCameraRig({
       if (el.closest('.station-3d-badge')) return false;
       return Boolean(
         el.closest(
-          '.topbar, .game-forecast-col, .mobile-hud-pills, .game-bottom-bar, .station-interact-card, .modal-backdrop, button, a, input, select, textarea'
+          '.topbar, .game-forecast-col, .mobile-hud-pills, .game-bottom-bar, .station-interact-card, .mobile-touch-controls, .mobile-joystick-zone, .mobile-interact-zone, .modal-backdrop, button, a, input, select, textarea'
         )
       );
     };
@@ -793,8 +799,14 @@ function CharacterAndCameraRig({
     };
 
     const onPointerDown = (e) => {
-      if (e.button !== 0 && e.button !== 2) return;
-      dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
+      if (isInteractiveHudTarget(e.target)) return;
+      if (e.pointerType !== 'touch' && e.button !== 0 && e.button !== 2) return;
+      dragRef.current = {
+        active: true,
+        pointerId: e.pointerId ?? null,
+        lastX: e.clientX,
+        lastY: e.clientY,
+      };
       hoverRef.current = { hasPrev: true, lastX: e.clientX, lastY: e.clientY };
     };
 
@@ -802,6 +814,7 @@ function CharacterAndCameraRig({
       if (inputPausedRef.current) {
         hoverRef.current.hasPrev = false;
         dragRef.current.active = false;
+        dragRef.current.pointerId = null;
         return;
       }
 
@@ -811,6 +824,9 @@ function CharacterAndCameraRig({
       }
 
       if (dragRef.current.active) {
+        if (dragRef.current.pointerId !== null && e.pointerId !== dragRef.current.pointerId) {
+          return;
+        }
         const dx = e.clientX - dragRef.current.lastX;
         const dy = e.clientY - dragRef.current.lastY;
         dragRef.current.lastX = e.clientX;
@@ -839,8 +855,18 @@ function CharacterAndCameraRig({
       applyLookDelta(dx, dy);
     };
 
-    const resetLookTracking = () => {
+    const resetLookTracking = (e) => {
+      if (
+        e &&
+        typeof e.pointerId === 'number' &&
+        dragRef.current.active &&
+        dragRef.current.pointerId !== null &&
+        e.pointerId !== dragRef.current.pointerId
+      ) {
+        return;
+      }
       dragRef.current.active = false;
+      dragRef.current.pointerId = null;
       hoverRef.current.hasPrev = false;
     };
 
@@ -924,14 +950,18 @@ function CharacterAndCameraRig({
       const rightX = -fwdZ;
       const rightZ = fwdX;
 
-      const moveFwd =
+      const joy = getVirtualJoystick();
+      const keyFwd =
         (keys.has('w') || keys.has('arrowup') ? 1 : 0) -
         (keys.has('s') || keys.has('arrowdown') ? 1 : 0);
-      const moveStrafe =
+      const keyStrafe =
         cameraMode === 'orbit'
           ? (keys.has('d') || keys.has('arrowright') ? 1 : 0) -
             (keys.has('a') || keys.has('arrowleft') ? 1 : 0)
           : (keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0);
+
+      const moveFwd = THREE.MathUtils.clamp(keyFwd + joy.y, -1, 1);
+      const moveStrafe = THREE.MathUtils.clamp(keyStrafe + joy.x, -1, 1);
 
       let vx = fwdX * moveFwd + rightX * moveStrafe;
       let vz = fwdZ * moveFwd + rightZ * moveStrafe;
@@ -939,9 +969,10 @@ function CharacterAndCameraRig({
 
       if (len > 0.001) {
         movingNow = true;
+        const inputMagnitude = Math.min(1, Math.hypot(moveFwd, moveStrafe));
         vx /= len;
         vz /= len;
-        const speed = keys.has('shift') ? 4.6 : 3.0;
+        const speed = (keys.has('shift') ? 4.6 : 3.0) * inputMagnitude;
         const resolved = resolveCharacterMovement(
           posRef.current.x + vx * speed * dt,
           posRef.current.z + vz * speed * dt,

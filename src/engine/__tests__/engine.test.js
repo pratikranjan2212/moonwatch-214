@@ -36,8 +36,19 @@ import {
 } from '../events.js';
 import { COMMANDER, CREW_MOODS, LEVELS, STARTER_CREW, createInitialCrew, getLevelConfig } from '../levels.js';
 import { createRNG, mulberry32, normalizeSeed } from '../rng.js';
+import {
+  computeJoystickVector,
+  getVirtualJoystick,
+  resetVirtualJoystick,
+  setVirtualJoystick,
+} from '../touchInput.js';
 import { createInitialState, resolveSol214Choice, tick } from '../tick.js';
 import { useGameStore } from '../../store/useGameStore.js';
+import {
+  enterBrowserFullscreen,
+  enterMobileFullscreen,
+  isCoarseTouchDevice,
+} from '../../utils/fullscreen.js';
 import { firstTimeStrategy, optimalStrategy, simulateSingleRun } from '../../../scripts/simulate.js';
 
 describe('1. Seeded RNG Determinism (rng.js)', () => {
@@ -681,5 +692,97 @@ describe('9. Character-Referenced Camera Rig (camera.js)', () => {
     expect(step.nextCameraPos[0] - step.nextTarget[0]).toBeCloseTo(startCam[0] - startTarget[0], 6);
     expect(step.nextCameraPos[1] - step.nextTarget[1]).toBeCloseTo(startCam[1] - startTarget[1], 6);
     expect(step.nextCameraPos[2] - step.nextTarget[2]).toBeCloseTo(startCam[2] - startTarget[2], 6);
+  });
+});
+
+describe('10. Mobile Virtual Joystick & Auto-Fullscreen Controls', () => {
+  it('applies deadzone, DOM-upward forward mapping, and radial clamping', () => {
+    // Inside deadzone (ratio = 4 / 40 = 0.10 < 0.14) -> zero velocity
+    const inside = computeJoystickVector(4, 0, 40, 0.14);
+    expect(inside.x).toBe(0);
+    expect(inside.y).toBe(0);
+    expect(inside.magnitude).toBe(0);
+
+    // Dragging straight UP on screen (deltaY < 0) beyond maxRadius -> forward (+1) clamped
+    const up = computeJoystickVector(0, -100, 40, 0.14);
+    expect(up.x).toBeCloseTo(0, 6);
+    expect(up.y).toBeCloseTo(1, 6);
+    expect(up.knobX).toBeCloseTo(0, 6);
+    expect(up.knobY).toBeCloseTo(-40, 6);
+    expect(up.magnitude).toBeCloseTo(1, 6);
+
+    // Dragging diagonally down-right -> clamped to circle edge
+    const diag = computeJoystickVector(60, 60, 40, 0.14);
+    expect(Math.hypot(diag.knobX, diag.knobY)).toBeCloseTo(40, 5);
+    expect(diag.x).toBeCloseTo(Math.SQRT1_2, 5);
+    expect(diag.y).toBeCloseTo(-Math.SQRT1_2, 5);
+
+    // Invalid inputs fail safely to zero
+    expect(computeJoystickVector(Number.NaN, 10, 40)).toEqual({
+      x: 0,
+      y: 0,
+      knobX: 0,
+      knobY: 0,
+      magnitude: 0,
+    });
+  });
+
+  it('stores clamped virtual joystick state and resets cleanly', () => {
+    setVirtualJoystick({ x: 2.5, y: -1.8, active: true });
+    expect(getVirtualJoystick()).toEqual({ x: 1, y: -1, active: true });
+
+    resetVirtualJoystick();
+    expect(getVirtualJoystick()).toEqual({ x: 0, y: 0, active: false });
+  });
+
+  it('detects coarse/touch viewports without misclassifying fine desktop mice', () => {
+    const mobileWin = {
+      innerWidth: 390,
+      matchMedia: (q) => ({ matches: q === '(pointer: coarse)' || q === '(any-pointer: coarse)' }),
+    };
+    expect(isCoarseTouchDevice(mobileWin, { maxTouchPoints: 5 })).toBe(true);
+
+    const desktopTouchMonitorWin = {
+      innerWidth: 1440,
+      matchMedia: (q) => ({ matches: q === '(any-pointer: coarse)' }),
+    };
+    expect(isCoarseTouchDevice(desktopTouchMonitorWin, { maxTouchPoints: 10 })).toBe(false);
+
+    const desktopMouseWin = {
+      innerWidth: 1280,
+      matchMedia: () => ({ matches: false }),
+    };
+    expect(isCoarseTouchDevice(desktopMouseWin, { maxTouchPoints: 0 })).toBe(false);
+  });
+
+  it('enters mobile fullscreen idempotently and skips fine desktop devices', async () => {
+    let calls = 0;
+    const mockDoc = {
+      fullscreenElement: null,
+      documentElement: {
+        requestFullscreen: async () => {
+          calls += 1;
+          mockDoc.fullscreenElement = mockDoc.documentElement;
+        },
+      },
+    };
+    const mobileWin = {
+      innerWidth: 844,
+      matchMedia: (q) => ({ matches: q === '(pointer: coarse)' }),
+    };
+    const desktopWin = {
+      innerWidth: 1440,
+      matchMedia: () => ({ matches: false }),
+    };
+
+    expect(await enterMobileFullscreen(desktopWin, { maxTouchPoints: 0 }, mockDoc)).toBe(false);
+    expect(calls).toBe(0);
+
+    expect(await enterMobileFullscreen(mobileWin, { maxTouchPoints: 5 }, mockDoc)).toBe(true);
+    expect(calls).toBe(1);
+
+    // Second play/level tap while already fullscreen does NOT toggle back out
+    expect(await enterBrowserFullscreen(mockDoc)).toBe(true);
+    expect(calls).toBe(1);
   });
 });
