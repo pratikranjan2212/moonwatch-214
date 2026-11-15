@@ -583,8 +583,6 @@ export function Diorama() {
   const updateSettings = useGameStore((s) => s.updateSettings);
 
   const [fps, setFps] = useState(60);
-  const [fallback2D, setFallback2D] = useState(false);
-  const [fallbackReason, setFallbackReason] = useState(null);
 
   const sol = game?.sol || 1;
   const level = game?.level || 1;
@@ -783,19 +781,15 @@ export function Diorama() {
   };
 
   const handleAutoDowngrade = (measuredFps) => {
+    // Only downgrade quality settings — never fall back to 2D
     if (quality === 'high') {
       updateSettings({ quality: 'medium' });
     } else if (quality === 'medium') {
       updateSettings({ quality: 'low' });
-    } else if (measuredFps < 30) {
-      setFallbackReason(`${measuredFps} FPS < 30 target`);
-      setFallback2D(true);
     }
+    // If already at 'low' quality and still struggling, do nothing — keep 3D always
+    void measuredFps;
   };
-
-  if (fallback2D) {
-    return <Parallax2D reason={fallbackReason} />;
-  }
 
   return (
     <div
