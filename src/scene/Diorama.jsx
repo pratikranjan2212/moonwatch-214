@@ -328,7 +328,7 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
   );
 }
 
-function EarthInSky({ position = [-18.3, 7.2, -61.9], reducedMotion = false }) {
+function EarthInSky({ position = [-48.8, 4.2, -109.6], reducedMotion = false }) {
   const gltf = useGLTF('/models/Moon_base.glb');
   const earthRef = useRef(null);
 
@@ -337,10 +337,10 @@ function EarthInSky({ position = [-18.3, 7.2, -61.9], reducedMotion = false }) {
     if (!orig) return null;
     const cloned = orig.clone(true);
 
-    // Realistic angular presence: from the lunar surface, Earth hangs as a majestic,
-    // large blue-marble globe deep in the space sky, clearly dwarfing the outpost modules.
-    // scaleEarth = 28.0 gives ~14.2 units diameter at distance ~65 units.
-    const scaleEarth = 28.0;
+    // Realistic grand celestial scale: from the lunar surface, Earth hangs deep in space
+    // as a massive, stunning blue-marble planet in the celestial sky above the outpost.
+    // scaleEarth = 52.0 gives ~26.3 units diameter at astronomical distance ~120 units.
+    const scaleEarth = 52.0;
     cloned.scale.set(scaleEarth, scaleEarth, scaleEarth);
     cloned.position.set(0, 0, 0);
 

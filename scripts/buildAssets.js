@@ -142,75 +142,224 @@ async function buildDracoModels() {
 }
 
 function buildCrewSpriteAtlas() {
-  // 5 characters (commander, engineer, doctor, botanist, pilot)
+  // 5 astronauts (commander, engineer, doctor, botanist, pilot)
   // Each row = 15 frames of 32x48 px: idle(2), walk(4), worried(2), run(4), cheer(3)
   const frameW = 32;
   const frameH = 48;
   const cols = 15;
+
   const characters = [
-    { id: 'commander', suit: '#FFF1C9', visor: '#35D0E6', trim: '#FFB020' },
-    { id: 'engineer', suit: '#FFB020', visor: '#35D0E6', trim: '#1C1F3A' },
-    { id: 'doctor', suit: '#35D0E6', visor: '#FFF1C9', trim: '#FF4D4D' },
-    { id: 'botanist', suit: '#4ADE80', visor: '#35D0E6', trim: '#FFF1C9' },
-    { id: 'pilot', suit: '#8E6CFF', visor: '#FFB020', trim: '#FFF1C9' },
+    {
+      id: 'commander',
+      suitLight: '#FFFFFF',
+      suitBase: '#E2E8F0',
+      suitDark: '#94A3B8',
+      trim: '#EF4444', // Red NASA command stripes
+      accent: '#F59E0B', // Gold mission patch
+      visorLight: '#FEF08A', // Reflective gold visor glint
+      visorBase: '#F59E0B', // Apollo gold visor
+      visorDark: '#B45309',
+      packBase: '#64748B',
+      packLight: '#22C55E', // Green status beacon
+      boots: '#1E293B',
+    },
+    {
+      id: 'engineer',
+      suitLight: '#FB923C',
+      suitBase: '#EA580C', // Hazard safety orange
+      suitDark: '#9A3412',
+      trim: '#1E293B', // Dark industrial trim
+      accent: '#FBBF24', // Caution yellow
+      visorLight: '#BAE6FD',
+      visorBase: '#0284C7', // Polarized cobalt visor
+      visorDark: '#0369A1',
+      packBase: '#475569',
+      packLight: '#F59E0B', // Amber warning beacon
+      boots: '#0F172A',
+    },
+    {
+      id: 'doctor',
+      suitLight: '#67E8F9',
+      suitBase: '#06B6D4', // Medical cyan
+      suitDark: '#0E7490',
+      trim: '#FFFFFF', // Pure white emergency bands
+      accent: '#DC2626', // Red cross
+      visorLight: '#E0F2FE',
+      visorBase: '#38BDF8', // Soft sky blue visor
+      visorDark: '#0284C7',
+      packBase: '#94A3B8',
+      packLight: '#38BDF8', // Blue life-support telemetry
+      boots: '#334155',
+    },
+    {
+      id: 'botanist',
+      suitLight: '#86EFAC',
+      suitBase: '#16A34A', // Biosphere emerald green
+      suitDark: '#14532D',
+      trim: '#FEF08A', // Gold leaf accents
+      accent: '#A3E635', // Bio-lime
+      visorLight: '#A7F3D0',
+      visorBase: '#10B981', // Reflective emerald visor
+      visorDark: '#047857',
+      packBase: '#475569',
+      packLight: '#10B981', // Green O2 bio-status
+      boots: '#1E293B',
+    },
+    {
+      id: 'pilot',
+      suitLight: '#818CF8',
+      suitBase: '#4F46E5', // Deep flight indigo
+      suitDark: '#312E81',
+      trim: '#C084FC', // Amethyst violet trim
+      accent: '#F43F5E', // Nav indicator
+      visorLight: '#FEF9C3',
+      visorBase: '#EAB308', // High-contrast flight gold visor
+      visorDark: '#854D0E',
+      packBase: '#334155',
+      packLight: '#EC4899', // Pink flight beacon
+      boots: '#0F172A',
+    },
   ];
 
   const png = new PNG({ width: frameW * cols, height: frameH * characters.length });
-  const outline = hexToRgba('#1C1F3A');
-  const shadow = hexToRgba('#1C1F3A', 140);
-  const alertRed = hexToRgba('#FF4D4D');
+  const darkOutline = hexToRgba('#0B0F19');
+  const shadowRgba = hexToRgba('#05070E', 120);
 
   const animFrames = [
-    { anim: 'idle', idx: 0, bob: 0, stride: 0, armsUp: false, alert: false },
-    { anim: 'idle', idx: 1, bob: 1, stride: 0, armsUp: false, alert: false },
-    { anim: 'walk', idx: 0, bob: 0, stride: -2, armsUp: false, alert: false },
-    { anim: 'walk', idx: 1, bob: 1, stride: 0, armsUp: false, alert: false },
-    { anim: 'walk', idx: 2, bob: 0, stride: 2, armsUp: false, alert: false },
-    { anim: 'walk', idx: 3, bob: 1, stride: 0, armsUp: false, alert: false },
-    { anim: 'worried', idx: 0, bob: 1, stride: 0, armsUp: false, alert: true },
-    { anim: 'worried', idx: 1, bob: 2, stride: 0, armsUp: false, alert: true },
-    { anim: 'run', idx: 0, bob: -1, stride: -4, armsUp: false, alert: true },
-    { anim: 'run', idx: 1, bob: 0, stride: -1, armsUp: false, alert: true },
-    { anim: 'run', idx: 2, bob: -1, stride: 4, armsUp: false, alert: true },
-    { anim: 'run', idx: 3, bob: 0, stride: 1, armsUp: false, alert: true },
-    { anim: 'cheer', idx: 0, bob: -2, stride: 0, armsUp: true, alert: false },
-    { anim: 'cheer', idx: 1, bob: -4, stride: 1, armsUp: true, alert: false },
-    { anim: 'cheer', idx: 2, bob: -1, stride: 0, armsUp: true, alert: false },
+    { anim: 'idle', idx: 0, bob: 0, stride: 0, armLeft: 0, armRight: 0, visorGlint: 0, alert: false, armsUp: false },
+    { anim: 'idle', idx: 1, bob: -1, stride: 0, armLeft: 0, armRight: 0, visorGlint: 1, alert: false, armsUp: false },
+    { anim: 'walk', idx: 0, bob: 0, stride: -2, armLeft: -2, armRight: 2, visorGlint: 0, alert: false, armsUp: false },
+    { anim: 'walk', idx: 1, bob: -1, stride: -1, armLeft: -1, armRight: 1, visorGlint: 1, alert: false, armsUp: false },
+    { anim: 'walk', idx: 2, bob: 0, stride: 2, armLeft: 2, armRight: -2, visorGlint: 0, alert: false, armsUp: false },
+    { anim: 'walk', idx: 3, bob: -1, stride: 1, armLeft: 1, armRight: -1, visorGlint: 1, alert: false, armsUp: false },
+    { anim: 'worried', idx: 0, bob: -1, stride: 0, armLeft: -1, armRight: -1, visorGlint: 0, alert: true, armsUp: false },
+    { anim: 'worried', idx: 1, bob: -2, stride: 0, armLeft: -2, armRight: -2, visorGlint: 1, alert: true, armsUp: false },
+    { anim: 'run', idx: 0, bob: -1, stride: -3, armLeft: -3, armRight: 3, visorGlint: 0, alert: true, armsUp: false },
+    { anim: 'run', idx: 1, bob: -2, stride: -1, armLeft: -2, armRight: 2, visorGlint: 1, alert: true, armsUp: false },
+    { anim: 'run', idx: 2, bob: -1, stride: 3, armLeft: 3, armRight: -3, visorGlint: 0, alert: true, armsUp: false },
+    { anim: 'run', idx: 3, bob: -2, stride: 1, armLeft: 2, armRight: -2, visorGlint: 1, alert: true, armsUp: false },
+    { anim: 'cheer', idx: 0, bob: -2, stride: 0, armLeft: 0, armRight: 0, visorGlint: 0, alert: false, armsUp: true },
+    { anim: 'cheer', idx: 1, bob: -4, stride: 1, armLeft: 0, armRight: 0, visorGlint: 1, alert: false, armsUp: true },
+    { anim: 'cheer', idx: 2, bob: -2, stride: 0, armLeft: 0, armRight: 0, visorGlint: 0, alert: false, armsUp: true },
   ];
 
   const framesJson = {};
 
   characters.forEach((char, row) => {
-    const suit = hexToRgba(char.suit);
-    const visor = hexToRgba(char.visor);
-    const trim = hexToRgba(char.trim);
     framesJson[char.id] = { idle: [], walk: [], worried: [], run: [], cheer: [] };
+
+    const cSuitLight = hexToRgba(char.suitLight);
+    const cSuitBase = hexToRgba(char.suitBase);
+    const cSuitDark = hexToRgba(char.suitDark);
+    const cTrim = hexToRgba(char.trim);
+    const cAccent = hexToRgba(char.accent);
+    const cVisorLight = hexToRgba(char.visorLight);
+    const cVisorBase = hexToRgba(char.visorBase);
+    const cVisorDark = hexToRgba(char.visorDark);
+    const cPackBase = hexToRgba(char.packBase);
+    const cPackLight = hexToRgba(char.packLight);
+    const cBoots = hexToRgba(char.boots);
+    const cAlertVisor = hexToRgba('#EF4444');
+    const cAlertGlint = hexToRgba('#FCA5A5');
 
     animFrames.forEach((f, col) => {
       const ox = col * frameW;
       const oy = row * frameH;
       const by = oy + f.bob;
 
-      // Ground shadow
-      fillRect(png, ox + 8, oy + 42, 16, 3, shadow);
-      // Helmet outline & fill
-      fillRect(png, ox + 9, by + 6, 14, 13, outline);
-      fillRect(png, ox + 10, by + 7, 12, 11, suit);
-      // Visor
-      fillRect(png, ox + 12, by + 9, 8, 6, f.alert ? alertRed : visor);
-      // Backpack & Torso
-      fillRect(png, ox + 7, by + 19, 18, 13, outline);
-      fillRect(png, ox + 9, by + 20, 14, 11, suit);
-      fillRect(png, ox + 11, by + 23, 10, 3, trim);
-      // Arms
-      const armY = f.armsUp ? by + 13 : by + 20;
-      fillRect(png, ox + 6, armY, 3, 9, suit);
-      fillRect(png, ox + 23, armY, 3, 9, suit);
-      // Legs
-      fillRect(png, ox + 10 + f.stride, oy + 32, 5, 10, outline);
-      fillRect(png, ox + 11 + f.stride, oy + 32, 3, 9, suit);
-      fillRect(png, ox + 17 - f.stride, oy + 32, 5, 10, outline);
-      fillRect(png, ox + 18 - f.stride, oy + 32, 3, 9, suit);
+      // 1. Lunar Ground Contact Shadow
+      fillRect(png, ox + 6, oy + 43, 20, 3, shadowRgba);
+      fillRect(png, ox + 8, oy + 44, 16, 2, shadowRgba);
+
+      // 2. PLSS Life Support Backpack
+      fillRect(png, ox + 8, by + 16, 16, 15, darkOutline);
+      fillRect(png, ox + 9, by + 17, 14, 13, cPackBase);
+      fillRect(png, ox + 11, by + 18, 4, 10, cSuitDark);
+      fillRect(png, ox + 17, by + 18, 4, 10, cSuitDark);
+      setPixel(png, ox + 22, by + 14, darkOutline);
+      setPixel(png, ox + 22, by + 13, f.alert ? hexToRgba('#FF3B30') : cPackLight);
+      setPixel(png, ox + 23, by + 13, f.alert ? hexToRgba('#FF8080') : cSuitLight);
+
+      // 3. Rounded EVA Space Helmet
+      fillRect(png, ox + 10, by + 4, 12, 14, darkOutline);
+      fillRect(png, ox + 9, by + 6, 14, 10, darkOutline);
+      fillRect(png, ox + 11, by + 5, 10, 12, cSuitBase);
+      fillRect(png, ox + 10, by + 7, 12, 8, cSuitBase);
+      fillRect(png, ox + 12, by + 5, 6, 2, cSuitLight);
+      setPixel(png, ox + 13, by + 6, hexToRgba('#FFFFFF'));
+
+      // 4. Apollo Gold / Reflective Curved Visor
+      const vLight = f.alert ? cAlertGlint : cVisorLight;
+      const vBase = f.alert ? cAlertVisor : cVisorBase;
+      const vDark = f.alert ? hexToRgba('#991B1B') : cVisorDark;
+
+      fillRect(png, ox + 11, by + 8, 10, 7, darkOutline);
+      fillRect(png, ox + 12, by + 9, 8, 5, vBase);
+      fillRect(png, ox + 12, by + 13, 8, 1, vDark);
+      const glintX = f.visorGlint === 1 ? 13 : 14;
+      fillRect(png, ox + glintX, by + 9, 3, 2, vLight);
+      setPixel(png, ox + glintX, by + 9, hexToRgba('#FFFFFF'));
+
+      // 5. Helmet-to-Suit Neck Ring
+      fillRect(png, ox + 11, by + 17, 10, 2, darkOutline);
+      fillRect(png, ox + 12, by + 17, 8, 1, cTrim);
+
+      // 6. Pressurized Torso & Chest Pack
+      fillRect(png, ox + 9, by + 18, 14, 14, darkOutline);
+      fillRect(png, ox + 10, by + 19, 12, 12, cSuitBase);
+      fillRect(png, ox + 9, by + 19, 3, 3, cTrim);
+      fillRect(png, ox + 20, by + 19, 3, 3, cTrim);
+      fillRect(png, ox + 12, by + 21, 8, 6, darkOutline);
+      fillRect(png, ox + 13, by + 22, 6, 4, hexToRgba('#1E293B'));
+      setPixel(png, ox + 14, by + 23, cAccent);
+      setPixel(png, ox + 16, by + 23, f.alert ? hexToRgba('#EF4444') : hexToRgba('#10B981'));
+      fillRect(png, ox + 10, by + 30, 12, 2, darkOutline);
+      fillRect(png, ox + 11, by + 30, 10, 1, cBoots);
+      fillRect(png, ox + 15, by + 30, 2, 2, cTrim);
+
+      // 7. Padded Astronaut Arms & Reinforced Gloves
+      if (f.armsUp) {
+        fillRect(png, ox + 6, by + 10, 4, 11, darkOutline);
+        fillRect(png, ox + 7, by + 11, 2, 9, cSuitBase);
+        fillRect(png, ox + 6, by + 9, 4, 3, cBoots);
+        fillRect(png, ox + 22, by + 10, 4, 11, darkOutline);
+        fillRect(png, ox + 23, by + 11, 2, 9, cSuitBase);
+        fillRect(png, ox + 22, by + 9, 4, 3, cBoots);
+      } else {
+        const leftArmY = by + 20 + f.armLeft;
+        const rightArmY = by + 20 + f.armRight;
+
+        fillRect(png, ox + 6, leftArmY, 4, 11, darkOutline);
+        fillRect(png, ox + 7, leftArmY + 1, 2, 7, cSuitBase);
+        fillRect(png, ox + 6, leftArmY + 2, 3, 2, cTrim);
+        fillRect(png, ox + 6, leftArmY + 8, 4, 3, cBoots);
+
+        fillRect(png, ox + 22, rightArmY, 4, 11, darkOutline);
+        fillRect(png, ox + 23, rightArmY + 1, 2, 7, cSuitBase);
+        fillRect(png, ox + 23, rightArmY + 2, 3, 2, cTrim);
+        fillRect(png, ox + 22, rightArmY + 8, 4, 3, cBoots);
+      }
+
+      // 8. Pressurized EVA Legs & Joint Rings
+      const leftLegX = ox + 10 + f.stride;
+      const rightLegX = ox + 17 - f.stride;
+
+      fillRect(png, leftLegX, by + 32, 5, 11, darkOutline);
+      fillRect(png, leftLegX + 1, by + 33, 3, 9, cSuitBase);
+      fillRect(png, leftLegX + 1, by + 36, 3, 1, cSuitDark);
+
+      fillRect(png, rightLegX, by + 32, 5, 11, darkOutline);
+      fillRect(png, rightLegX + 1, by + 33, 3, 9, cSuitBase);
+      fillRect(png, rightLegX + 1, by + 36, 3, 1, cSuitDark);
+
+      // 9. Heavy Lunar Surface Boots (Tread soles)
+      fillRect(png, leftLegX - 1, by + 41, 7, 4, darkOutline);
+      fillRect(png, leftLegX, by + 42, 5, 2, cBoots);
+      fillRect(png, leftLegX - 1, by + 43, 7, 1, hexToRgba('#05070E'));
+
+      fillRect(png, rightLegX - 1, by + 41, 7, 4, darkOutline);
+      fillRect(png, rightLegX, by + 42, 5, 2, cBoots);
+      fillRect(png, rightLegX - 1, by + 43, 7, 1, hexToRgba('#05070E'));
 
       framesJson[char.id][f.anim].push({
         x: ox,
@@ -242,6 +391,7 @@ function buildCrewSpriteAtlas() {
 
   // Rover atlas: 4 frames of 64x32 px
   const roverPng = new PNG({ width: 64 * 4, height: 32 });
+  const outline = hexToRgba('#1C1F3A');
   const roverBody = hexToRgba('#FFF1C9');
   const roverAmber = hexToRgba('#FFB020');
   const roverCyan = hexToRgba('#35D0E6');
