@@ -1,5 +1,6 @@
 import { getLevelConfig } from '../../engine/levels.js';
 import useGameStore from '../../store/useGameStore.js';
+import { useFullscreen } from '../../utils/fullscreen.js';
 import { AstraPlanetBadge } from '../landing/Icons.jsx';
 
 export function TopBar({ hudHidden = false, onToggleHud = null }) {
@@ -7,6 +8,7 @@ export function TopBar({ hudHidden = false, onToggleHud = null }) {
   const setScreen = useGameStore((s) => s.setScreen);
   const cameraMode = useGameStore((s) => s.cameraMode);
   const setCameraMode = useGameStore((s) => s.setCameraMode);
+  const { isFullscreen, supported: fullscreenSupported, toggleFullscreen } = useFullscreen();
 
   const sol = game?.sol || 1;
   const targetSols = game?.targetSols || 14;
@@ -59,6 +61,19 @@ export function TopBar({ hudHidden = false, onToggleHud = null }) {
             </button>
           ))}
         </div>
+
+        {fullscreenSupported && (
+          <button
+            type="button"
+            className={`btn btn-sm ${isFullscreen ? 'topbar-hud-toggle--active' : 'btn-ghost'}`}
+            onClick={() => toggleFullscreen()}
+            aria-pressed={isFullscreen}
+            title="Toggle Browser Fullscreen [F]"
+          >
+            <span aria-hidden="true">⛶</span>
+            <span>{isFullscreen ? 'Exit Full [F]' : 'Fullscreen [F]'}</span>
+          </button>
+        )}
 
         {onToggleHud && (
           <button

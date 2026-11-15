@@ -6,6 +6,16 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../balance.js';
 import { buildDebrief } from '../debrief.js';
 import {
+  PLAYER_RADIUS,
+  isPositionBlocked,
+  resolveCharacterMovement,
+} from '../collision.js';
+import {
+  BASE_STATIONS,
+  findNearestStation,
+  isNearStation,
+} from '../stations.js';
+import {
   EVENT_DEFINITIONS,
   buildTimeline,
   getEventsForSol,
@@ -503,5 +513,61 @@ describe('7. Zustand Store Contract (useGameStore.js)', () => {
     store.restart({ sameSeed: true });
     expect(useGameStore.getState().game.sol).toBe(1);
     expect(useGameStore.getState().game.seed).toBe(214001);
+  });
+});
+
+describe('8. Outpost Obstacle Collisions & Station Reachability', () => {
+  it('blocks walking through perimeter walls, oxygen cylinders, base hub, rover pad, and solar array bay', () => {
+    // West compound wall at X = -1.28..-1.04
+    const intoWestWall = resolveCharacterMovement(-1.16, 0.5, { sol: 1, panelsOut: true });
+    expect(intoWestWall.x).toBeGreaterThanOrEqual(-1.04 + PLAYER_RADIUS - 1e-4);
+
+    // East gateway opening around Z = 0 allows passing outside while East walls block
+    const throughEastGate = resolveCharacterMovement(6.0, 0.0, { sol: 1, panelsOut: true });
+    expect(throughEastGate.x).toBeCloseTo(6.0, 4);
+    expect(throughEastGate.z).toBeCloseTo(0.0, 4);
+
+    const intoEastWall = resolveCharacterMovement(6.0, -3.0, { sol: 1, panelsOut: true });
+    expect(Math.abs(intoEastWall.x - 6.0)).toBeGreaterThan(0.2);
+
+    // Oxygen cylinders rack (X[2.10..4.54], Z[-5.37..-1.60])
+    expect(isPositionBlocked(3.3, -3.5, { sol: 1, panelsOut: true })).toBe(true);
+    const pushedFromOxygen = resolveCharacterMovement(2.2, -3.5, { sol: 1, panelsOut: true });
+    expect(pushedFromOxygen.x).toBeLessThanOrEqual(2.10 - PLAYER_RADIUS + 1e-4);
+
+    // Solar panels extended wing (X[-7.42..-2.84]) blocks west rim until retracted
+    expect(isPositionBlocked(-7.0, -0.85, { sol: 1, panelsOut: true, solarBroken: false })).toBe(true);
+    expect(isPositionBlocked(-7.0, -0.85, { sol: 1, panelsOut: false, solarBroken: false })).toBe(false);
+
+    // Rover pad & central hub
+    expect(isPositionBlocked(3.5, 5.0, { sol: 1 })).toBe(true);
+    expect(isPositionBlocked(3.4, -0.3, { sol: 1 })).toBe(true);
+  });
+
+  it('activates Greenhouse collision from Sol 2 and Antenna collision from Sol 3+', () => {
+    expect(isPositionBlocked(3.32, 2.71, { sol: 1 })).toBe(false);
+    expect(isPositionBlocked(3.32, 2.71, { sol: 2 })).toBe(true);
+
+    expect(isPositionBlocked(0.58, -0.3, { sol: 2 })).toBe(false);
+    expect(isPositionBlocked(0.58, -0.3, { sol: 3 })).toBe(true);
+  });
+
+  it('keeps initial spawn clear and all 5 stations reachable from collision-free spots', () => {
+    expect(isPositionBlocked(0.0, 1.8, { sol: 3, panelsOut: true })).toBe(false);
+    expect(findNearestStation([0.0, -0.45, 1.8], 1)?.station?.id).toBe('shield');
+
+    const testStandSpots = {
+      shield: [-0.2, 1.6],
+      solar: [-0.8, 0.8],
+      oxygen: [1.85, -3.5],
+      greenhouse: [1.8, 2.71],
+      comms: [-0.82, -0.3],
+    };
+
+    Object.keys(BASE_STATIONS).forEach((id) => {
+      const [sx, sz] = testStandSpots[id];
+      expect(isPositionBlocked(sx, sz, { sol: 3, panelsOut: true })).toBe(false);
+      expect(isNearStation([sx, -0.45, sz], id)).toBe(true);
+    });
   });
 });

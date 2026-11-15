@@ -10,6 +10,7 @@ import GameScreen from './ui/screens/GameScreen.jsx';
 import SettingsScreen from './ui/screens/SettingsScreen.jsx';
 import TitleScreen from './ui/screens/TitleScreen.jsx';
 import TutorialScreen from './ui/screens/TutorialScreen.jsx';
+import { toggleBrowserFullscreen } from './utils/fullscreen.js';
 import './ui/styles.css';
 
 export default function App({ SceneComponent = Diorama }) {
@@ -86,8 +87,6 @@ export default function App({ SceneComponent = Diorama }) {
   useEffect(() => {
     const handleKeyDown = (event) => {
       const state = useGameStore.getState();
-      if (state.ui?.screen !== 'game') return;
-      if (state.ui?.sol214Open || state.ui?.activeAlert) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
 
       const tag = event.target?.tagName?.toLowerCase();
@@ -95,6 +94,16 @@ export default function App({ SceneComponent = Diorama }) {
 
       const key = event.key;
       const lower = key.toLowerCase();
+
+      if (lower === 'f' && !event.repeat && !state.ui?.sol214Open && !state.ui?.activeAlert) {
+        event.preventDefault();
+        soundManager.play('click');
+        toggleBrowserFullscreen();
+        return;
+      }
+
+      if (state.ui?.screen !== 'game') return;
+      if (state.ui?.sol214Open || state.ui?.activeAlert) return;
 
       if (lower === 'e' && !event.repeat) {
         event.preventDefault();

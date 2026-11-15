@@ -1971,19 +1971,23 @@ select {
 }
 
 @media (max-width: 1220px) {
+  .sol-mission {
+    display: none;
+  }
+
   .topbar-right {
-    gap: 0.35rem;
+    gap: 0.32rem;
   }
 
   .topbar-right .btn-sm,
   .topbar-hud-toggle {
-    padding: 0.24rem 0.48rem;
-    font-size: 0.68rem;
+    padding: 0.22rem 0.44rem;
+    font-size: 0.66rem;
   }
 
   .camera-mode-btn {
-    padding: 0.24rem 0.44rem;
-    font-size: 0.64rem;
+    padding: 0.22rem 0.4rem;
+    font-size: 0.62rem;
   }
 }
 

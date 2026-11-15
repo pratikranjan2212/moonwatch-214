@@ -16,6 +16,7 @@ import { OrbitControls, Stars, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import soundManager from '../audio/soundManager.js';
 import { getAnalyticalPositions, loadAstronomicalPositions } from '../data/horizonsClient.js';
+import { resolveCharacterMovement } from '../engine/collision.js';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
 import { BASE_STATIONS, findNearestStation, isStationUnlocked } from '../engine/stations.js';
 import useGameStore from '../store/useGameStore.js';
@@ -478,16 +479,11 @@ function StarfieldEnclosure({ reducedMotion = false }) {
   );
 }
 
-const WALK_BOUNDS = {
-  minX: -11.5,
-  maxX: 11.5,
-  minZ: -9.5,
-  maxZ: 9.5,
-};
-
 function CharacterAndCameraRig({
   actor,
   sol,
+  panelsOut = true,
+  solarBroken = false,
   cameraMode = 'orbit',
   positionResetCount = 0,
   reducedMotion = false,
@@ -852,16 +848,13 @@ function CharacterAndCameraRig({
         vx /= len;
         vz /= len;
         const speed = keys.has('shift') ? 4.6 : 3.0;
-        posRef.current.x = THREE.MathUtils.clamp(
+        const resolved = resolveCharacterMovement(
           posRef.current.x + vx * speed * dt,
-          WALK_BOUNDS.minX,
-          WALK_BOUNDS.maxX
-        );
-        posRef.current.z = THREE.MathUtils.clamp(
           posRef.current.z + vz * speed * dt,
-          WALK_BOUNDS.minZ,
-          WALK_BOUNDS.maxZ
+          { sol, panelsOut, solarBroken }
         );
+        posRef.current.x = resolved.x;
+        posRef.current.z = resolved.z;
         posRef.current.y = -0.45;
         walkPhaseRef.current += dt * 11;
 
@@ -875,6 +868,15 @@ function CharacterAndCameraRig({
         }
       }
     }
+
+    // Keep character outside solid obstacles even when structures unfold or unlock around them
+    const settled = resolveCharacterMovement(posRef.current.x, posRef.current.z, {
+      sol,
+      panelsOut,
+      solarBroken,
+    });
+    posRef.current.x = settled.x;
+    posRef.current.z = settled.z;
 
     const wasWalking = walkingStateRef.current;
     if (movingNow !== wasWalking) {
@@ -1438,6 +1440,8 @@ export function Diorama() {
         <CharacterAndCameraRig
           actor={activeActor}
           sol={sol}
+          panelsOut={Boolean(choices.panelsOut)}
+          solarBroken={solarBroken}
           cameraMode={cameraMode}
           positionResetCount={positionResetCount}
           reducedMotion={reducedMotion}

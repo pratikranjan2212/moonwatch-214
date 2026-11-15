@@ -1,8 +1,10 @@
 import useGameStore from '../../store/useGameStore.js';
+import { useFullscreen } from '../../utils/fullscreen.js';
 
 export function SettingsScreen() {
   const cameraMode = useGameStore((s) => s.cameraMode);
   const setCameraMode = useGameStore((s) => s.setCameraMode);
+  const { isFullscreen, supported: fullscreenSupported, toggleFullscreen } = useFullscreen();
   const settings = useGameStore((s) => s.settings) || {
     volume: 0.8,
     muted: false,
@@ -192,6 +194,35 @@ export function SettingsScreen() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 7. Browser Fullscreen Display */}
+        <div className="settings-row">
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+              Fullscreen Display Mode
+            </div>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+              Expand MOONWATCH across your entire display cleanly. Toggle anytime with [F] (Esc exits).
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className={`btn btn-sm ${isFullscreen ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => toggleFullscreen()}
+            disabled={!fullscreenSupported}
+            aria-pressed={isFullscreen}
+          >
+            <span aria-hidden="true">⛶</span>
+            <span>
+              {!fullscreenSupported
+                ? 'Unavailable'
+                : isFullscreen
+                  ? 'Exit Fullscreen [F]'
+                  : 'Enter Fullscreen [F]'}
+            </span>
+          </button>
         </div>
 
         {/* Bottom Navigation */}
