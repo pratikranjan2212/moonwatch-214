@@ -4,21 +4,18 @@
  * decoder), renders named nodes (`Habitat`, `SolarArray`, `ShieldDome`, `Antenna`,
  * `Rover`, `Greenhouse`, `Terrain`), Earth in the sky, stars, `Lighting`, `SpriteActor`
  * crew billboards, `Particles`, and `PostFX`.
- * Includes an FPS monitor that exposes `window.__MOONWATCH_FPS__` and gently scales 3D
- * post-processing presets (`high` -> `medium` -> `low`) under sustained active GPU load
- * while ignoring browser idle/tab throttling and keeping 3D rendering active unless WebGL
- * itself is unavailable.
+ * Includes an FPS monitor that exposes `window.__MOONWATCH_FPS__` and auto-downgrades
+ * quality (`high` -> `medium` -> `low` -> `Parallax2D` if sustained FPS < 30).
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import soundManager from '../audio/soundManager.js';
 import { getAnalyticalPositions, loadAstronomicalPositions } from '../data/horizonsClient.js';
-import { resolveCharacterMovement } from '../engine/collision.js';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
-import { BASE_STATIONS, findNearestStation, isStationUnlocked } from '../engine/stations.js';
+import { BASE_STATIONS } from '../engine/stations.js';
 import useGameStore from '../store/useGameStore.js';
 import Lighting from './Lighting.jsx';
 import MoonBase from './MoonBase.jsx';
@@ -26,15 +23,14 @@ import Parallax2D from './Parallax2D.jsx';
 import Particles from './Particles.jsx';
 import PostFX from './PostFX.jsx';
 import SpriteActor from './SpriteActor.jsx';
-import CompanionCrew from './CompanionCrew.jsx';
 import StationMarkers from './StationMarkers.jsx';
-import { splitCrewForScene } from '../engine/crewPlacement.js';
 
 // Configure local Draco decoder path for 100% offline reliability
 useGLTF.setDecoderPath('/draco/');
 
 // Preload assets for instant presentation
 useTexture.preload('/textures/starfield_enclosure_2048.png');
+useTexture.preload('/textures/sun_surface_2048.jpg');
 useGLTF.preload('/models/night_sky_transparent_with_stars.glb');
 useGLTF.preload('/models/Moon_base.glb');
 
@@ -43,45 +39,11 @@ function FpsMonitor({ onFpsUpdate, onAutoDowngrade }) {
   const lastTimeRef = useRef(performance.now());
   const lowFpsStreakRef = useRef(0);
 
-  useEffect(() => {
-    const resetSampling = () => {
-      framesRef.current = 0;
-      lastTimeRef.current = performance.now();
-      lowFpsStreakRef.current = 0;
-    };
-
-    document.addEventListener('visibilitychange', resetSampling);
-    window.addEventListener('focus', resetSampling);
-    window.addEventListener('blur', resetSampling);
-
-    return () => {
-      document.removeEventListener('visibilitychange', resetSampling);
-      window.removeEventListener('focus', resetSampling);
-      window.removeEventListener('blur', resetSampling);
-    };
-  }, []);
-
   useFrame(() => {
-    if (typeof document !== 'undefined' && document.hidden) {
-      framesRef.current = 0;
-      lastTimeRef.current = performance.now();
-      lowFpsStreakRef.current = 0;
-      return;
-    }
-
     framesRef.current += 1;
     const now = performance.now();
     const elapsed = now - lastTimeRef.current;
-
     if (elapsed >= 1000) {
-      // Ignore long browser-throttled/idle frame gaps (> 2.2s between ticks)
-      if (elapsed > 2200 || (typeof document !== 'undefined' && !document.hasFocus())) {
-        framesRef.current = 0;
-        lastTimeRef.current = now;
-        lowFpsStreakRef.current = 0;
-        return;
-      }
-
       const fps = Math.round((framesRef.current * 1000) / elapsed);
       framesRef.current = 0;
       lastTimeRef.current = now;
@@ -90,10 +52,9 @@ function FpsMonitor({ onFpsUpdate, onAutoDowngrade }) {
       }
       onFpsUpdate?.(fps);
 
-      // Only reduce 3D post-processing after 5 consecutive active focused seconds below 20 FPS
-      if (fps < 20) {
+      if (fps < 30) {
         lowFpsStreakRef.current += 1;
-        if (lowFpsStreakRef.current >= 5) {
+        if (lowFpsStreakRef.current >= 2) {
           lowFpsStreakRef.current = 0;
           onAutoDowngrade?.(fps);
         }
@@ -135,7 +96,6 @@ function OutpostMeshes({
   solarBroken = false,
   queueComms = false,
   reducedMotion = false,
-  onInteractStation = null,
 }) {
   const solarRef = useRef(null);
 
@@ -292,71 +252,128 @@ function OutpostMeshes({
           solarBroken={solarBroken}
           queueComms={queueComms}
           reducedMotion={reducedMotion}
-          onInteractStation={onInteractStation}
         />
       </Suspense>
     </group>
   );
 }
 
-function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false }) {
-  const gltf = useGLTF('/models/Moon_base.glb');
+function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, reducedMotion = false }) {
   const sunGroupRef = useRef(null);
+  const sunCoreRef = useRef(null);
+  const sunHaloRef = useRef(null);
+  const coreMatRef = useRef(null);
+  const haloMatRef = useRef(null);
 
-  const clonedSun = useMemo(() => {
-    const orig = gltf.scene.getObjectByName('The_Sun');
-    if (!orig) return null;
-    const cloned = orig.clone(true);
+  const sunTexture = useTexture('/textures/sun_surface_2048.jpg');
 
-    // Realistic physical scale: Sun core diameter = 92.90496 units
-    // Raw Sphere001 diameter with sun.scale=1 is 0.8114296
-    // targetSunD = 92.90496 -> scaleSun = 114.4954
-    const scaleSun = 114.4954;
-    cloned.scale.set(scaleSun, scaleSun, scaleSun);
+  useEffect(() => {
+    if (sunTexture) {
+      // Equirectangular spherical mapping — 2:1 aspect ratio wraps cleanly around a SphereGeometry
+      sunTexture.wrapS = THREE.RepeatWrapping;
+      sunTexture.wrapT = THREE.RepeatWrapping;
+      sunTexture.colorSpace = THREE.SRGBColorSpace;
+      sunTexture.generateMipmaps = true;
+      sunTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      sunTexture.magFilter = THREE.LinearFilter;
+      sunTexture.needsUpdate = true;
+    }
+  }, [sunTexture]);
 
-    // Center Sphere001 (photosphere core) at origin (0, 0, 0)
-    // In local coords of The_Sun, Sphere001 is at y = 0.4037914
-    cloned.position.set(0, -0.4037914 * scaleSun, 0);
+  // Core material — created once so useFrame can update it without re-cloning
+  const coreMat = useMemo(() => new THREE.MeshStandardMaterial({
+    map: sunTexture,
+    emissiveMap: sunTexture,
+    emissive: new THREE.Color(isFlare ? '#FFA000' : '#FF7700'),
+    emissiveIntensity: isFlare ? 12.0 : 8.5,
+    roughness: 0.42,
+    metalness: 0.0,
+    toneMapped: false,
+  }), [sunTexture, isFlare]);
 
-    cloned.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = false;
-        child.receiveShadow = false;
-        if (child.material) {
-          child.material = child.material.clone();
-          child.material.toneMapped = false;
-          // Sphere001: Blazing solar photosphere core
-          if (child.name.includes('Sphere001') || child.material.name.includes('Material.005')) {
-            child.material.emissiveIntensity = isFlare ? 12.0 : 8.0;
-          }
-          // Sphere002: Solar flare corona halo
-          else if (child.name.includes('Sphere002') || child.material.name.includes('Material.006')) {
-            child.material.emissiveIntensity = isFlare ? 4.5 : 2.5;
-            child.material.transparent = true;
-            child.material.opacity = isFlare ? 0.95 : 0.82;
-          }
-          // Smoke_Domain: Coronal plasma envelope
-          else if (child.name.includes('Smoke_Domain') || child.material.name.includes('Smoke Domain')) {
-            child.material.transparent = true;
-            child.material.opacity = isFlare ? 0.45 : 0.22;
-          }
-        }
+  // Corona halo — slightly larger sphere behind, additive glow
+  const haloMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: new THREE.Color('#FF5500'),
+    emissive: new THREE.Color(isFlare ? '#FF9900' : '#FF6600'),
+    emissiveIntensity: isFlare ? 5.8 : 3.6,
+    transparent: true,
+    opacity: isFlare ? 0.88 : 0.72,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.BackSide,
+  }), [isFlare]);
+
+  useEffect(() => {
+    coreMatRef.current = coreMat;
+    haloMatRef.current = haloMat;
+  }, [coreMat, haloMat]);
+
+  // Sun physical radius in scene units = 92.90496 / 2 = 46.45248
+  const sunRadius = 46.45248;
+
+  useFrame(({ clock }, delta) => {
+    const t = clock.getElapsedTime();
+    if (!reducedMotion) {
+      // 1. Turbulent plasma surface drift across the solar sphere
+      if (sunTexture) {
+        sunTexture.offset.x += delta * 0.005;
+        sunTexture.offset.y = Math.sin(t * 0.25) * 0.008;
+        sunTexture.needsUpdate = true;
       }
-    });
+      // 2. Continuous solar differential axial rotation on core mesh
+      if (sunCoreRef.current) {
+        sunCoreRef.current.rotation.y += delta * 0.015;
+      }
+      // 3. Corona halo pulsation
+      if (sunHaloRef.current) {
+        sunHaloRef.current.rotation.y -= delta * 0.032;
+        sunHaloRef.current.rotation.z += delta * 0.012;
+        const pulse = 1.0 + Math.sin(t * 2.8) * 0.018;
+        sunHaloRef.current.scale.set(pulse, pulse, pulse);
+      }
+      // 4. Blazing emissive shimmer simulating solar magnetic reconnection
+      if (coreMatRef.current) {
+        const shimmer = 1.0 + Math.sin(t * 3.4) * 0.07 + Math.cos(t * 7.1) * 0.03;
+        coreMatRef.current.emissiveIntensity = (isFlare ? 12.0 : 8.5) * shimmer;
+      }
+      if (haloMatRef.current) {
+        const haloShimmer = 1.0 + Math.sin(t * 2.2) * 0.09;
+        haloMatRef.current.emissiveIntensity = (isFlare ? 5.8 : 3.6) * haloShimmer;
+      }
+    }
+  });
 
-    return cloned;
-  }, [gltf.scene, isFlare]);
-
-  if (isNight || !clonedSun) return null;
+  if (isNight) return null;
 
   return (
     <group ref={sunGroupRef} position={position}>
-      <primitive object={clonedSun} />
+      {/* Photosphere core — procedural SphereGeometry for clean equirectangular UV mapping */}
+      <mesh ref={sunCoreRef} material={coreMat}>
+        <sphereGeometry args={[sunRadius, 64, 32]} />
+      </mesh>
+      {/* Corona halo — slightly larger additive glow sphere */}
+      <mesh ref={sunHaloRef} material={haloMat}>
+        <sphereGeometry args={[sunRadius * 1.08, 32, 16]} />
+      </mesh>
+      {/* Outer atmospheric corona bloom sphere */}
+      <mesh>
+        <sphereGeometry args={[sunRadius * 1.22, 24, 12]} />
+        <meshBasicMaterial
+          color={isFlare ? '#FF4400' : '#FF2200'}
+          transparent
+          opacity={isFlare ? 0.14 : 0.07}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+          side={THREE.BackSide}
+        />
+      </mesh>
     </group>
   );
 }
 
-function EarthInSky({ position = [-6.5, 24.1, -12.7], reducedMotion = false }) {
+function EarthInSky({ position = [-9.0, 4.8, -21.7], reducedMotion = false }) {
   const gltf = useGLTF('/models/Moon_base.glb');
   const earthRef = useRef(null);
 
@@ -481,511 +498,76 @@ function StarfieldEnclosure({ reducedMotion = false }) {
   );
 }
 
-function CharacterAndCameraRig({
+function CharacterWalker({
   actor,
-  sol,
-  panelsOut = true,
-  solarBroken = false,
-  cameraMode = 'orbit',
-  positionResetCount = 0,
-  reducedMotion = false,
-  inputPaused = false,
+  characterPosition,
+  targetStation,
+  isTravelling,
+  reachStation,
   setCharacterPosition,
-  setNearbyStationId,
+  reducedMotion,
 }) {
-  const { camera, gl } = useThree();
-  const orbitRef = useRef(null);
-  const actorGroupRef = useRef(null);
-  const initialPos = useMemo(
-    () => useGameStore.getState().characterPosition || [0.0, -0.45, 1.8],
-    []
-  );
-
-  const posRef = useRef(new THREE.Vector3(initialPos[0], initialPos[1], initialPos[2]));
-  const yawRef = useRef(0);
-  const tppPitchRef = useRef(0.36);
-  const tppDistRef = useRef(2.6);
-  const fppPitchRef = useRef(0.02);
-  const walkPhaseRef = useRef(0);
-
-  const keysRef = useRef(new Set());
-  const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
-  const hoverRef = useRef({ hasPrev: false, lastX: 0, lastY: 0 });
-  const inputPausedRef = useRef(inputPaused);
-  inputPausedRef.current = inputPaused;
-  const prevModeRef = useRef(cameraMode);
-  const prevResetRef = useRef(positionResetCount);
-  const lastNearIdRef = useRef(
-    (() => {
-      const res = findNearestStation(initialPos, sol);
-      return res?.inRange ? res.station?.id || null : null;
-    })()
-  );
-  const lastSyncTimeRef = useRef(0);
-  const lastSyncPosRef = useRef(new THREE.Vector3(initialPos[0], initialPos[1], initialPos[2]));
-  const tmpDirRef = useRef(new THREE.Vector3());
-  const tmpCamPosRef = useRef(new THREE.Vector3());
-
-  const [isWalking, setIsWalking] = useState(false);
+  const currentPosRef = useRef(new THREE.Vector3(...characterPosition));
   const [flipX, setFlipX] = useState(false);
-  const walkingStateRef = useRef(false);
-  const flipXStateRef = useRef(false);
+  const [renderPos, setRenderPos] = useState(characterPosition);
 
-  // Snap astronaut position on mission restart / new level
-  useEffect(() => {
-    if (prevResetRef.current === positionResetCount) return;
-    prevResetRef.current = positionResetCount;
-    const resetPos = useGameStore.getState().characterPosition || [0.0, -0.45, 1.8];
-    posRef.current.set(resetPos[0], resetPos[1], resetPos[2]);
-    yawRef.current = 0;
-    tppPitchRef.current = 0.36;
-    tppDistRef.current = 2.6;
-    fppPitchRef.current = 0.02;
-    lastSyncPosRef.current.copy(posRef.current);
-    if (actorGroupRef.current) {
-      actorGroupRef.current.position.copy(posRef.current);
+  useFrame((_, delta) => {
+    if (!isTravelling || !targetStation) {
+      return;
     }
-    const nearRes = findNearestStation(resetPos, sol);
-    const nextNear = nearRes?.inRange ? nearRes.station?.id || null : null;
-    lastNearIdRef.current = nextNear;
-    setNearbyStationId?.(nextNear);
-  }, [positionResetCount, sol, setNearbyStationId]);
+    const dest = BASE_STATIONS[targetStation]?.position;
+    if (!dest) return;
 
-  // Keep actor grounded immediately on mount
-  useEffect(() => {
-    if (actorGroupRef.current) {
-      actorGroupRef.current.position.copy(posRef.current);
-    }
-  }, []);
+    const targetVec = new THREE.Vector3(...dest);
+    const dist = currentPosRef.current.distanceTo(targetVec);
 
-  // Track WASD + Arrow keys cleanly without stuck keys
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      const state = useGameStore.getState();
-      if (state.ui?.screen !== 'game') return;
-      if (state.ui?.sol214Open || state.ui?.activeAlert) return;
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-
-      const tag = event.target?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-
-      const lower = event.key.toLowerCase();
-      if (
-        lower === 'w' ||
-        lower === 'a' ||
-        lower === 's' ||
-        lower === 'd' ||
-        lower === 'shift' ||
-        lower === 'arrowup' ||
-        lower === 'arrowdown' ||
-        lower === 'arrowleft' ||
-        lower === 'arrowright'
-      ) {
-        if (lower.startsWith('arrow')) {
-          event.preventDefault();
-        }
-        keysRef.current.add(lower);
+    if (dist > 0.04) {
+      const step = Math.min(1.0, (delta * 2.6) / dist);
+      if (targetVec.x > currentPosRef.current.x + 0.015) {
+        setFlipX(false);
+      } else if (targetVec.x < currentPosRef.current.x - 0.015) {
+        setFlipX(true);
       }
-    };
-
-    const onKeyUp = (event) => {
-      keysRef.current.delete(event.key.toLowerCase());
-    };
-
-    const clearKeys = () => {
-      keysRef.current.clear();
-      dragRef.current.active = false;
-      hoverRef.current.hasPrev = false;
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', clearKeys);
-
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', clearKeys);
-    };
-  }, []);
-
-  useEffect(() => {
-    hoverRef.current.hasPrev = false;
-    if (inputPaused) {
-      keysRef.current.clear();
-      dragRef.current.active = false;
-      if (document.pointerLockElement === gl?.domElement) {
-        document.exitPointerLock?.();
-      }
-    }
-  }, [inputPaused, gl]);
-
-  // Smooth camera transitions when switching between Orbit, TPP, and FPP
-  useEffect(() => {
-    const prev = prevModeRef.current;
-    prevModeRef.current = cameraMode;
-    hoverRef.current.hasPrev = false;
-    dragRef.current.active = false;
-    if (prev === cameraMode) return;
-
-    if (prev === 'orbit' && (cameraMode === 'tpp' || cameraMode === 'fpp')) {
-      const dir = tmpDirRef.current;
-      camera.getWorldDirection(dir);
-      dir.y = 0;
-      if (dir.lengthSq() > 0.001) {
-        dir.normalize();
-        yawRef.current = Math.atan2(-dir.x, -dir.z);
-      } else {
-        yawRef.current = 0;
-      }
-      if (cameraMode === 'fpp') {
-        fppPitchRef.current = 0.02;
-      }
-    } else if (cameraMode === 'fpp') {
-      fppPitchRef.current = THREE.MathUtils.clamp(fppPitchRef.current, -0.35, 0.35);
-    } else if (cameraMode === 'orbit') {
-      if (document.pointerLockElement === gl?.domElement) {
-        document.exitPointerLock?.();
-      }
-      camera.position.set(0, 6.2, 14.5);
-      if (orbitRef.current) {
-        orbitRef.current.target.set(0.2, 0.15, 0.0);
-        orbitRef.current.update();
-      } else {
-        camera.lookAt(0.2, 0.15, 0.0);
-      }
-    }
-  }, [cameraMode, camera, gl]);
-
-  // Direct mouse-movement look + drag look + optional [M] pointer lock + scroll zoom in TPP / FPP modes
-  useEffect(() => {
-    const dom = gl?.domElement;
-    if (cameraMode !== 'tpp' && cameraMode !== 'fpp') {
-      dragRef.current.active = false;
-      hoverRef.current.hasPrev = false;
-      if (dom && document.pointerLockElement === dom) {
-        document.exitPointerLock?.();
-      }
-      return undefined;
-    }
-
-    if (!dom) return undefined;
-
-    const isInteractiveHudTarget = (target) => {
-      const el = target instanceof Element ? target : target?.parentElement;
-      if (!el) return false;
-      if (el.closest('.station-3d-badge')) return false;
-      return Boolean(
-        el.closest(
-          '.topbar, .game-forecast-col, .mobile-hud-pills, .game-bottom-bar, .station-interact-card, .modal-backdrop, button, a, input, select, textarea'
-        )
-      );
-    };
-
-    const applyLookDelta = (dx, dy) => {
-      if (dx === 0 && dy === 0) return;
-      yawRef.current -= dx * 0.0062;
-      if (cameraMode === 'tpp') {
-        tppPitchRef.current = THREE.MathUtils.clamp(
-          tppPitchRef.current + dy * 0.0036,
-          0.06,
-          1.12
-        );
-      } else {
-        fppPitchRef.current = THREE.MathUtils.clamp(
-          fppPitchRef.current - dy * 0.004,
-          -0.85,
-          1.15
-        );
-      }
-    };
-
-    const onPointerDown = (e) => {
-      if (e.button !== 0 && e.button !== 2) return;
-      dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
-      hoverRef.current = { hasPrev: true, lastX: e.clientX, lastY: e.clientY };
-    };
-
-    const onPointerMove = (e) => {
-      if (inputPausedRef.current) {
-        hoverRef.current.hasPrev = false;
-        dragRef.current.active = false;
-        return;
-      }
-
-      if (document.pointerLockElement === dom) {
-        applyLookDelta(e.movementX || 0, e.movementY || 0);
-        return;
-      }
-
-      if (dragRef.current.active) {
-        const dx = e.clientX - dragRef.current.lastX;
-        const dy = e.clientY - dragRef.current.lastY;
-        dragRef.current.lastX = e.clientX;
-        dragRef.current.lastY = e.clientY;
-        hoverRef.current = { hasPrev: true, lastX: e.clientX, lastY: e.clientY };
-        applyLookDelta(dx, dy);
-        return;
-      }
-
-      if (e.pointerType === 'touch') return;
-
-      if (isInteractiveHudTarget(e.target)) {
-        hoverRef.current.hasPrev = false;
-        return;
-      }
-
-      if (!hoverRef.current.hasPrev) {
-        hoverRef.current = { hasPrev: true, lastX: e.clientX, lastY: e.clientY };
-        return;
-      }
-
-      const dx = e.clientX - hoverRef.current.lastX;
-      const dy = e.clientY - hoverRef.current.lastY;
-      hoverRef.current.lastX = e.clientX;
-      hoverRef.current.lastY = e.clientY;
-      applyLookDelta(dx, dy);
-    };
-
-    const resetLookTracking = () => {
-      dragRef.current.active = false;
-      hoverRef.current.hasPrev = false;
-    };
-
-    const onWheel = (e) => {
-      if (cameraMode !== 'tpp') return;
-      tppDistRef.current = THREE.MathUtils.clamp(tppDistRef.current + e.deltaY * 0.0025, 1.5, 5.5);
-    };
-
-    const onLockKey = (event) => {
-      if (inputPausedRef.current) return;
-      const state = useGameStore.getState();
-      if (state.ui?.screen !== 'game') return;
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      const tag = event.target?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-      if (event.key.toLowerCase() === 'm') {
-        event.preventDefault();
-        if (document.pointerLockElement === dom) {
-          document.exitPointerLock?.();
-        } else {
-          try {
-            dom.requestPointerLock?.();
-          } catch {
-            // Ignore environments where Pointer Lock is unavailable
-          }
-        }
-      }
-    };
-
-    dom.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
-    window.addEventListener('pointerup', resetLookTracking);
-    window.addEventListener('pointercancel', resetLookTracking);
-    window.addEventListener('blur', resetLookTracking);
-    document.addEventListener('mouseleave', resetLookTracking);
-    document.addEventListener('pointerlockchange', resetLookTracking);
-    window.addEventListener('keydown', onLockKey);
-    dom.addEventListener('wheel', onWheel, { passive: true });
-
-    return () => {
-      dom.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', resetLookTracking);
-      window.removeEventListener('pointercancel', resetLookTracking);
-      window.removeEventListener('blur', resetLookTracking);
-      document.removeEventListener('mouseleave', resetLookTracking);
-      document.removeEventListener('pointerlockchange', resetLookTracking);
-      window.removeEventListener('keydown', onLockKey);
-      dom.removeEventListener('wheel', onWheel);
-    };
-  }, [cameraMode, gl]);
-
-  useFrame(({ clock }, delta) => {
-    const dt = Math.min(delta, 0.1);
-    const keys = keysRef.current;
-
-    let movingNow = false;
-
-    if (!inputPaused) {
-      if ((cameraMode === 'tpp' || cameraMode === 'fpp') && (keys.has('arrowleft') || keys.has('arrowright'))) {
-        const turnInput = (keys.has('arrowleft') ? 1 : 0) - (keys.has('arrowright') ? 1 : 0);
-        yawRef.current += turnInput * 2.1 * dt;
-      }
-
-      // Compute camera-relative horizontal basis (forward & right on XZ lunar ground)
-      let fwdX = 0;
-      let fwdZ = -1;
-      if (cameraMode === 'orbit') {
-        camera.getWorldDirection(tmpDirRef.current);
-        tmpDirRef.current.y = 0;
-        if (tmpDirRef.current.lengthSq() > 0.0001) {
-          tmpDirRef.current.normalize();
-          fwdX = tmpDirRef.current.x;
-          fwdZ = tmpDirRef.current.z;
-        }
-      } else {
-        fwdX = -Math.sin(yawRef.current);
-        fwdZ = -Math.cos(yawRef.current);
-      }
-      // Cross product forward x (0,1,0) = (-fwdZ, 0, fwdX)
-      const rightX = -fwdZ;
-      const rightZ = fwdX;
-
-      const moveFwd =
-        (keys.has('w') || keys.has('arrowup') ? 1 : 0) -
-        (keys.has('s') || keys.has('arrowdown') ? 1 : 0);
-      const moveStrafe =
-        cameraMode === 'orbit'
-          ? (keys.has('d') || keys.has('arrowright') ? 1 : 0) -
-            (keys.has('a') || keys.has('arrowleft') ? 1 : 0)
-          : (keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0);
-
-      let vx = fwdX * moveFwd + rightX * moveStrafe;
-      let vz = fwdZ * moveFwd + rightZ * moveStrafe;
-      const len = Math.hypot(vx, vz);
-
-      if (len > 0.001) {
-        movingNow = true;
-        vx /= len;
-        vz /= len;
-        const speed = keys.has('shift') ? 4.6 : 3.0;
-        const resolved = resolveCharacterMovement(
-          posRef.current.x + vx * speed * dt,
-          posRef.current.z + vz * speed * dt,
-          { sol, panelsOut, solarBroken }
-        );
-        posRef.current.x = resolved.x;
-        posRef.current.z = resolved.z;
-        posRef.current.y = -0.45;
-        walkPhaseRef.current += dt * 11;
-
-        const screenRightDot = vx * rightX + vz * rightZ;
-        if (screenRightDot < -0.08 && !flipXStateRef.current) {
-          flipXStateRef.current = true;
-          setFlipX(true);
-        } else if (screenRightDot > 0.08 && flipXStateRef.current) {
-          flipXStateRef.current = false;
-          setFlipX(false);
-        }
-      }
-    }
-
-    // Keep character outside solid obstacles even when structures unfold or unlock around them
-    const settled = resolveCharacterMovement(posRef.current.x, posRef.current.z, {
-      sol,
-      panelsOut,
-      solarBroken,
-    });
-    posRef.current.x = settled.x;
-    posRef.current.z = settled.z;
-
-    const wasWalking = walkingStateRef.current;
-    if (movingNow !== wasWalking) {
-      walkingStateRef.current = movingNow;
-      setIsWalking(movingNow);
-    }
-
-    if (actorGroupRef.current) {
-      actorGroupRef.current.position.copy(posRef.current);
-    }
-
-    // Sync nearby station immediately when entering/leaving range, and sync position without 60fps React thrashing
-    const posArr = [posRef.current.x, posRef.current.y, posRef.current.z];
-    const nearRes = findNearestStation(posArr, sol);
-    const nextNearId = nearRes?.inRange ? nearRes.station?.id || null : null;
-    if (nextNearId !== lastNearIdRef.current) {
-      lastNearIdRef.current = nextNearId;
-      setNearbyStationId?.(nextNearId);
-    }
-
-    const elapsed = clock.getElapsedTime();
-    const movedSinceSync = posRef.current.distanceTo(lastSyncPosRef.current);
-    if (
-      (movedSinceSync > 0.12 && elapsed - lastSyncTimeRef.current > 0.12) ||
-      (wasWalking && !movingNow && movedSinceSync > 0.005)
-    ) {
-      lastSyncTimeRef.current = elapsed;
-      lastSyncPosRef.current.copy(posRef.current);
-      setCharacterPosition?.([
-        Number(posRef.current.x.toFixed(3)),
-        posRef.current.y,
-        Number(posRef.current.z.toFixed(3)),
-      ]);
-    }
-
-    // Drive TPP or FPP camera smoothly
-    if (cameraMode === 'tpp') {
-      const dist = tppDistRef.current;
-      const pitch = tppPitchRef.current;
-      const yaw = yawRef.current;
-      const horiz = dist * Math.cos(pitch);
-      const desired = tmpCamPosRef.current.set(
-        posRef.current.x + Math.sin(yaw) * horiz,
-        Math.max(-0.5, posRef.current.y + 0.18 + dist * Math.sin(pitch)),
-        posRef.current.z + Math.cos(yaw) * horiz
-      );
-      const alpha = reducedMotion ? 1 : Math.min(1, 1 - Math.exp(-16 * dt));
-      camera.position.lerp(desired, alpha);
-      camera.lookAt(posRef.current.x, posRef.current.y + 0.14, posRef.current.z);
-    } else if (cameraMode === 'fpp') {
-      const headBob =
-        movingNow && !reducedMotion ? Math.sin(walkPhaseRef.current) * 0.012 : 0;
-      const eyeY = posRef.current.y + 0.24 + headBob;
-      const cosP = Math.cos(fppPitchRef.current);
-      const targetX = posRef.current.x - Math.sin(yawRef.current) * cosP * 10;
-      const targetY = eyeY + Math.sin(fppPitchRef.current) * 10;
-      const targetZ = posRef.current.z - Math.cos(yawRef.current) * cosP * 10;
-      camera.position.set(posRef.current.x, eyeY, posRef.current.z);
-      camera.lookAt(targetX, targetY, targetZ);
+      currentPosRef.current.lerp(targetVec, step);
+      const nextArr = [currentPosRef.current.x, currentPosRef.current.y, currentPosRef.current.z];
+      setRenderPos(nextArr);
+      setCharacterPosition?.(nextArr);
+    } else {
+      currentPosRef.current.copy(targetVec);
+      const nextArr = [targetVec.x, targetVec.y, targetVec.z];
+      setRenderPos(nextArr);
+      setCharacterPosition?.(nextArr);
+      reachStation?.(targetStation);
     }
   });
 
   return (
-    <>
-      <OrbitControls
-        ref={orbitRef}
-        enabled={cameraMode === 'orbit'}
-        target={[0.2, 0.15, 0.0]}
-        minDistance={5.0}
-        maxDistance={24.0}
-        minPolarAngle={Math.PI / 12}
-        maxPolarAngle={Math.PI / 2.08}
-        enableDamping
-        dampingFactor={0.06}
-      />
-
-      <group ref={actorGroupRef} visible={cameraMode !== 'fpp'}>
-        <SpriteActor
-          key={actor.id}
-          id={actor.id}
-          name={actor.name}
-          mood={actor.mood}
-          health={actor.health}
-          position={[0, 0, 0]}
-          isWalking={isWalking}
-          flipX={flipX}
-          reducedMotion={reducedMotion}
-        />
-      </group>
-    </>
+    <SpriteActor
+      key={actor.id}
+      id={actor.id}
+      name={actor.name}
+      mood={actor.mood}
+      health={actor.health}
+      position={renderPos}
+      isWalking={Boolean(isTravelling)}
+      flipX={flipX}
+      reducedMotion={reducedMotion}
+    />
   );
 }
 
 export function Diorama() {
   const game = useGameStore((s) => s.game);
   const selectedCrewId = useGameStore((s) => s.selectedCrewId) || 'commander';
-  const cameraMode = useGameStore((s) => s.cameraMode) || 'orbit';
-  const nearbyStationId = useGameStore((s) => s.nearbyStationId);
-  const positionResetCount = useGameStore((s) => s.positionResetCount) || 0;
+  const characterPosition = useGameStore((s) => s.characterPosition) || [0.0, -0.45, 1.8];
+  const targetStation = useGameStore((s) => s.targetStation);
+  const isTravelling = useGameStore((s) => s.isTravelling);
+  const reachStation = useGameStore((s) => s.reachStation);
   const setCharacterPosition = useGameStore((s) => s.setCharacterPosition);
-  const setNearbyStationId = useGameStore((s) => s.setNearbyStationId);
-  const interactWithStation = useGameStore((s) => s.interactWithStation);
+  const commandMoveToStation = useGameStore((s) => s.commandMoveToStation);
+  const setChoice = useGameStore((s) => s.setChoice);
   const actionToast = useGameStore((s) => s.actionToast);
   const showToast = useGameStore((s) => s.showToast);
-  const screen = useGameStore((s) => s.ui?.screen) || 'game';
-  const sol214Open = Boolean(useGameStore((s) => s.ui?.sol214Open));
-  const activeAlert = useGameStore((s) => s.ui?.activeAlert);
 
   const dustCountdown = useGameStore((s) => s.dustCountdown);
   const dustWarningActive = useGameStore((s) => s.dustWarningActive);
@@ -1107,44 +689,107 @@ export function Diorama() {
     return () => clearTimeout(timer);
   }, [actionToast, showToast]);
 
-  // Split outpost roster into the single controllable main character and 4 courtyard companions
-  const { mainActor: activeActor, companions: companionActors } = useMemo(
-    () =>
-      splitCrewForScene({
-        commander,
-        crew,
-        selectedCrewId,
-        isFlare,
-        shieldOn: Boolean(choices.shieldOn),
-        isLowPower,
-      }),
-    [selectedCrewId, commander, crew, isFlare, choices.shieldOn, isLowPower]
-  );
+  // Keep ONLY ONE crew member in the scene, dynamically matching the selected character
+  const activeActor = useMemo(() => {
+    if (selectedCrewId === 'commander' || selectedCrewId === 'commander-nova') {
+      return {
+        id: 'commander',
+        name: commander?.name || 'Commander Nova',
+        mood: isFlare && choices.shieldOn ? 'idle' : isLowPower ? 'worried' : 'idle',
+        health: 100,
+      };
+    }
+    const crewList = crew || [];
+    const found = crewList.find((c) => c.id === selectedCrewId);
+    if (found) {
+      return {
+        id: found.id,
+        name: found.name,
+        mood: found.mood || 'idle',
+        health: found.health ?? 100,
+      };
+    }
+    return {
+      id: 'commander',
+      name: commander?.name || 'Commander Nova',
+      mood: 'idle',
+      health: 100,
+    };
+  }, [selectedCrewId, commander, crew, isFlare, choices.shieldOn, isLowPower]);
 
-  // Proximity-only station interaction (no auto-walk / no teleporting)
-  const handleStationInteract = useCallback(
-    (stationId, overrideValue = undefined) => {
-      const res = interactWithStation(stationId, overrideValue);
-      if (res?.sound) {
-        soundManager.play(res.sound);
-      } else if (!res?.ok) {
-        soundManager.play('click');
-      }
-    },
-    [interactWithStation]
-  );
+  // Physical station click handler
+  const handleStationInteract = (stationId) => {
+    switch (stationId) {
+      case 'shield':
+        commandMoveToStation('shield', () => {
+          soundManager.play('click');
+          const next = !choices.shieldOn;
+          setChoice('shieldOn', next);
+          showToast(next ? 'Radiation Shield Dome Activated at Central Base' : 'Shield Dome Deactivated');
+        }, 'Main Shield Station');
+        break;
+      case 'solar':
+        if (solarBroken) {
+          soundManager.play('warning');
+          showToast('Solar Array is BROKEN: Panels detached and shattered on lunar surface.');
+          return;
+        }
+        commandMoveToStation('solar', () => {
+          soundManager.play('motor');
+          const next = !choices.panelsOut;
+          setChoice('panelsOut', next);
+          showToast(next ? 'Solar Panels Extended at Solar Installation' : 'Solar Panels Retracted into Underground Bay');
+        }, 'Solar Panel Installation');
+        break;
+      case 'oxygen':
+        commandMoveToStation('oxygen', () => {
+          soundManager.play('click');
+          const modes = ['low', 'normal', 'high'];
+          const idx = modes.indexOf(choices.oxygenLevel || 'normal');
+          const nextMode = modes[(idx + 1) % 3];
+          setChoice('oxygenLevel', nextMode);
+          showToast(`Oxygen Life Support Set to ${nextMode.toUpperCase()} at O₂ Tanks`);
+        }, 'Oxygen Control Station');
+        break;
+      case 'greenhouse':
+        if (sol < 2) {
+          showToast('Greenhouse Deck is LOCKED (Unlocks on Sol 2)');
+          return;
+        }
+        commandMoveToStation('greenhouse', () => {
+          soundManager.play('click');
+          const next = !choices.waterGreenhouse;
+          setChoice('waterGreenhouse', next);
+          showToast(next ? 'Greenhouse Irrigation Activated' : 'Irrigation Switched to Standby');
+        }, 'Greenhouse Control Station');
+        break;
+      case 'comms':
+        if (sol < 3) {
+          showToast('Earth Comms Antenna is LOCKED (Unlocks on Sol 3)');
+          return;
+        }
+        commandMoveToStation('comms', () => {
+          soundManager.play('click');
+          const next = !choices.queueComms;
+          setChoice('queueComms', next);
+          showToast(next ? 'Earth Packet Queued on High-Gain Dish' : 'Comms Dish Switched to Standby');
+        }, 'Earth Communications Unit');
+        break;
+      default:
+        break;
+    }
+  };
 
-  const handleAutoDowngrade = () => {
+  const handleAutoDowngrade = (measuredFps) => {
+    // Only downgrade quality settings — never fall back to 2D
     if (quality === 'high') {
       updateSettings({ quality: 'medium' });
     } else if (quality === 'medium') {
       updateSettings({ quality: 'low' });
     }
+    // If already at 'low' quality and still struggling, do nothing — keep 3D always
+    void measuredFps;
   };
-
-  const nearbyStation = nearbyStationId ? BASE_STATIONS[nearbyStationId] : null;
-  const nearbyUnlocked = nearbyStation ? isStationUnlocked(nearbyStation.id, sol) : false;
-  const inputPaused = Boolean(screen !== 'game' || sol214Open || activeAlert);
 
   return (
     <div
@@ -1153,15 +798,7 @@ export function Diorama() {
       aria-label="Lunar Outpost HD-2D 3D Diorama Viewport"
       data-fps={fps}
       data-quality={quality}
-      data-camera-mode={cameraMode}
     >
-      {/* FPP Helmet Crosshair Reticle */}
-      {cameraMode === 'fpp' && !inputPaused && (
-        <div className="fpp-crosshair" aria-hidden="true">
-          <span className="fpp-crosshair-dot" />
-        </div>
-      )}
-
       {/* Floating Action Feedback Toast */}
       {actionToast && (
         <div className="action-toast-pill" role="status">
@@ -1179,154 +816,81 @@ export function Diorama() {
           <div className="dust-warning-desc">
             Violent surface winds will detach the solar array from its joint if exposed when the countdown reaches zero!
           </div>
-          {nearbyStationId === 'solar' ? (
-            <button
-              type="button"
-              className="btn btn-sm dust-warning-action-btn"
-              onClick={() => handleStationInteract('solar', false)}
-            >
-              ⚠️ Retract Solar Panels Now [E] ({dustCountdown}s left)
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-sm dust-warning-action-btn"
-              onClick={() => handleStationInteract('solar')}
-            >
-              🚶 Run to Solar Array with WASD &amp; Press [E] ({dustCountdown}s left)
-            </button>
-          )}
+          <button
+            type="button"
+            className="btn btn-sm dust-warning-action-btn"
+            onClick={() => handleStationInteract('solar')}
+          >
+            🚶 Walk to Solar Station & Retract ({dustCountdown}s remaining)
+          </button>
         </div>
       )}
 
       {/* Top Status & Info Overlay */}
       <div className="diorama-overlay-top">
-        <div className="diorama-status-pill">
-          <span>
-            Sol {sol} · Day {sol}
-          </span>
+        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <div className="diorama-status-pill">
+            <span>{isNight ? '🌑' : isFlare ? '☄️' : isDust ? '🌪️' : '☀️'}</span>
+            <span>
+              {isFlare
+                ? 'SOLAR STORM / RADIATION ALERT'
+                : isDust
+                  ? 'ELECTROSTATIC DUST HAZE'
+                  : isNight
+                    ? 'LONG LUNAR NIGHT (EARTHLIGHT)'
+                    : 'LUNAR DAYLIGHT (SUNLIT)'}
+            </span>
+          </div>
+          <div className="diorama-status-pill">
+            <span>
+              Sol {sol} · Day {sol}
+            </span>
+          </div>
+          <div className="diorama-status-pill">
+            <span>
+              HD-2D ({quality.toUpperCase()}) · {fps} FPS
+            </span>
+          </div>
+          <div className="diorama-status-pill" title={astroData.source}>
+            <span>🪐 {astroData.isLive ? 'JPL Horizons (Live)' : 'JPL Ephemeris'}</span>
+          </div>
+          <div className="diorama-status-pill">
+            <span>🔄 360° Orbit Drag</span>
+          </div>
         </div>
-      </div>
-
-      {/* Bottom-Center Physical Station Proximity Prompt */}
-      <div className="station-interact-hud" aria-live="polite">
-        {nearbyStation ? (
-          <div className="station-interact-card">
-            <div className="station-interact-meta">
-              <span className="station-interact-icon" aria-hidden="true">
-                {nearbyStation.icon}
-              </span>
-              <div>
-                <div className="station-interact-title">{nearbyStation.name}</div>
-                <div className="station-interact-sub">
-                  {nearbyStation.id === 'solar'
-                    ? solarBroken
-                      ? 'BROKEN · Panels detached'
-                      : choices.panelsOut
-                        ? 'Currently EXTENDED'
-                        : 'Currently RETRACTED'
-                    : nearbyStation.id === 'shield'
-                      ? choices.shieldOn
-                        ? 'Shield Bubble ON'
-                        : 'Shield Bubble OFF'
-                      : nearbyStation.id === 'oxygen'
-                        ? `Fresh Air Flow: ${(choices.oxygenLevel || 'normal').toUpperCase()}`
-                        : nearbyStation.id === 'greenhouse'
-                          ? !nearbyUnlocked
-                            ? `Locked until Sol ${nearbyStation.unlockSol}`
-                            : choices.waterGreenhouse || choices.tendGreenhouse
-                              ? 'Watering & Tending Active'
-                              : 'Greenhouse Standby'
-                          : !nearbyUnlocked
-                            ? `Locked until Sol ${nearbyStation.unlockSol}`
-                            : choices.queueComms
-                              ? 'Earth Packet Queued'
-                              : 'Comms Dish Standby'}
-                </div>
-              </div>
-            </div>
-
-            {!nearbyUnlocked ? (
-              <span className="station-interact-locked">🔒 Sol {nearbyStation.unlockSol}</span>
-            ) : nearbyStation.id === 'solar' && solarBroken ? (
-              <span className="station-interact-locked">💥 Broken</span>
-            ) : nearbyStation.id === 'oxygen' ? (
-              <div className="station-interact-btn-group">
-                {['low', 'normal', 'high'].map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    className={`btn btn-sm ${
-                      (choices.oxygenLevel || 'normal') === mode ? 'btn-cyan' : 'btn-ghost'
-                    }`}
-                    onClick={() => handleStationInteract('oxygen', mode)}
-                  >
-                    {mode.toUpperCase()}
-                  </button>
-                ))}
-                <span className="kbd-hint">[E]</span>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-sm btn-primary"
-                onClick={() => handleStationInteract(nearbyStation.id)}
-              >
-                <span>
-                  {nearbyStation.id === 'solar'
-                    ? choices.panelsOut
-                      ? 'Retract Solar Panels'
-                      : 'Extend Solar Panels'
-                    : nearbyStation.id === 'shield'
-                      ? choices.shieldOn
-                        ? 'Turn Shield OFF'
-                        : 'Activate Shield'
-                      : nearbyStation.id === 'greenhouse'
-                        ? choices.waterGreenhouse || choices.tendGreenhouse
-                          ? 'Set Standby'
-                          : 'Water & Tend'
-                        : choices.queueComms
-                          ? 'Cancel Queue'
-                          : 'Queue Packet'}
-                </span>
-                <span className="kbd-hint" style={{ color: '#FFFFFF', background: '#050302' }}>
-                  E
-                </span>
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="station-explore-hint">
-            <span>WASD to explore · Walk near a station &amp; press [E]</span>
-          </div>
-        )}
       </div>
 
       <Canvas
         shadows={quality !== 'low'}
         dpr={quality === 'low' ? [1, 1] : [1, 2]}
-        camera={{ position: [0, 6.2, 14.5], fov: 44, near: 0.08, far: 650 }}
+        camera={{ position: [0, 5.8, 14.2], fov: 44, near: 0.2, far: 650 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.15,
         }}
-        onCreated={({ camera, gl }) => {
-          camera.lookAt(0.2, 0.15, 0);
-          if (gl?.domElement) {
-            gl.domElement.addEventListener('webglcontextlost', (e) => {
-              e.preventDefault();
-            });
-          }
+        onCreated={({ camera }) => {
+          camera.lookAt(0.2, 0.8, 0);
         }}
         fallback={<Parallax2D reason="WebGL unavailable" />}
       >
         <color
           attach="background"
-          args={[isFlare ? '#1A0505' : isDust ? '#1E1510' : '#050302']}
+          args={[isFlare ? '#140410' : isDust ? '#2C2016' : '#020308']}
         />
         {isDust && <fog attach="fog" args={['#C9A878', 8, 32]} />}
+
+        <OrbitControls
+          makeDefault
+          target={[0.2, 0.8, 0.0]}
+          minDistance={7.0}
+          maxDistance={22.0}
+          minPolarAngle={Math.PI / 12}
+          maxPolarAngle={Math.PI / 2.08}
+          enableDamping
+          dampingFactor={0.06}
+        />
 
         <FpsMonitor onFpsUpdate={setFps} onAutoDowngrade={handleAutoDowngrade} />
 
@@ -1372,7 +936,6 @@ export function Diorama() {
           solarBroken={solarBroken}
           queueComms={Boolean(choices.queueComms)}
           reducedMotion={reducedMotion}
-          onInteractStation={handleStationInteract}
         />
 
         {/* 3D Physical Interaction Stations on the lunar terrain */}
@@ -1380,26 +943,20 @@ export function Diorama() {
           sol={sol}
           choices={choices}
           solarBroken={solarBroken}
-          nearbyStationId={nearbyStationId}
+          characterPosition={characterPosition}
           onInteractStation={handleStationInteract}
         />
 
-        {/* Manual WASD Explorer & Camera Rig (Orbit / TPP / FPP) */}
-        <CharacterAndCameraRig
+        {/* Selected Single Crew Member (Proportionate, Grounded, Physically walking) */}
+        <CharacterWalker
           actor={activeActor}
-          sol={sol}
-          panelsOut={Boolean(choices.panelsOut)}
-          solarBroken={solarBroken}
-          cameraMode={cameraMode}
-          positionResetCount={positionResetCount}
-          reducedMotion={reducedMotion}
-          inputPaused={inputPaused}
+          characterPosition={characterPosition}
+          targetStation={targetStation}
+          isTravelling={isTravelling}
+          reachStation={reachStation}
           setCharacterPosition={setCharacterPosition}
-          setNearbyStationId={setNearbyStationId}
+          reducedMotion={reducedMotion}
         />
-
-        {/* Other Four Crew Specialists Placed in the Lunar Outpost With Live Health Tags */}
-        <CompanionCrew companions={companionActors} reducedMotion={reducedMotion} />
 
         <Particles
           isDust={isDust}

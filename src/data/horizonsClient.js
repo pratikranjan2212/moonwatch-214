@@ -17,7 +17,7 @@ const TIMEOUT_MS = 3500;
 const ephemerisCache = new Map();
 
 export const ASTRONOMICAL_SUN_DISTANCE = 150;
-export const ASTRONOMICAL_EARTH_DISTANCE = 28;
+export const ASTRONOMICAL_EARTH_DISTANCE = 24;
 
 /**
  * Parses Cartesian vector lines between $$SOE and $$EOE in Horizons response.
@@ -146,12 +146,13 @@ export function getAnalyticalPositions(sol = 1, isNight = false) {
   const sunRadius = ASTRONOMICAL_SUN_DISTANCE;
   const earthRadius = ASTRONOMICAL_EARTH_DISTANCE;
 
-  // Real physical libration of Earth in the lunar sky (amplitude ~4.5 deg Az, ~3.5 deg El)
+  // Real physical libration of Earth in the lunar sky as seen from South Pole Outpost
+  // Earth hangs stably in the celestial sky with subtle libration oscillations (~3.5 to 4.5 deg)
   const librationAz = Math.sin(((sol - 1) / 14) * Math.PI) * 4.5;
   const librationEl = Math.cos(((sol - 1) / 14) * Math.PI) * 3.5;
   const earthAz = 358 + librationAz;
-  const earthEl = 56 + librationEl;
-  const earth = convertAzElToSceneCoords(earthAz, earthEl, earthRadius, -25);
+  const earthEl = 11.5 + librationEl;
+  const earth = convertAzElToSceneCoords(earthAz, earthEl, earthRadius, -28);
 
   if (isNight) {
     return {
@@ -235,7 +236,7 @@ export async function fetchHorizonsObserver(
   bodyId,
   startDate = '2024-05-10',
   stopDate = '2024-05-24',
-  siteCoord = '0,-35,0'
+  siteCoord = '0,-84,0'
 ) {
   const cacheKey = `horizons_obs_${bodyId}_${startDate}_${stopDate}_${siteCoord}`;
   if (ephemerisCache.has(cacheKey)) {
@@ -298,8 +299,8 @@ export async function loadAstronomicalPositions(sol = 1, isNight = false) {
 
   try {
     const [sunObs, earthObs] = await Promise.all([
-      fetchHorizonsObserver('10', '2024-05-10', '2024-05-24'),
-      fetchHorizonsObserver('399', '2024-05-10', '2024-05-24'),
+      fetchHorizonsObserver('10', '2024-05-10', '2024-05-24', '0,-84,0'),
+      fetchHorizonsObserver('399', '2024-05-10', '2024-05-24', '0,-84,0'),
     ]);
 
     const solIdx = Math.max(0, Math.min(sunObs.length - 1, (sol || 1) - 1));
@@ -312,7 +313,7 @@ export async function loadAstronomicalPositions(sol = 1, isNight = false) {
         eData.azimuth,
         eData.elevation,
         ASTRONOMICAL_EARTH_DISTANCE,
-        -25
+        -28
       );
 
       const sunCoord = isNight
