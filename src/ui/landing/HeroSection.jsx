@@ -231,7 +231,7 @@ export default function HeroSection({
         <div className="mw-bottom-lockup">
           <div className="mw-telemetry-row">
             <span>
-              MISSIONS: {formattedMissions} &bull; SOLS: {formattedSols}
+              MISSIONS: {formattedMissions} &bull; MOON DAYS: {formattedSols}
             </span>
           </div>
 
@@ -239,7 +239,7 @@ export default function HeroSection({
 
           <div className="mw-attribution-row">
             <div className="mw-attribution">
-              POWERED BY <span className="mw-attribution-accent">NASA DONKI</span>
+              POWERED BY <span className="mw-attribution-accent">NASA SUN WEATHER</span>
             </div>
             <div className="mw-feed-status">{feedLabel}</div>
           </div>

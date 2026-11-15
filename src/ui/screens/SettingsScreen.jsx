@@ -139,7 +139,7 @@ export function SettingsScreen() {
               HD-2D Graphics Quality Preset
             </div>
             <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-              High (Bloom + Tilt-Shift + Particles), Medium (Bloom only), Low (2D/Fastest).
+              High (Bloom + Tilt-Shift + Particles), Medium (Bloom only), Low (Fast 3D).
             </span>
           </div>
 

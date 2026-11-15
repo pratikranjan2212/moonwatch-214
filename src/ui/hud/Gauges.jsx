@@ -15,7 +15,7 @@ function getGaugeStatus(value) {
 function GaugeIcon({ type, color }) {
   if (type === 'power') {
     return (
-      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M13 2L4 14h7l-1 8 10-12h-7l0-8z"
           fill={color}
@@ -28,7 +28,7 @@ function GaugeIcon({ type, color }) {
   }
   if (type === 'oxygen') {
     return (
-      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M12 2C12 2 5 10.2 5 15.2A7 7 0 0 0 19 15.2C19 10.2 12 2 12 2Z"
           fill={color}
@@ -41,7 +41,7 @@ function GaugeIcon({ type, color }) {
     );
   }
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 2L4 5.5v6.2c0 5.1 3.4 9.7 8 10.8 4.6-1.1 8-5.7 8-10.8V5.5L12 2z"
         fill={color}

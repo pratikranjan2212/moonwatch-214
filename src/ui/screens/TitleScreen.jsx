@@ -12,44 +12,35 @@ import '../landing/landing.css';
  */
 export function TitleScreen() {
   const currentLevel = useGameStore((s) => s.game?.level) || 1;
-  const currentSeed = useGameStore((s) => s.game?.seed) || 2142026;
   const data = useGameStore((s) => s.data);
   const reducedMotion = useGameStore((s) => Boolean(s.settings?.reducedMotion));
   const startLevel = useGameStore((s) => s.startLevel);
   const setScreen = useGameStore((s) => s.setScreen);
 
   const [selectedLevel, setSelectedLevel] = useState(currentLevel);
-  const [seedInput, setSeedInput] = useState(String(currentSeed));
   const [modalTab, setModalTab] = useState(null);
 
   const selectedLevelConfig =
     LEVEL_LIST.find((lvl) => lvl.level === selectedLevel) || LEVEL_LIST[0];
 
   const feedLabel = data?.loading
-    ? 'DONKI: SYNCING...'
+    ? 'SUN WEATHER: LOADING...'
     : data?.eventSource === 'live'
-      ? 'DONKI: LIVE FEED'
-      : 'DONKI: SOL 214 SNAPSHOT';
+      ? 'NASA SUN WEATHER: LIVE'
+      : 'NASA SUN WEATHER: READY';
 
   const feedSubdetail = data?.loading
-    ? 'Connecting to NASA DONKI space weather feed...'
+    ? 'Checking the latest space weather reports from NASA...'
     : data?.eventSource === 'live'
-      ? `Live NASA DONKI telemetry active (${data?.externalEvents?.length || 0} events mapped).`
-      : `Offline curated snapshot active (${data?.activeSnapshotName || 'Sol 214 sequence'}).`;
-
-  const getCleanSeed = () => (seedInput.trim() !== '' ? seedInput.trim() : undefined);
+      ? `Real NASA Sun storm reports are loaded (${data?.externalEvents?.length || 0} space events).`
+      : 'Built-in NASA Sun storm adventure report is ready to play offline!';
 
   const handleStartMission = () => {
-    startLevel(selectedLevel, getCleanSeed(), { screen: 'briefing' });
+    startLevel(selectedLevel, undefined, { screen: 'briefing' });
   };
 
   const handleStartTutorial = () => {
-    startLevel(selectedLevel, getCleanSeed(), { screen: 'tutorial' });
-  };
-
-  const handleRandomizeSeed = () => {
-    const nextSeed = Math.floor(100000 + Math.random() * 899999);
-    setSeedInput(String(nextSeed));
+    startLevel(selectedLevel, undefined, { screen: 'tutorial' });
   };
 
   return (
@@ -70,9 +61,6 @@ export function TitleScreen() {
         onSwitchTab={setModalTab}
         selectedLevel={selectedLevel}
         onSelectLevel={setSelectedLevel}
-        seedInput={seedInput}
-        onChangeSeed={setSeedInput}
-        onRandomizeSeed={handleRandomizeSeed}
         onStartMission={handleStartMission}
         onStartTutorial={handleStartTutorial}
         feedLabel={feedLabel}

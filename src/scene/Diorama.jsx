@@ -4,8 +4,10 @@
  * decoder), renders named nodes (`Habitat`, `SolarArray`, `ShieldDome`, `Antenna`,
  * `Rover`, `Greenhouse`, `Terrain`), Earth in the sky, stars, `Lighting`, `SpriteActor`
  * crew billboards, `Particles`, and `PostFX`.
- * Includes an FPS monitor that exposes `window.__MOONWATCH_FPS__` and auto-downgrades
- * quality (`high` -> `medium` -> `low` -> `Parallax2D` if sustained FPS < 30).
+ * Includes an FPS monitor that exposes `window.__MOONWATCH_FPS__` and gently scales 3D
+ * post-processing presets (`high` -> `medium` -> `low`) under sustained active GPU load
+ * while ignoring browser idle/tab throttling and keeping 3D rendering active unless WebGL
+ * itself is unavailable.
  */
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
@@ -38,11 +40,45 @@ function FpsMonitor({ onFpsUpdate, onAutoDowngrade }) {
   const lastTimeRef = useRef(performance.now());
   const lowFpsStreakRef = useRef(0);
 
+  useEffect(() => {
+    const resetSampling = () => {
+      framesRef.current = 0;
+      lastTimeRef.current = performance.now();
+      lowFpsStreakRef.current = 0;
+    };
+
+    document.addEventListener('visibilitychange', resetSampling);
+    window.addEventListener('focus', resetSampling);
+    window.addEventListener('blur', resetSampling);
+
+    return () => {
+      document.removeEventListener('visibilitychange', resetSampling);
+      window.removeEventListener('focus', resetSampling);
+      window.removeEventListener('blur', resetSampling);
+    };
+  }, []);
+
   useFrame(() => {
+    if (typeof document !== 'undefined' && document.hidden) {
+      framesRef.current = 0;
+      lastTimeRef.current = performance.now();
+      lowFpsStreakRef.current = 0;
+      return;
+    }
+
     framesRef.current += 1;
     const now = performance.now();
     const elapsed = now - lastTimeRef.current;
+
     if (elapsed >= 1000) {
+      // Ignore long browser-throttled/idle frame gaps (> 2.2s between ticks)
+      if (elapsed > 2200 || (typeof document !== 'undefined' && !document.hasFocus())) {
+        framesRef.current = 0;
+        lastTimeRef.current = now;
+        lowFpsStreakRef.current = 0;
+        return;
+      }
+
       const fps = Math.round((framesRef.current * 1000) / elapsed);
       framesRef.current = 0;
       lastTimeRef.current = now;
@@ -51,9 +87,10 @@ function FpsMonitor({ onFpsUpdate, onAutoDowngrade }) {
       }
       onFpsUpdate?.(fps);
 
-      if (fps < 30) {
+      // Only reduce 3D post-processing after 5 consecutive active focused seconds below 20 FPS
+      if (fps < 20) {
         lowFpsStreakRef.current += 1;
-        if (lowFpsStreakRef.current >= 2) {
+        if (lowFpsStreakRef.current >= 5) {
           lowFpsStreakRef.current = 0;
           onAutoDowngrade?.(fps);
         }
@@ -524,8 +561,6 @@ export function Diorama() {
   const updateSettings = useGameStore((s) => s.updateSettings);
 
   const [fps, setFps] = useState(60);
-  const [fallback2D, setFallback2D] = useState(false);
-  const [fallbackReason, setFallbackReason] = useState(null);
 
   const sol = game?.sol || 1;
   const level = game?.level || 1;
@@ -723,20 +758,13 @@ export function Diorama() {
     }
   };
 
-  const handleAutoDowngrade = (measuredFps) => {
+  const handleAutoDowngrade = () => {
     if (quality === 'high') {
       updateSettings({ quality: 'medium' });
     } else if (quality === 'medium') {
       updateSettings({ quality: 'low' });
-    } else if (measuredFps < 30) {
-      setFallbackReason(`${measuredFps} FPS < 30 target`);
-      setFallback2D(true);
     }
   };
-
-  if (fallback2D) {
-    return <Parallax2D reason={fallbackReason} />;
-  }
 
   return (
     <div
@@ -817,8 +845,13 @@ export function Diorama() {
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.15,
         }}
-        onCreated={({ camera }) => {
+        onCreated={({ camera, gl }) => {
           camera.lookAt(0.2, 0.15, 0);
+          if (gl?.domElement) {
+            gl.domElement.addEventListener('webglcontextlost', (e) => {
+              e.preventDefault();
+            });
+          }
         }}
         fallback={<Parallax2D reason="WebGL unavailable" />}
       >

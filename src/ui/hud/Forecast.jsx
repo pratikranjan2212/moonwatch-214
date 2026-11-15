@@ -1,4 +1,4 @@
-import { getFactSheet, getForecast, normalizeEventType } from '../../engine/events.js';
+import { getForecast, normalizeEventType } from '../../engine/events.js';
 import useGameStore from '../../store/useGameStore.js';
 import { PALETTE } from '../tokens.js';
 
@@ -117,8 +117,6 @@ export function Forecast() {
               Boolean(evt.isRealNasaEvent) ||
               (typeof evt.source === 'string' && evt.source.includes('NASA DONKI'));
 
-            const sheet = evt.factSheet || getFactSheet(canonical);
-            const oneLineFact = evt.factText || sheet?.oneLineFact;
             const severity = evt.severity || 'normal';
 
             return (
@@ -159,12 +157,6 @@ export function Forecast() {
                     </span>
                   )}
                 </div>
-
-                {oneLineFact && (
-                  <p className="forecast-fact" title={sheet?.howAstronautsRespond || ''}>
-                    <strong>Science Fact:</strong> {oneLineFact}
-                  </p>
-                )}
               </article>
             );
           })}

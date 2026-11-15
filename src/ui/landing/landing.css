@@ -853,42 +853,235 @@
   color: rgba(255, 255, 255, 0.88);
 }
 
-/* Seed Controls inside Start Game */
-.mw-seed-bar {
+/* Interactive Kid-Friendly How to Play Practice Box */
+.mw-kid-step-pills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .mw-kid-step-pills {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mw-kid-step-pill {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--mw-ink);
+  background: var(--mw-paper);
+  color: var(--mw-ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.mw-kid-step-pill:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.mw-kid-step-pill--active {
+  background: var(--mw-ink);
+  color: var(--mw-paper);
+}
+
+.mw-kid-step-pill--active:hover {
+  background: var(--mw-ink);
+}
+
+.mw-kid-step-num {
+  font-family: var(--mw-font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #c2571a;
+}
+
+.mw-kid-step-pill--active .mw-kid-step-num {
+  color: var(--mw-orange);
+}
+
+.mw-kid-step-heading {
+  font-family: var(--mw-font-sans);
+  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.mw-kid-spotlight {
+  border: 2px solid var(--mw-ink);
+  padding: 1rem 1.15rem;
+  background: rgba(255, 143, 85, 0.1);
+}
+
+.mw-kid-practice-box {
+  border: 1px solid var(--mw-ink);
+  padding: 1rem 1.15rem;
+  background: #f7f5f2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.mw-practice-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  border: 1px solid var(--mw-ink);
-  padding: 0.875rem 1rem;
-  background: rgba(0, 0, 0, 0.03);
+  gap: 0.5rem;
 }
 
-.mw-seed-controls {
+.mw-practice-title {
+  font-family: var(--mw-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mw-ink);
+}
+
+.mw-practice-sub {
+  font-family: var(--mw-font-sans);
+  font-size: 0.82rem;
+  color: rgba(0, 0, 0, 0.78);
+}
+
+.mw-practice-meters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 560px) {
+  .mw-practice-meters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mw-practice-meter {
+  border: 1px solid var(--mw-ink);
+  background: var(--mw-paper);
+  padding: 0.45rem 0.6rem;
+}
+
+.mw-practice-meter-top {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mw-font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+
+.mw-practice-track {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--mw-ink);
+  overflow: hidden;
+}
+
+.mw-practice-fill {
+  height: 100%;
+  transition: width 180ms ease;
+}
+
+.mw-practice-switches {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+@media (max-width: 600px) {
+  .mw-practice-switches {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mw-practice-switch {
+  border: 1px solid var(--mw-ink);
+  background: var(--mw-paper);
+  color: var(--mw-ink);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.mw-practice-switch:hover {
+  background: rgba(255, 143, 85, 0.14);
+}
+
+.mw-practice-switch--on {
+  background: var(--mw-ink);
+  color: var(--mw-paper);
+}
+
+.mw-practice-switch--on:hover {
+  background: #1a1614;
+}
+
+.mw-practice-switch-kicker {
+  font-family: var(--mw-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c2571a;
+  font-weight: 700;
+}
+
+.mw-practice-switch--on .mw-practice-switch-kicker {
+  color: var(--mw-orange);
+}
+
+.mw-practice-switch-state {
+  font-family: var(--mw-font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mw-practice-switch-hint {
+  font-family: var(--mw-font-sans);
+  font-size: 0.74rem;
+  opacity: 0.85;
+}
+
+.mw-practice-test-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
 
-.mw-seed-label {
-  font-family: var(--mw-font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.mw-practice-feedback {
+  border-left: 4px solid var(--mw-orange);
+  background: var(--mw-paper);
+  border-top: 1px solid var(--mw-ink);
+  border-right: 1px solid var(--mw-ink);
+  border-bottom: 1px solid var(--mw-ink);
+  padding: 0.65rem 0.85rem;
+  font-family: var(--mw-font-sans);
+  font-size: 0.88rem;
+  line-height: 1.45;
   color: var(--mw-ink);
 }
 
-.mw-seed-input {
-  font-family: var(--mw-font-mono);
-  font-size: 0.85rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--mw-ink);
-  background: var(--mw-paper);
-  color: var(--mw-ink);
-  width: 9rem;
+.mw-practice-feedback--good {
+  border-left-color: #10b981;
+  background: #ecfdf5;
+}
+
+.mw-practice-feedback--warn {
+  border-left-color: #ef4444;
+  background: #fef2f2;
 }
 
 .mw-modal-actions {
