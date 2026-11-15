@@ -16,8 +16,8 @@ const TIMEOUT_MS = 3500;
 // In-memory cache for ephemerides
 const ephemerisCache = new Map();
 
-export const ASTRONOMICAL_SUN_DISTANCE = 220;
-export const ASTRONOMICAL_EARTH_DISTANCE = 120;
+export const ASTRONOMICAL_SUN_DISTANCE = 270;
+export const ASTRONOMICAL_EARTH_DISTANCE = 150;
 
 /**
  * Parses Cartesian vector lines between $$SOE and $$EOE in Horizons response.
@@ -151,12 +151,12 @@ export function getAnalyticalPositions(sol = 1, isNight = false) {
   const librationAz = Math.sin(((sol - 1) / 14) * Math.PI) * 4.5;
   const librationEl = Math.cos(((sol - 1) / 14) * Math.PI) * 1.5;
   const earthAz = 358 + librationAz;
-  const earthEl = 0.5 + librationEl;
+  const earthEl = -4.5 + librationEl;
   const earth = convertAzElToSceneCoords(earthAz, earthEl, earthRadius, -22);
 
   if (isNight) {
     return {
-      sun: [110, -160, 65],
+      sun: [135, -195, 80],
       earth,
     };
   }
@@ -311,7 +311,7 @@ export async function loadAstronomicalPositions(sol = 1, isNight = false) {
 
       const earthCoord = convertAzElToSceneCoords(
         eData.azimuth,
-        Math.max(0.2, eData.elevation * 0.22),
+        -4.5 + (eData.elevation - 11.5) * 0.15,
         ASTRONOMICAL_EARTH_DISTANCE,
         -22
       );

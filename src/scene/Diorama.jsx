@@ -293,8 +293,8 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
     coreMatRef.current = coreMat;
   }, [coreMat]);
 
-  // Sun physical radius: diameter 92.90496 scene units → radius 46.45248
-  const sunRadius = 46.45248;
+  // Sun physical radius: diameter ~120.8 scene units (30% larger) → radius 60.3882
+  const sunRadius = 60.3882;
 
   useFrame(({ clock }, delta) => {
     const t = clock.getElapsedTime();
@@ -328,7 +328,7 @@ function SunInSky({ position = [40, 60, 30], isNight = false, isFlare = false, r
   );
 }
 
-function EarthInSky({ position = [-48.8, 4.2, -109.6], reducedMotion = false }) {
+function EarthInSky({ position = [-60.9, -7.9, -136.8], reducedMotion = false }) {
   const gltf = useGLTF('/models/Moon_base.glb');
   const earthRef = useRef(null);
 
@@ -339,8 +339,8 @@ function EarthInSky({ position = [-48.8, 4.2, -109.6], reducedMotion = false }) 
 
     // Realistic grand celestial scale: from the lunar surface, Earth hangs deep in space
     // as a massive, stunning blue-marble planet in the celestial sky above the outpost.
-    // scaleEarth = 52.0 gives ~26.3 units diameter at astronomical distance ~120 units.
-    const scaleEarth = 52.0;
+    // scaleEarth = 78.0 gives ~39.5 units diameter at astronomical distance ~150 units (+50% larger).
+    const scaleEarth = 78.0;
     cloned.scale.set(scaleEarth, scaleEarth, scaleEarth);
     cloned.position.set(0, 0, 0);
 
