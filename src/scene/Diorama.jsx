@@ -16,6 +16,12 @@ import { OrbitControls, Stars, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import soundManager from '../audio/soundManager.js';
 import { getAnalyticalPositions, loadAstronomicalPositions } from '../data/horizonsClient.js';
+import {
+  computeOrbitCameraPosition,
+  DEFAULT_CHARACTER_SPAWN,
+  followOrbitTargetStep,
+  getCharacterCameraTarget,
+} from '../engine/camera.js';
 import { resolveCharacterMovement } from '../engine/collision.js';
 import { getEventsForSol, isLunarNightSol, normalizeEventType } from '../engine/events.js';
 import { BASE_STATIONS, findNearestStation, isStationUnlocked } from '../engine/stations.js';
@@ -32,6 +38,20 @@ import { splitCrewForScene } from '../engine/crewPlacement.js';
 
 // Configure local Draco decoder path for 100% offline reliability
 useGLTF.setDecoderPath('/draco/');
+
+const INITIAL_ORBIT_TARGET = getCharacterCameraTarget(DEFAULT_CHARACTER_SPAWN);
+const INITIAL_ORBIT_CAM_POS = computeOrbitCameraPosition({ target: INITIAL_ORBIT_TARGET });
+
+/**
+ * Sets OrbitControls target without carrying leftover damping deltas across resets or mode switches.
+ */
+function syncOrbitControlsTarget(controls, target, reducedMotion = false) {
+  if (!controls) return;
+  controls.target.set(target[0], target[1], target[2]);
+  controls.enableDamping = false;
+  controls.update();
+  controls.enableDamping = !reducedMotion;
+}
 
 // Preload assets for instant presentation
 useTexture.preload('/textures/starfield_enclosure_2048.png');
@@ -495,6 +515,7 @@ function CharacterAndCameraRig({
 }) {
   const { camera, gl } = useThree();
   const orbitRef = useRef(null);
+  const orbitInitializedRef = useRef(false);
   const actorGroupRef = useRef(null);
   const initialPos = useMemo(
     () => useGameStore.getState().characterPosition || [0.0, -0.45, 1.8],
@@ -531,11 +552,12 @@ function CharacterAndCameraRig({
   const walkingStateRef = useRef(false);
   const flipXStateRef = useRef(false);
 
-  // Snap astronaut position on mission restart / new level
+  // Snap astronaut position & character-centered camera on mission restart / new level
   useEffect(() => {
     if (prevResetRef.current === positionResetCount) return;
     prevResetRef.current = positionResetCount;
-    const resetPos = useGameStore.getState().characterPosition || [0.0, -0.45, 1.8];
+    const storeState = useGameStore.getState();
+    const resetPos = storeState.characterPosition || DEFAULT_CHARACTER_SPAWN;
     posRef.current.set(resetPos[0], resetPos[1], resetPos[2]);
     yawRef.current = 0;
     tppPitchRef.current = 0.36;
@@ -545,16 +567,44 @@ function CharacterAndCameraRig({
     if (actorGroupRef.current) {
       actorGroupRef.current.position.copy(posRef.current);
     }
+    if (storeState.cameraMode === 'orbit') {
+      const target = getCharacterCameraTarget(resetPos);
+      const orbitPos = computeOrbitCameraPosition({ target });
+      camera.position.set(orbitPos[0], orbitPos[1], orbitPos[2]);
+      if (orbitRef.current) {
+        syncOrbitControlsTarget(
+          orbitRef.current,
+          target,
+          Boolean(storeState.settings?.reducedMotion)
+        );
+        orbitInitializedRef.current = true;
+      } else {
+        camera.lookAt(target[0], target[1], target[2]);
+      }
+    }
     const nearRes = findNearestStation(resetPos, sol);
     const nextNear = nearRes?.inRange ? nearRes.station?.id || null : null;
     lastNearIdRef.current = nextNear;
     setNearbyStationId?.(nextNear);
-  }, [positionResetCount, sol, setNearbyStationId]);
+  }, [positionResetCount, sol, setNearbyStationId, camera]);
 
-  // Keep actor grounded immediately on mount
+  // Keep actor grounded and Orbit target anchored to the character immediately on mount
   useEffect(() => {
     if (actorGroupRef.current) {
       actorGroupRef.current.position.copy(posRef.current);
+    }
+    if (orbitRef.current) {
+      const target = getCharacterCameraTarget([
+        posRef.current.x,
+        posRef.current.y,
+        posRef.current.z,
+      ]);
+      syncOrbitControlsTarget(
+        orbitRef.current,
+        target,
+        Boolean(useGameStore.getState().settings?.reducedMotion)
+      );
+      orbitInitializedRef.current = true;
     }
   }, []);
 
@@ -631,6 +681,14 @@ function CharacterAndCameraRig({
     if (prev === 'orbit' && (cameraMode === 'tpp' || cameraMode === 'fpp')) {
       const dir = tmpDirRef.current;
       camera.getWorldDirection(dir);
+      const horizLen = Math.hypot(dir.x, dir.z);
+      if (cameraMode === 'tpp' && horizLen > 0.001) {
+        tppPitchRef.current = THREE.MathUtils.clamp(
+          Math.atan2(-dir.y, horizLen),
+          0.12,
+          1.05
+        );
+      }
       dir.y = 0;
       if (dir.lengthSq() > 0.001) {
         dir.normalize();
@@ -647,12 +705,29 @@ function CharacterAndCameraRig({
       if (document.pointerLockElement === gl?.domElement) {
         document.exitPointerLock?.();
       }
-      camera.position.set(0, 6.2, 14.5);
+      const target = getCharacterCameraTarget([
+        posRef.current.x,
+        posRef.current.y,
+        posRef.current.z,
+      ]);
+      const orbitPitch =
+        prev === 'tpp' ? THREE.MathUtils.clamp(tppPitchRef.current, 0.25, 0.95) : 0.54;
+      const orbitPos = computeOrbitCameraPosition({
+        target,
+        yaw: yawRef.current,
+        distance: 7.5,
+        pitch: orbitPitch,
+      });
+      camera.position.set(orbitPos[0], orbitPos[1], orbitPos[2]);
       if (orbitRef.current) {
-        orbitRef.current.target.set(0.2, 0.15, 0.0);
-        orbitRef.current.update();
+        syncOrbitControlsTarget(
+          orbitRef.current,
+          target,
+          Boolean(useGameStore.getState().settings?.reducedMotion)
+        );
+        orbitInitializedRef.current = true;
       } else {
-        camera.lookAt(0.2, 0.15, 0.0);
+        camera.lookAt(target[0], target[1], target[2]);
       }
     }
   }, [cameraMode, camera, gl]);
@@ -914,8 +989,29 @@ function CharacterAndCameraRig({
       ]);
     }
 
-    // Drive TPP or FPP camera smoothly
-    if (cameraMode === 'tpp') {
+    // Drive Orbit (character-centered), TPP, or FPP camera smoothly
+    if (cameraMode === 'orbit') {
+      if (orbitRef.current) {
+        const charPos = [posRef.current.x, posRef.current.y, posRef.current.z];
+        if (!orbitInitializedRef.current) {
+          const initTarget = getCharacterCameraTarget(charPos);
+          syncOrbitControlsTarget(orbitRef.current, initTarget, reducedMotion);
+          orbitInitializedRef.current = true;
+        } else {
+          const { nextTarget, nextCameraPos } = followOrbitTargetStep({
+            controlsTarget: [
+              orbitRef.current.target.x,
+              orbitRef.current.target.y,
+              orbitRef.current.target.z,
+            ],
+            cameraPos: [camera.position.x, camera.position.y, camera.position.z],
+            characterPos: charPos,
+          });
+          camera.position.set(nextCameraPos[0], nextCameraPos[1], nextCameraPos[2]);
+          orbitRef.current.target.set(nextTarget[0], nextTarget[1], nextTarget[2]);
+        }
+      }
+    } else if (cameraMode === 'tpp') {
       const dist = tppDistRef.current;
       const pitch = tppPitchRef.current;
       const yaw = yawRef.current;
@@ -939,19 +1035,19 @@ function CharacterAndCameraRig({
       camera.position.set(posRef.current.x, eyeY, posRef.current.z);
       camera.lookAt(targetX, targetY, targetZ);
     }
-  });
+  }, -0.5);
 
   return (
     <>
       <OrbitControls
         ref={orbitRef}
         enabled={cameraMode === 'orbit'}
-        target={[0.2, 0.15, 0.0]}
-        minDistance={5.0}
-        maxDistance={24.0}
+        enablePan={false}
+        minDistance={2.2}
+        maxDistance={18.0}
         minPolarAngle={Math.PI / 12}
         maxPolarAngle={Math.PI / 2.08}
-        enableDamping
+        enableDamping={!reducedMotion}
         dampingFactor={0.06}
       />
 
@@ -1203,7 +1299,7 @@ export function Diorama() {
       <div className="diorama-overlay-top">
         <div className="diorama-status-pill">
           <span>
-            Sol {sol} · Day {sol}
+            Day {sol}
           </span>
         </div>
       </div>
@@ -1233,12 +1329,12 @@ export function Diorama() {
                         ? `Fresh Air Flow: ${(choices.oxygenLevel || 'normal').toUpperCase()}`
                         : nearbyStation.id === 'greenhouse'
                           ? !nearbyUnlocked
-                            ? `Locked until Sol ${nearbyStation.unlockSol}`
+                            ? `Locked until Day ${nearbyStation.unlockSol}`
                             : choices.waterGreenhouse || choices.tendGreenhouse
                               ? 'Watering & Tending Active'
                               : 'Greenhouse Standby'
                           : !nearbyUnlocked
-                            ? `Locked until Sol ${nearbyStation.unlockSol}`
+                            ? `Locked until Day ${nearbyStation.unlockSol}`
                             : choices.queueComms
                               ? 'Earth Packet Queued'
                               : 'Comms Dish Standby'}
@@ -1247,7 +1343,7 @@ export function Diorama() {
             </div>
 
             {!nearbyUnlocked ? (
-              <span className="station-interact-locked">🔒 Sol {nearbyStation.unlockSol}</span>
+              <span className="station-interact-locked">🔒 Day {nearbyStation.unlockSol}</span>
             ) : nearbyStation.id === 'solar' && solarBroken ? (
               <span className="station-interact-locked">💥 Broken</span>
             ) : nearbyStation.id === 'oxygen' ? (
@@ -1305,7 +1401,7 @@ export function Diorama() {
       <Canvas
         shadows={quality !== 'low'}
         dpr={quality === 'low' ? [1, 1] : [1, 2]}
-        camera={{ position: [0, 6.2, 14.5], fov: 44, near: 0.08, far: 650 }}
+        camera={{ position: INITIAL_ORBIT_CAM_POS, fov: 44, near: 0.08, far: 650 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -1313,7 +1409,11 @@ export function Diorama() {
           toneMappingExposure: 1.15,
         }}
         onCreated={({ camera, gl }) => {
-          camera.lookAt(0.2, 0.15, 0);
+          camera.lookAt(
+            INITIAL_ORBIT_TARGET[0],
+            INITIAL_ORBIT_TARGET[1],
+            INITIAL_ORBIT_TARGET[2]
+          );
           if (gl?.domElement) {
             gl.domElement.addEventListener('webglcontextlost', (e) => {
               e.preventDefault();
@@ -1412,7 +1512,6 @@ export function Diorama() {
           quality={quality}
           reducedMotion={reducedMotion}
           isFlare={isFlare}
-          focusTarget={[0.2, 0.6, 0.0]}
         />
       </Canvas>
 

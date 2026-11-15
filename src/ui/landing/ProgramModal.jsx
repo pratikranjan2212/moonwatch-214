@@ -27,7 +27,7 @@ const HOW_TO_PLAY_STEPS = [
     shortTitle: 'Reach the Last Day',
     title: 'Keep Battery, Air & Crew Above 0%',
     detail:
-      'Click "Advance to Next Sol" when your switches look good. Keep your 4 astronauts healthy through every Moon Day and Night to win your mission badge!',
+      'Click "Advance to Next Day" when your switches look good. Keep your 4 astronauts healthy through every Moon Day and Night to win your mission badge!',
     tip: 'Make sure your Battery has lots of energy saved before a 3-day Dark Night!',
   },
 ];

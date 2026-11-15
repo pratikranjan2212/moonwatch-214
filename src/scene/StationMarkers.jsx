@@ -99,7 +99,7 @@ function SingleStationMarker({
           <span className="station-info-col">
             <span className="station-name-text">{station.shortName}</span>
             <span className="station-state-text">
-              {isBroken ? 'BROKEN' : isLocked ? `LOCKED (Sol ${station.unlockSol})` : systemState}
+              {isBroken ? 'BROKEN' : isLocked ? `LOCKED (Day ${station.unlockSol})` : systemState}
             </span>
           </span>
           {isCharacterNear && !isBroken && !isLocked && (

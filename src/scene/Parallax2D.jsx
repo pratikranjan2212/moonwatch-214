@@ -63,7 +63,7 @@ export function Parallax2D({ reason: _reason = null }) {
       <div className="diorama-overlay-top">
         <div className="diorama-status-pill">
           <span>
-            Sol {sol} · Day {sol}
+            Day {sol}
           </span>
         </div>
       </div>

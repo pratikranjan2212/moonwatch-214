@@ -79,11 +79,11 @@ export function Forecast() {
   const upcoming = getForecast(timeline, currentSol, 4);
 
   return (
-    <aside className="hud-panel forecast-panel" aria-label="Space Weather Forecast (Next 4 Sols)">
+    <aside className="hud-panel forecast-panel" aria-label="Space Weather Forecast (Next 4 Days)">
       <div className="hud-section-title">
         <span>Space Weather Forecast</span>
         <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-          Sols {currentSol}–{Math.min(targetSols, currentSol + 4)}
+          Days {currentSol}–{Math.min(targetSols, currentSol + 4)}
         </span>
       </div>
 
@@ -97,7 +97,7 @@ export function Forecast() {
             <span>Clear Lunar Skies</span>
           </div>
           <p className="forecast-fact">
-            No solar flares, CMEs, or lunar night windows detected in the immediate 4-Sol telemetry
+            No solar flares, CMEs, or lunar night windows detected in the immediate 4-Day telemetry
             window. Ideal conditions to extend solar panels and recharge the battery bank!
           </p>
         </div>
@@ -108,10 +108,10 @@ export function Forecast() {
             const solsUntil = Math.max(0, (evt.sol || currentSol) - currentSol);
             const offsetLabel =
               solsUntil === 0
-                ? `ACTIVE NOW (Sol ${evt.sol})`
+                ? `ACTIVE NOW (Day ${evt.sol})`
                 : solsUntil === 1
-                  ? `In 1 Sol (Sol ${evt.sol})`
-                  : `In ${solsUntil} Sols (Sol ${evt.sol})`;
+                  ? `In 1 Day (Day ${evt.sol})`
+                  : `In ${solsUntil} Days (Day ${evt.sol})`;
 
             const isRealNasa =
               Boolean(evt.isRealNasaEvent) ||

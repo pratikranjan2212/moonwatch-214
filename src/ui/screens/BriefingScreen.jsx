@@ -38,7 +38,7 @@ export function BriefingScreen() {
           </div>
 
           <span className="forecast-sol-pill" style={{ fontSize: '0.9rem' }}>
-            {levelConfig.targetSols} Sols
+            {levelConfig.targetSols} Days
           </span>
         </div>
 
@@ -143,7 +143,7 @@ export function BriefingScreen() {
               onClick={() => setScreen('game')}
               style={{ fontSize: '1.1rem', padding: '0.75rem 1.5rem' }}
             >
-              ⚡ Start Sol 1 →
+              ⚡ Start Day 1 →
             </button>
           </div>
         </div>

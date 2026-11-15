@@ -394,7 +394,7 @@ export const useGameStore = create((set, get) => {
   const setCameraMode = (mode) => {
     const valid = mode === 'tpp' || mode === 'fpp' || mode === 'orbit' ? mode : 'orbit';
     const labels = {
-      orbit: 'Orbit View — WASD Walk · Drag Orbit · [E] Operate Nearby',
+      orbit: 'Orbit View — WASD Walk · Drag Orbit Character · [E] Operate Nearby',
       tpp: 'TPP Third-Person — WASD Move · Mouse Look · [M] Lock · [E] Operate',
       fpp: 'FPP First-Person Visor — WASD Move · Mouse Look · [M] Lock · [E] Operate',
     };
@@ -451,7 +451,7 @@ export const useGameStore = create((set, get) => {
     const sol = game?.sol || 1;
     if (!isStationUnlocked(targetId, sol)) {
       set({
-        actionToast: `${station.shortName} is LOCKED (Unlocks on Sol ${station.unlockSol})`,
+        actionToast: `${station.shortName} is LOCKED (Unlocks on Day ${station.unlockSol})`,
       });
       return { ok: false, reason: 'locked', stationId: targetId };
     }

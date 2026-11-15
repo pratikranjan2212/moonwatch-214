@@ -100,13 +100,13 @@ export const LEVELS = {
     level: 1,
     name: 'Power Basics',
     theme: 'Power basics',
-    subtitle: 'Solar, Battery, Lunar Night & Sol 214',
+    subtitle: 'Solar, Battery, Lunar Night & Day 214',
     targetSols: 14,
     sols: 14,
     missionStartSol: 207, // Sol 1 = Mission Sol 208, Sol 7 = Mission Sol 214
     sol214Sol: 7,
     hasSol214Choice: true,
-    introduces: ['Solar panels', 'Battery reserve', 'Lunar night', 'Solar flares', 'Sol 214 choice'],
+    introduces: ['Solar panels', 'Battery reserve', 'Lunar night', 'Solar flares', 'Day 214 choice'],
     mechanics: {
       solar: true,
       battery: true,
@@ -124,13 +124,13 @@ export const LEVELS = {
       commsDelays: 0,
     },
     briefing: {
-      headline: 'Level 1: Power Basics & The Sol 214 Super-Flare',
+      headline: 'Level 1: Power Basics & The Day 214 Super-Flare',
       summary:
-        'Keep Shackleton Outpost powered for 14 Sols. Charge batteries during daylight, conserve power through the 3-Sol lunar night, and prepare for the massive Sol 214 solar storm!',
+        'Keep Shackleton Outpost powered for 14 Days. Charge batteries during daylight, conserve power through the 3-Day lunar night, and prepare for the massive Day 214 solar storm!',
       objectives: [
-        'Survive 14 Sols with cabin Oxygen and Crew Health above zero.',
-        'Store battery power before Lunar Night (Sols 4–6 and 11–13).',
-        'Make the critical 10-second decision when the Sol 214 X-Class flare strikes on Sol 7.',
+        'Survive 14 Days with cabin Oxygen and Crew Health above zero.',
+        'Store battery power before Lunar Night (Days 4–6 and 11–13).',
+        'Make the critical 10-second decision when the Day 214 X-Class flare strikes on Day 7.',
       ],
     },
   },
@@ -166,11 +166,11 @@ export const LEVELS = {
     briefing: {
       headline: 'Level 2: Life Support & Hydroponic Greenhouse',
       summary:
-        'Extend operations to 21 Sols! Rising cabin CO₂ drains extra oxygen each Sol. Water and tend Botanist Soli’s greenhouse to naturally scrub CO₂ and keep the crew healthy.',
+        'Extend operations to 21 Days! Rising cabin CO₂ drains extra oxygen each Day. Water and tend Botanist Soli’s greenhouse to naturally scrub CO₂ and keep the crew healthy.',
       objectives: [
-        'Survive 21 Sols across three lunar day-night cycles.',
-        `Water and tend the Greenhouse to offset cabin CO₂ build-up (+${BALANCE.greenhouse.oxygenBoost} O₂/Sol).`,
-        'Protect the crew from multi-Sol CMEs and dust storms.',
+        'Survive 21 Days across three lunar day-night cycles.',
+        `Water and tend the Greenhouse to offset cabin CO₂ build-up (+${BALANCE.greenhouse.oxygenBoost} O₂/Day).`,
+        'Protect the crew from multi-Day CMEs and dust storms.',
       ],
     },
   },
@@ -207,9 +207,9 @@ export const LEVELS = {
     briefing: {
       headline: 'Level 3: Deep Comms & Solar Maximum',
       summary:
-        'Command a full 28-Sol lunar month during peak solar activity! Radio interference delays Earth instructions by 2–3 Sols. Queue antenna packets ahead of time and rely on your local forecast.',
+        'Command a full 28-Day lunar month during peak solar activity! Radio interference delays Earth instructions by 2–3 Days. Queue antenna packets ahead of time and rely on your local forecast.',
       objectives: [
-        'Survive 28 Sols through intense solar flares, CMEs, and comms blackouts.',
+        'Survive 28 Days through intense solar flares, CMEs, and comms blackouts.',
         'Queue Earth Comms via the high-gain antenna to receive delayed power and shield calibrations.',
         'Act on the local forecast instead of waiting for delayed Earth orders.',
       ],

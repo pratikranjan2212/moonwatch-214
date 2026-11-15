@@ -125,7 +125,7 @@ export const EVENT_VISUALS = {
     accent: PALETTE.oxygen,
   },
   sol214: {
-    code: 'SOL 214',
+    code: 'DAY 214',
     shortLabel: 'X-CLASS SUPER-FLARE',
     color: PALETTE.alert,
     accent: PALETTE.sunHighlight,

@@ -79,7 +79,7 @@ export default function HeroSection({
   onOpenSettings,
   missionCount = 3,
   selectedTargetSols = 14,
-  feedLabel = 'DONKI: SOL 214 SNAPSHOT',
+  feedLabel = 'DONKI: DAY 214 SNAPSHOT',
   reducedMotion = false,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

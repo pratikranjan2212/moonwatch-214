@@ -67,11 +67,11 @@ export function AlertModal() {
           }}
         >
           <span className={`severity-badge severity-${activeAlert.severity || 'major'}`}>
-            ⚠ INCOMING SPACE WEATHER ALERT · SOL {activeAlert.sol}
+            ⚠ INCOMING SPACE WEATHER ALERT · DAY {activeAlert.sol}
           </span>
 
           <span className="forecast-sol-pill">
-            Lead Warning: {activeAlert.leadTimeSols || 2} Sols
+            Lead Warning: {activeAlert.leadTimeSols || 2} Days
           </span>
         </div>
 

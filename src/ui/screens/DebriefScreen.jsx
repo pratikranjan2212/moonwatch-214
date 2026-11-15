@@ -64,7 +64,7 @@ export function DebriefScreen() {
               Level {currentLevel} · Seed #{stats.seed ?? game?.seed}
             </span>
             <span className="forecast-sol-pill">
-              Survived {stats.solsSurvived ?? 0} / {stats.targetSols ?? 14} Sols
+              Survived {stats.solsSurvived ?? 0} / {stats.targetSols ?? 14} Days
             </span>
           </div>
         </div>
@@ -130,7 +130,7 @@ export function DebriefScreen() {
                       >
                         <span className="kbd-hint">Step {index + 1}</span>
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                          Sol {card.sol}
+                          Day {card.sol}
                         </span>
                       </div>
 

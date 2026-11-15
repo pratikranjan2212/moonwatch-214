@@ -80,7 +80,7 @@ export function Sol214Card() {
           }}
         >
           <span className="severity-badge severity-extreme">
-            🚨 MISSION SOL 214 EMERGENCY · X3.9 SUPER-FLARE
+            🚨 MISSION DAY 214 EMERGENCY · X3.9 SUPER-FLARE
           </span>
 
           <span className="nasa-badge">
@@ -99,7 +99,7 @@ export function Sol214Card() {
             color: 'var(--power)',
           }}
         >
-          Sol 214 X-Class Super-Flare Incoming!
+          Day 214 X-Class Super-Flare Incoming!
         </h2>
 
         {/* 10-Second Live Countdown Ring */}
@@ -222,7 +222,7 @@ export function Sol214Card() {
             </div>
             <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
               Protects solar array and activates the radiation shield. Cuts solar generation this
-              Sol ({BALANCE.sol214.retract.powerDelta} Power, {BALANCE.sol214.retract.shieldDelta}{' '}
+              Day ({BALANCE.sol214.retract.powerDelta} Power, {BALANCE.sol214.retract.shieldDelta}{' '}
               Shield, 0 Crew damage).
             </p>
           </button>
@@ -255,7 +255,7 @@ export function Sol214Card() {
             <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
               Attempts to harvest solar energy through the storm, but risks a massive surge (
               {BALANCE.sol214.leaveOut.powerDelta} Power, {BALANCE.sol214.leaveOut.shieldDelta}{' '}
-              Shield, and scorches panels to 45% output for 3 Sols).
+              Shield, and scorches panels to 45% output for 3 Days).
             </p>
           </button>
         </div>

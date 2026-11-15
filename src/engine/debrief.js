@@ -39,7 +39,7 @@ const CAUSE_STAGE_ORDER = {
 const CANONICAL_TITLES = {
   flare: 'Flare hit',
   cme: 'CME storm hit',
-  sol214: 'Sol 214 super-flare',
+  sol214: 'Day 214 super-flare',
   dust: 'Dust storm hit',
   night: 'Lunar night',
   comms: 'Comms delay',
@@ -134,7 +134,7 @@ function formatCard(entry, index, total) {
   const rawTip =
     entry.tip ||
     getFactSheet(causeKey)?.tryThisTip ||
-    'Check the 3-Sol forecast panel before allocating power each Sol.';
+    'Check the 3-Day forecast panel before allocating power each Day.';
   const tip = String(rawTip).replace(/^Try this instead:\s*/i, '').trim();
 
   return {
@@ -288,7 +288,7 @@ export function buildDebrief(stateOrCauseLog, optionalState = undefined) {
         sol: 4,
         cause: 'night',
         title: 'Lunar night survived',
-        effect: 'Battery reserves carried the habitat through 3 dark Sols',
+        effect: 'Battery reserves carried the habitat through 3 dark Days',
         mitigatedBy: 'batteryReserve',
         scienceFact: getFactSheet('night').oneLineFact,
         tip: getFactSheet('night').tryThisTip,
@@ -296,7 +296,7 @@ export function buildDebrief(stateOrCauseLog, optionalState = undefined) {
       {
         sol: 7,
         cause: 'sol214',
-        title: 'Sol 214 storm weathered',
+        title: 'Day 214 storm weathered',
         effect: 'Commander Nova guided the crew safely through peak solar activity',
         mitigatedBy: 'shield',
         scienceFact: getFactSheet('sol214').oneLineFact,
@@ -306,7 +306,7 @@ export function buildDebrief(stateOrCauseLog, optionalState = undefined) {
         sol: targetSols,
         cause: 'crew-health-fell',
         title: 'Crew safe at mission end',
-        effect: `Survived all ${targetSols} Sols with life support online`,
+        effect: `Survived all ${targetSols} Days with life support online`,
         mitigatedBy: 'commander',
         scienceFact:
           'Smart power management and space-weather forecasting keep lunar habitats safe.',
@@ -429,12 +429,12 @@ export function buildDebrief(stateOrCauseLog, optionalState = undefined) {
 
   const headline =
     outcome === 'won'
-      ? `Mission Success! Outpost Survived ${targetSols} Sols`
-      : `Mission Debrief — Outpost Lost on Sol ${Math.max(1, solsSurvived + 1)}`;
+      ? `Mission Success! Outpost Survived ${targetSols} Days`
+      : `Mission Debrief — Outpost Lost on Day ${Math.max(1, solsSurvived + 1)}`;
 
   const summary =
     outcome === 'won'
-      ? `Commander Nova led the crew through ${targetSols} Sols of lunar day-night cycles and real NASA space weather. Cause chain: ${causeChainText}.`
+      ? `Commander Nova led the crew through ${targetSols} Days of lunar day-night cycles and real NASA space weather. Cause chain: ${causeChainText}.`
       : `Here is how one event led to another: ${causeChainText}. Review the science notes below and replay with a new strategy!`;
 
   return {

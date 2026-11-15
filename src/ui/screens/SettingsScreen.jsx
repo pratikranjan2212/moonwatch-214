@@ -122,7 +122,7 @@ export function SettingsScreen() {
           <div>
             <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Reduced Motion</div>
             <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-              Disables screen flash, shake, pulse animations, and pauses the Sol 214 countdown timer.
+              Disables screen flash, shake, pulse animations, and pauses the Day 214 countdown timer.
             </span>
           </div>
 
@@ -173,7 +173,7 @@ export function SettingsScreen() {
               Camera Perspective View
             </div>
             <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-              Orbit (overhead drag), TPP (third-person follow), or FPP (first-person helmet view). Switch anytime with [V].
+              Orbit (character orbit drag), TPP (third-person follow), or FPP (first-person helmet view). Switch anytime with [V].
             </span>
           </div>
 

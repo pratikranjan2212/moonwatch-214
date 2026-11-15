@@ -225,7 +225,7 @@ export function resolveSol214Choice(state, decision = 'retract') {
     next.causeLog.push({
       sol: currentSol,
       cause: 'sol214',
-      label: 'Sol 214: Panels retracted in time',
+      label: 'Day 214: Panels retracted in time',
       effect: `power ${spec.powerDelta}, shield ${spec.shieldDelta}, solar array protected`,
       mitigatedBy: 'panelsRetracted',
       decision: 'retract',
@@ -270,7 +270,7 @@ export function resolveSol214Choice(state, decision = 'retract') {
       sol: currentSol,
       cause: 'panels-exposed',
       label: 'Panels left out',
-      effect: `power ${spec.powerDelta}, array scorched (${Math.round(spec.damagedSolarMultiplier * 100)}% output for ${spec.damagedDurationSols} Sols)`,
+      effect: `power ${spec.powerDelta}, array scorched (${Math.round(spec.damagedSolarMultiplier * 100)}% output for ${spec.damagedDurationSols} Days)`,
       mitigatedBy: null,
       decision: 'leave-out',
       scienceFact:
@@ -586,7 +586,7 @@ export function tick(state, choices = undefined, rng = undefined) {
       mitigatedBy: null,
       scienceFact:
         'Without electrical power to split water molecules or scrub CO₂, breathable cabin air drops rapidly.',
-      tip: 'Keep battery power above 0% so the Oxygen Generator stays online every Sol.',
+      tip: 'Keep battery power above 0% so the Oxygen Generator stays online every Day.',
     });
   } else {
     oxygen += o2Spec.netOxygenDelta;
@@ -641,7 +641,7 @@ export function tick(state, choices = undefined, rng = undefined) {
           mitigatedBy: null,
           scienceFact:
             'When hydroponic crops wilt without water and light, cabin CO₂ builds up faster.',
-          tip: 'Toggle Greenhouse watering on daytime Sols when you have spare solar power.',
+          tip: 'Toggle Greenhouse watering on daytime Days when you have spare solar power.',
         });
       }
     }
@@ -692,8 +692,8 @@ export function tick(state, choices = undefined, rng = undefined) {
       workingState.causeLog.push({
         sol: currentSol,
         cause: 'comms-queued',
-        label: `Earth telemetry queued (${delaySols}-Sol delay)`,
-        effect: `arrives on Sol ${deliverSol}`,
+        label: `Earth telemetry queued (${delaySols}-Day delay)`,
+        effect: `arrives on Day ${deliverSol}`,
         mitigatedBy: 'antennaSync',
         scienceFact: commsSheet.oneLineFact,
         tip: commsSheet.tryThisTip,

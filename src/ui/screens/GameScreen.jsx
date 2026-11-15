@@ -44,7 +44,7 @@ function PlaceholderDiorama() {
       <div className="diorama-overlay-top">
         <div className="diorama-status-pill">
           <span>
-            Sol {sol} · Day {sol}
+            Day {sol}
           </span>
         </div>
       </div>

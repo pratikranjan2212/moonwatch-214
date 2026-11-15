@@ -4,6 +4,12 @@
 
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../balance.js';
+import {
+  computeOrbitCameraPosition,
+  DEFAULT_CHARACTER_SPAWN,
+  followOrbitTargetStep,
+  getCharacterCameraTarget,
+} from '../camera.js';
 import { buildDebrief } from '../debrief.js';
 import {
   PLAYER_RADIUS,
@@ -624,5 +630,56 @@ describe('8. Outpost Obstacle Collisions & Station Reachability', () => {
       const resolved = resolveCharacterMovement(x, z, opts);
       expect(isPositionBlocked(resolved.x, resolved.z, opts)).toBe(false);
     });
+  });
+});
+
+describe('9. Character-Referenced Camera Rig (camera.js)', () => {
+  it('anchors Orbit target on the character torso instead of the environment center', () => {
+    const spawnTarget = getCharacterCameraTarget(DEFAULT_CHARACTER_SPAWN);
+    expect(spawnTarget[0]).toBeCloseTo(0.0, 5);
+    expect(spawnTarget[1]).toBeCloseTo(-0.31, 5);
+    expect(spawnTarget[2]).toBeCloseTo(1.8, 5);
+
+    const movedTarget = getCharacterCameraTarget([2.4, -0.45, 4.1]);
+    expect(movedTarget).toEqual([2.4, -0.31, 4.1]);
+  });
+
+  it('positions Orbit camera radially relative to the character target across yaw angles', () => {
+    const target = getCharacterCameraTarget([2.0, -0.45, 3.0]);
+    const back = computeOrbitCameraPosition({ target, yaw: 0, distance: 7.5, pitch: 0.5 });
+    const rightSide = computeOrbitCameraPosition({
+      target,
+      yaw: Math.PI / 2,
+      distance: 7.5,
+      pitch: 0.5,
+    });
+
+    const distBack = Math.hypot(back[0] - target[0], back[1] - target[1], back[2] - target[2]);
+    const distSide = Math.hypot(
+      rightSide[0] - target[0],
+      rightSide[1] - target[1],
+      rightSide[2] - target[2]
+    );
+    expect(distBack).toBeCloseTo(7.5, 5);
+    expect(distSide).toBeCloseTo(7.5, 5);
+    expect(rightSide[0] - target[0]).toBeGreaterThan(5.0);
+    expect(rightSide[2] - target[2]).toBeCloseTo(0, 4);
+  });
+
+  it('translates Orbit camera alongside character movement while preserving relative offset', () => {
+    const startTarget = getCharacterCameraTarget([0.0, -0.45, 1.8]);
+    const startCam = computeOrbitCameraPosition({ target: startTarget, yaw: 0.8, distance: 8.0, pitch: 0.45 });
+
+    const step = followOrbitTargetStep({
+      controlsTarget: startTarget,
+      cameraPos: startCam,
+      characterPos: [2.5, -0.45, 4.9],
+    });
+
+    expect(step.nextTarget).toEqual([2.5, -0.31, 4.9]);
+    // Relative offset (cameraPos - target) stays identical relative to the character
+    expect(step.nextCameraPos[0] - step.nextTarget[0]).toBeCloseTo(startCam[0] - startTarget[0], 6);
+    expect(step.nextCameraPos[1] - step.nextTarget[1]).toBeCloseTo(startCam[1] - startTarget[1], 6);
+    expect(step.nextCameraPos[2] - step.nextTarget[2]).toBeCloseTo(startCam[2] - startTarget[2], 6);
   });
 });

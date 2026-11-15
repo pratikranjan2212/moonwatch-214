@@ -1,5 +1,5 @@
 /**
- * @fileoverview Event definitions (FLR, CME, dust storm, lunar night, comms delay, Sol 214),
+ * @fileoverview Event definitions (FLR, CME, dust storm, lunar night, comms delay, Day 214),
  * kid-friendly science fact sheets, and deterministic timeline builder merging seeded
  * hazards with optional normalized NASA DONKI events.
  */
@@ -89,7 +89,7 @@ const BASE_EVENT_DEFINITIONS = {
       oneLineFact:
         'A real lunar night lasts about 14 Earth days—outposts must survive on stored energy!',
       tryThisTip:
-        'Extend solar panels during daytime Sols to enter Lunar Night with at least 75% battery.',
+        'Extend solar panels during daytime Days to enter Lunar Night with at least 75% battery.',
     },
   },
 
@@ -102,30 +102,30 @@ const BASE_EVENT_DEFINITIONS = {
     defaultLeadTime: 2,
     factSheet: {
       whatItIs: 'Radio signal delay and solar static between Earth Mission Control and the Moon.',
-      realWorldImpact: 'Instructions and telemetry packets arrive 2 to 3 Sols after they are sent.',
+      realWorldImpact: 'Instructions and telemetry packets arrive 2 to 3 Days after they are sent.',
       howAstronautsRespond: 'Queue antenna transmissions early and make smart autonomous decisions on-site.',
       oneLineFact:
         'Solar storms can scramble radio waves, forcing lunar crews to rely on their own instruments!',
       tryThisTip:
-        'Queue Earth Comms every few Sols in Level 3 so telemetry calibration boosts arrive on time.',
+        'Queue Earth Comms every few Days in Level 3 so telemetry calibration boosts arrive on time.',
     },
   },
 
   sol214: {
     type: 'sol214',
     code: 'SOL214',
-    title: 'Sol 214 X-Class Super-Flare',
-    label: 'Sol 214 super-flare',
+    title: 'Day 214 X-Class Super-Flare',
+    label: 'Day 214 super-flare',
     defaultSeverity: 'extreme',
     defaultLeadTime: 3,
     factSheet: {
-      whatItIs: 'An extreme X-class solar flare erupting from an active sunspot group on Sol 214.',
+      whatItIs: 'An extreme X-class solar flare erupting from an active sunspot group on Day 214.',
       realWorldImpact: 'Leaving solar panels extended risks a massive electrical surge and scorched cells.',
       howAstronautsRespond: 'Make a split-second command decision: retract the array and raise shields immediately.',
       oneLineFact:
         'X-class flares are the biggest explosions in our solar system—10x stronger than M-class flares!',
       tryThisTip:
-        'On Sol 214, choose to Retract Panels so the X-flare does not surge and drain your battery bank.',
+        'On Day 214, choose to Retract Panels so the X-flare does not surge and drain your battery bank.',
     },
   },
 };
@@ -174,7 +174,7 @@ export function getFactSheet(eventType) {
 /**
  * Determines whether a given 1-based Sol number falls within the 3-Sol Lunar Night
  * window of each 7-Sol cycle (Sols 4–6, 11–13, 18–20, 25–27).
- * Note: Sol 7 (Mission Sol 214) is Daytime so the Sol 214 panel choice is a true trade-off.
+ * Note: Sol 7 (Mission Day 214) is Daytime so the Day 214 panel choice is a true trade-off.
  *
  * @param {number} sol
  * @returns {boolean}
@@ -288,7 +288,7 @@ export function normalizeExternalEvent(raw, index = 0, targetSols = 14, missionS
 /**
  * Deterministically builds a complete event timeline for a level, combining:
  * 1. Scheduled Lunar Night Sols (3 Sols per 7-Sol cycle)
- * 2. Guaranteed Sol 214 Hero Choice event on Level 1 (Sol 7 = Mission Sol 214)
+ * 2. Guaranteed Day 214 Hero Choice event on Level 1 (Sol 7 = Mission Day 214)
  * 3. Optional normalized NASA DONKI externalEvents
  * 4. Seeded flares, CMEs, dust storms, and Level 3 comms delays
  *
@@ -351,7 +351,7 @@ export function buildTimeline(levelOrOptions = 1, seedArg = 2142026, externalEve
     }
   }
 
-  // 2. Guarantee the Sol 214 Hero Choice event on Level 1 at Sol 7 (Mission Sol 214)
+  // 2. Guarantee the Day 214 Hero Choice event on Level 1 at Sol 7 (Mission Day 214)
   if (levelConfig.hasSol214Choice && levelConfig.sol214Sol) {
     const sol214Sol = levelConfig.sol214Sol;
     const sol214Def = BASE_EVENT_DEFINITIONS.sol214;
@@ -359,14 +359,14 @@ export function buildTimeline(levelOrOptions = 1, seedArg = 2142026, externalEve
     timeline.push({
       id: `evt-l${levelConfig.id}-sol${sol214Sol}-sol214`,
       sol: sol214Sol,
-      missionSol: BALANCE.sol214MissionSol, // Mission Sol 214
+      missionSol: BALANCE.sol214MissionSol, // Mission Day 214
       type: 'sol214',
       code: 'SOL214',
       severity: 'extreme',
       title: sol214Def.title,
       label: sol214Def.label,
       description:
-        'Mission Sol 214 Emergency! NASA DONKI detects an X3.9 super-flare from AR 13664 heading straight for Shackleton Rim. 10 seconds to decide: retract solar panels or leave them out!',
+        'Mission Day 214 Emergency! NASA DONKI detects an X3.9 super-flare from AR 13664 heading straight for Shackleton Rim. 10 seconds to decide: retract solar panels or leave them out!',
       durationSols: 1,
       leadTimeSols: 3,
       requiresChoice: true,
@@ -382,7 +382,7 @@ export function buildTimeline(levelOrOptions = 1, seedArg = 2142026, externalEve
     });
   }
 
-  // Build candidate daytime & night Sol pools for placing hazards without overlapping Sol 214
+  // Build candidate daytime & night Sol pools for placing hazards without overlapping Day 214
   const daytimeCandidateSols = [];
   const allCandidateSols = [];
   for (let sol = 2; sol <= targetSols; sol += 1) {
@@ -414,7 +414,7 @@ export function buildTimeline(levelOrOptions = 1, seedArg = 2142026, externalEve
       }
       occupiedHazardSols.add(targetSol);
 
-      // Keep Level 1 fair for first-time players by capping random extreme flares outside Sol 214
+      // Keep Level 1 fair for first-time players by capping random extreme flares outside Day 214
       const clampedSeverity =
         levelConfig.id === 1 && normalized.severity === 'extreme' ? 'major' : normalized.severity;
 
@@ -450,7 +450,7 @@ export function buildTimeline(levelOrOptions = 1, seedArg = 2142026, externalEve
     return null;
   }
 
-  // 4. Schedule Dust Storms on daytime Sols (for 2 Sols as specified in DESIGN_DOC)
+  // 4. Schedule Dust Storms on daytime Days (for 2 Sols as specified in DESIGN_DOC)
   const dustDef = BASE_EVENT_DEFINITIONS.dust;
   for (let d = 0; d < remainingDust; d += 1) {
     const startSol = claimSol(daytimeCandidateSols);
@@ -583,7 +583,7 @@ export function buildTimeline(levelOrOptions = 1, seedArg = 2142026, externalEve
         severity: 'normal',
         title: commsDef.title,
         label: commsDef.label,
-        description: 'Ionospheric interference stretches Earth-Moon signal delay to 3 Sols.',
+        description: 'Ionospheric interference stretches Earth-Moon signal delay to 3 Days.',
         durationSols: 1,
         leadTimeSols: commsDef.defaultLeadTime,
         isRealNasaEvent: false,

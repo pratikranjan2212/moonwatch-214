@@ -30,11 +30,11 @@ export function TopBar({ hudHidden = false, onToggleHud = null }) {
           <span className="brand-pill">MOONWATCH</span>
         </button>
 
-        <div className="sol-counter-box" aria-label={`Sol ${sol} of ${targetSols}, Mission Sol ${missionSol}`}>
+        <div className="sol-counter-box" aria-label={`Day ${sol} of ${targetSols}, Mission Day ${missionSol}`}>
           <span className="sol-primary">
-            Sol {sol} / {targetSols}
+            Day {sol} / {targetSols}
           </span>
-          <span className="sol-mission">Mission Sol {missionSol}</span>
+          <span className="sol-mission">Mission Day {missionSol}</span>
         </div>
 
         <div className="level-badge">

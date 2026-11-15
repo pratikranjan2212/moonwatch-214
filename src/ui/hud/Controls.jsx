@@ -20,10 +20,10 @@ export function Controls() {
           advanceSol();
         }}
         disabled={!isPlaying}
-        title={`Advance to Next Sol (Sol ${sol} to Sol ${nextSol}) [Space / Enter]`}
+        title={`Advance to Next Day (Day ${sol} to Day ${nextSol}) [Space / Enter]`}
       >
         <span>
-          Advance to Next Sol ({sol} → {nextSol})
+          Advance to Next Day ({sol} → {nextSol})
         </span>
         <span className="kbd-hint" style={{ color: '#FFFFFF', background: '#050302' }}>
           Space
